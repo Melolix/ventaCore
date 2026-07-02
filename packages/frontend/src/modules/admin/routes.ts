@@ -1,25 +1,21 @@
 import type { RouteRecordRaw } from 'vue-router';
-import LoginForm from '@/modules/auth/components/LoginForm.vue';
-import AreaLayout from '@/modules/auth/components/AreaLayout.vue';
+import AdminLayout from '@/modules/admin/components/AdminLayout.vue';
 
 const adminRoutes: RouteRecordRaw[] = [
 	{
-		path: '/admin/login',
-		name: 'admin-login',
-		component: LoginForm,
-		props: { area: 'admin' },
-		meta: { guestOnly: true, area: 'admin' },
-	},
-	{
 		path: '/admin',
-		component: AreaLayout,
-		props: { area: 'admin' },
+		component: AdminLayout,
 		meta: { requiresAuth: true, area: 'admin' },
 		children: [
 			{
 				path: '',
-				name: 'admin-home',
-				component: () => import('./views/Dashboard.vue'),
+				name: 'admin-rubros',
+				component: () => import('./views/RubrosView.vue'),
+			},
+			{
+				path: 'rubros/:id/productos',
+				name: 'admin-rubro-productos',
+				component: () => import('./views/ProductosView.vue'),
 			},
 		],
 	},

@@ -12,11 +12,19 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     Button: typeof import('primevue/button')['default']
+    ConfirmDialog: typeof import('primevue/confirmdialog')['default']
+    Dialog: typeof import('primevue/dialog')['default']
+    IconField: typeof import('primevue/iconfield')['default']
+    InputIcon: typeof import('primevue/inputicon')['default']
+    InputNumber: typeof import('primevue/inputnumber')['default']
     InputText: typeof import('primevue/inputtext')['default']
     Message: typeof import('primevue/message')['default']
     Password: typeof import('primevue/password')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    Select: typeof import('primevue/select')['default']
+    Tag: typeof import('primevue/tag')['default']
+    Textarea: typeof import('primevue/textarea')['default']
     Toast: typeof import('primevue/toast')['default']
   }
 }

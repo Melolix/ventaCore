@@ -3,10 +3,10 @@
 		<div class="w-full max-w-sm rounded-2xl border border-surface-200 bg-white p-8 shadow-sm dark:border-surface-700 dark:bg-surface-900">
 			<div class="mb-6 text-center">
 				<div class="mb-2 text-sm font-medium uppercase tracking-wide text-primary">
-					{{ $t(`areas.${area}`) }}
+					{{ $t('app.brand') }}
 				</div>
 				<h1 class="text-xl font-semibold text-surface-900 dark:text-surface-0">
-					{{ $t('auth.signInTo', { area: $t(`areas.${area}`) }) }}
+					{{ $t('auth.signIn') }}
 				</h1>
 			</div>
 
@@ -39,18 +39,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue';
-import { AREAS, type AreaKey } from '@base-template/shared';
+import { defineComponent } from 'vue';
+import { areaForRole } from '@base-template/shared';
 import { useUserStore } from '@/modules/auth/store/user';
 
 export default defineComponent({
 	name: 'LoginForm',
-	props: {
-		area: {
-			type: String as PropType<AreaKey>,
-			required: true,
-		},
-	},
 	data() {
 		return {
 			email: '',
@@ -67,14 +61,8 @@ export default defineComponent({
 			try {
 				const profile = await userStore.login(this.email, this.password);
 
-				// El usuario debe tener el rol del área a la que intenta entrar.
-				if (profile.role !== AREAS[this.area].role) {
-					await userStore.logout();
-					this.error = this.$t('auth.forbidden');
-					return;
-				}
-
-				const redirect = (this.$route.query.redirect as string) || AREAS[this.area].homePath;
+				// Login único: redirige a la home del área que corresponde al rol.
+				const redirect = (this.$route.query.redirect as string) || areaForRole(profile.role).homePath;
 				this.$router.replace(redirect);
 			} catch {
 				this.error = this.$t('auth.invalidCredentials');

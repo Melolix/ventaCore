@@ -12,3 +12,6 @@ coverage
 !.vscode/extensions.json
 packages/sdk/src
 !packages/sdk/src/.gitkeep
+.firebase-data
+firebase-debug.log
+ui-debug.log

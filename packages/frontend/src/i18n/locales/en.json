@@ -6,16 +6,125 @@
 		"password": "Password",
 		"loading": "Loading...",
 		"welcome": "Welcome",
-		"notFound": "Page not found"
+		"notFound": "Page not found",
+		"cancel": "Cancel",
+		"delete": "Delete"
 	},
 	"areas": {
 		"superadmin": "Super Admin",
 		"admin": "Administration",
 		"app": "Application"
 	},
+	"app": {
+		"brand": "VentaCore"
+	},
+	"nav": {
+		"goToPanel": "Go to panel"
+	},
 	"auth": {
+		"signIn": "Sign in",
 		"signInTo": "Sign in to {area}",
 		"invalidCredentials": "Invalid credentials",
 		"forbidden": "You don't have access to this area"
+	},
+	"public": {
+		"hero": {
+			"titlePre": "Sales & Marketing Management",
+			"titleHi": "Multi-Category",
+			"subtitle": "Your professional catalog ready to make an impact on social media. Centralize, design and sell with the power of VentaCore.",
+			"cta": "Explore Catalog"
+		},
+		"products": "Products",
+		"empty": "No categories published yet.",
+		"back": "Back",
+		"sector": "Sector",
+		"detailTitle": "Category",
+		"showing": "Showing {n} products",
+		"searchPlaceholder": "Search product...",
+		"noProducts": "This category has no products yet.",
+		"generateAd": "Generate Ad",
+		"sort": {
+			"relevance": "Sort by: Relevance",
+			"priceAsc": "Price: Low to High",
+			"priceDesc": "Price: High to Low"
+		},
+		"stats": {
+			"conversion": "Conversion",
+			"leads": "Leads Generated",
+			"support": "AI Support",
+			"catalogs": "Catalogs"
+		}
+	},
+	"admin": {
+		"panelTitle": "Admin Panel",
+		"panelSubtitle": "VentaCore management",
+		"soon": "Coming soon",
+		"viewSite": "View site",
+		"nav": {
+			"rubros": "Categories",
+			"creativos": "Creatives",
+			"config": "Settings"
+		},
+		"status": {
+			"active": "Active",
+			"draft": "Draft"
+		},
+		"errors": {
+			"load": "Could not load data",
+			"save": "Could not save",
+			"delete": "Could not delete"
+		},
+		"rubros": {
+			"title": "Category Management",
+			"subtitle": "Manage commercial sectors, define their brand data and organize their products.",
+			"exportReport": "Export Report",
+			"createTitle": "Create New Category",
+			"createSubtitle": "Configure the sector identity",
+			"existingTitle": "Existing Categories",
+			"activeCount": "{n} Active",
+			"draftCount": "{n} Drafts",
+			"empty": "You haven't created any category yet.",
+			"noDescription": "No description",
+			"reach": "Reach",
+			"publishInstagram": "Publish to Instagram",
+			"assetsPlaceholder": "Drag your logo and style guide",
+			"save": "Save Category",
+			"created": "Category created",
+			"updated": "Category updated",
+			"deleted": "Category deleted",
+			"editTitle": "Edit Category",
+			"saveChanges": "Save changes",
+			"deleteTitle": "Delete category",
+			"deleteConfirm": "Are you sure you want to delete \"{name}\" and all its products?",
+			"fields": {
+				"name": "Category name",
+				"namePlaceholder": "e.g. Premium Real Estate",
+				"description": "Description",
+				"descriptionPlaceholder": "Briefly describe the sector and its goals...",
+				"imageUrl": "Image URL (optional)",
+				"status": "Status"
+			}
+		},
+		"productos": {
+			"eyebrow": "Category",
+			"title": "Products",
+			"createTitle": "Add Product",
+			"listTitle": "Products ({n})",
+			"empty": "This category has no products yet.",
+			"save": "Add Product",
+			"created": "Product added",
+			"updated": "Product updated",
+			"deleted": "Product deleted",
+			"editTitle": "Edit Product",
+			"saveChanges": "Save changes",
+			"deleteTitle": "Delete product",
+			"deleteConfirm": "Are you sure you want to delete \"{name}\"?",
+			"fields": {
+				"name": "Name",
+				"description": "Description",
+				"price": "Price",
+				"imageUrl": "Image URL (optional)"
+			}
+		}
 	}
 }

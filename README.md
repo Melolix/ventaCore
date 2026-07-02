@@ -1,17 +1,24 @@
-# Base Template
+# VentaCore
 
-Monorepo base para arrancar proyectos nuevos. Replica el stack de `eternumpro`
-(Vue 3 + NestJS + Firebase) y agrega la particularidad de **3 grandes áreas en el
-router, cada una con su propio login**:
+App de publicidad sobre un stack Vue 3 + NestJS + Firebase. El público navega
+**sin cuenta**; solo los roles administrativos inician sesión. El router tiene
+**3 áreas** y un **login único** que redirige a cada quien según su rol:
 
-| Área          | Ruta base      | Login              | Rol requerido |
-| ------------- | -------------- | ------------------ | ------------- |
-| Super Admin   | `/superadmin`  | `/superadmin/login`| `superadmin`  |
-| Administración| `/admin`       | `/admin/login`     | `admin`       |
-| Aplicación    | `/app`         | `/app/login`       | `user`        |
+| Área          | Ruta base      | Acceso                         | Rol requerido |
+| ------------- | -------------- | ------------------------------ | ------------- |
+| Aplicación    | `/app`         | **público** (sin login)        | —             |
+| Super Admin   | `/superadmin`  | requiere sesión (`/login`)     | `superadmin`  |
+| Administración| `/admin`       | requiere sesión (`/login`)     | `admin`       |
 
-Las 3 comparten un **único backend de autenticación (Firebase)**; cada login
-valida que el usuario tenga el rol del área y, si no, lo manda a la suya.
+El header de la app pública muestra un botón **"Iniciar sesión"** que lleva a
+`/login`. Ese formulario único autentica contra **Firebase** y, según el rol del
+usuario, lo redirige a su panel (`/superadmin` o `/admin`). El guard del router
+protege cada área verificando `meta.area` + rol.
+
+> Jerarquía de producto (a futuro): **superadmin** (dueño de la plataforma) →
+> **admin** (dueño de un negocio) → **cliente** (entidad gestionada por el admin,
+> sin login) → **usuario/público** (anónimo). Hoy solo existen `superadmin`,
+> `admin` y el público anónimo.
 
 ## Stack
 
@@ -61,35 +68,63 @@ packages/
 
 ## Puesta en marcha
 
-1. **Variables de entorno:** completá `.env.development` (Firebase web + admin, Postgres).
-2. **Postgres** corriendo y la base creada (`DB_NAME`). Con `DB_SYNCHRONIZE=true` TypeORM
-   crea las tablas solo.
-3. **Firebase:** proyecto con Authentication (Email/Password) habilitado y un
-   service account JSON (`GOOGLE_APPLICATION_CREDENTIALS`).
-4. Instalar dependencias:
+La autenticación corre contra el **emulador de Firebase Auth** (local, sin
+proyecto real ni service account). El emulador de Auth no requiere Java.
+
+1. **Postgres** instalado y corriendo, con la base creada:
+   ```sql
+   CREATE DATABASE ventacore;
+   ```
+   Ajustá en `.env.development` las variables `DB_*` (sobre todo `DB_PASSWORD` y
+   `DB_NAME`) según tu Postgres local. Con `DB_SYNCHRONIZE=true` TypeORM crea las
+   tablas solo. El resto del `.env.development` ya viene configurado para el
+   emulador (`FIREBASE_AUTH_EMULATOR_HOST`, proyecto `demo-ventacore`).
+2. Instalar dependencias (Node 24):
    ```bash
    npm install
    ```
-5. **Crear el primer superadmin** (necesario porque el alta de usuarios requiere uno):
-   ```bash
-   cd packages/api
-   dotenvx run -f ../../.env.development -- ts-node -r tsconfig-paths/register src/seed.ts admin@tudominio.com unaClave123
-   ```
-6. **Levantar todo** (frontend + api en paralelo) desde la raíz:
+3. **Levantar todo** (emulador + API + frontend en paralelo) desde la raíz:
    ```bash
    npm run dev
    ```
-   - Frontend: http://localhost:5173
+   - Emulador Auth: `:9099` — UI del emulador: `:4400`
    - API: http://localhost:3000/api — Swagger en `/api/docs`
-7. **Generar el SDK** (con el API corriendo):
+   - Frontend: http://localhost:5173
+   - `Ctrl+C` corta los tres juntos (concurrently mata el árbol de procesos).
+4. **Sembrar datos de demo** (la primera vez, con `npm run dev` corriendo). En
+   otra terminal:
    ```bash
-   npm run generate:sdk
+   npm run seed:demo
    ```
+   Crea los usuarios de acceso y un catálogo de ejemplo (4 rubros × 5 productos).
+   Es idempotente: si ya hay datos, no los duplica.
+
+   | Rol        | Email                      | Contraseña      | Panel         |
+   | ---------- | -------------------------- | --------------- | ------------- |
+   | Superadmin | `superadmin@ventacore.com` | `superadmin123` | `/superadmin` |
+   | Admin      | `admin@ventacore.com`      | `admin123`      | `/admin`      |
+
+5. Abrí **http://localhost:5173** (público) o iniciá sesión para entrar al panel.
+6. **Generar el SDK** (opcional, con el API corriendo): `npm run generate:sdk`.
+
+> Los usuarios del emulador y los datos de Postgres **no** están en el repo
+> (`.firebase-data/` está en `.gitignore`), por eso el `seed:demo` es el paso que
+> deja todo listo tras clonar. Para sembrar sólo usuarios sueltos:
+> `npm run seed -- <email> <password> <rol>`. Para correr sólo el emulador:
+> `npm run emulator`.
+
+> **Producción / Firebase real:** dejá vacías (o quitá) las variables
+> `*_AUTH_EMULATOR_HOST` y completá el proyecto Firebase real (config web +
+> `GOOGLE_APPLICATION_CREDENTIALS` con el service account). El código detecta el
+> emulador por esas variables; sin ellas usa credenciales reales.
 
 ## Flujo de auth (resumen)
 
-1. El usuario entra a `/superadmin/login` (o `/admin/login`, `/app/login`).
-2. `LoginForm` hace `signInWithEmailAndPassword` (Firebase) y luego pide `GET /auth/me`.
-3. El API verifica el ID token (Firebase Admin), busca el perfil + rol en Postgres y lo devuelve.
-4. Si el rol coincide con el área → entra; si no → se cierra sesión y se muestra "sin permiso".
-5. El guard del router (`router/index.ts`) protege cada área según `meta.area` + rol.
+1. El público entra a `/app` (o `/`) **sin login**. El header ofrece "Iniciar sesión".
+2. En `/login`, `LoginForm` hace `signInWithEmailAndPassword` (Firebase/emulador)
+   y luego pide `GET /auth/me`.
+3. El API verifica el ID token (Firebase Admin), busca el perfil + rol en Postgres
+   y lo devuelve.
+4. El front redirige al panel según el rol (`areaForRole(role).homePath`).
+5. El guard del router (`router/index.ts`) protege `/admin` y `/superadmin` según
+   `meta.area` + rol; si no hay sesión, manda a `/login?redirect=...`.

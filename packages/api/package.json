@@ -8,6 +8,8 @@
 		"start:nest": "dotenvx run -f ../../.env.development -- ts-node -r tsconfig-paths/register src/main.ts",
 		"start:nest:dev": "dotenvx run -f ../../.env.development -- nodemon",
 		"dev": "npm run start:nest",
+		"seed": "dotenvx run -f ../../.env.development -- ts-node -r tsconfig-paths/register src/seed.ts",
+		"seed:demo": "dotenvx run -f ../../.env.development -- ts-node -r tsconfig-paths/register src/seed-demo.ts",
 		"lint": "eslint .",
 		"lint:fix": "eslint --fix .",
 		"test": "jest --passWithNoTests",

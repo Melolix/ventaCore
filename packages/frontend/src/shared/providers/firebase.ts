@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, connectAuthEmulator, type User } from 'firebase/auth';
 
 const firebaseConfig = {
 	apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,6 +12,12 @@ const firebaseConfig = {
 
 export const firebaseApp = initializeApp(firebaseConfig);
 export const auth = getAuth(firebaseApp);
+
+// En desarrollo, apuntar el SDK al emulador de Auth si está configurado.
+const emulatorHost = import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST;
+if (emulatorHost) {
+	connectAuthEmulator(auth, `http://${emulatorHost}`, { disableWarnings: true });
+}
 
 /**
  * Promesa que resuelve cuando Firebase terminó de restaurar la sesión.

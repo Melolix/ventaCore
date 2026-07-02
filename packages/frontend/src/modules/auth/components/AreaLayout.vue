@@ -7,6 +7,14 @@
 				<span class="text-xs font-medium uppercase tracking-wide text-primary">{{ $t(`areas.${area}`) }}</span>
 			</div>
 			<div class="flex items-center gap-3">
+				<Button
+					:label="$t('admin.viewSite')"
+					icon="pi pi-external-link"
+					severity="secondary"
+					size="small"
+					outlined
+					@click="$router.push('/app')"
+				/>
 				<span class="text-sm text-surface-600 dark:text-surface-300">{{ email }}</span>
 				<Button :label="$t('common.logout')" severity="secondary" size="small" text @click="onLogout" />
 			</div>
@@ -20,7 +28,7 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
-import { AREAS, type AreaKey } from '@base-template/shared';
+import { type AreaKey } from '@base-template/shared';
 import { useUserStore } from '@/modules/auth/store/user';
 
 export default defineComponent({
@@ -39,7 +47,8 @@ export default defineComponent({
 	methods: {
 		async onLogout() {
 			await useUserStore().logout();
-			this.$router.replace(AREAS[this.area].loginPath);
+			// Al cerrar sesión volvemos a la página pública como visitante.
+			this.$router.replace('/app');
 		},
 	},
 });

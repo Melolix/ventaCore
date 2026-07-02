@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { AREAS, areaForRole, type AreaKey } from '@base-template/shared';
 import { useUserStore } from '@/modules/auth/store/user';
+import LoginForm from '@/modules/auth/components/LoginForm.vue';
 
 import superadminRoutes from '@/modules/superadmin/routes';
 import adminRoutes from '@/modules/admin/routes';
@@ -19,6 +20,14 @@ declare module 'vue-router' {
 
 const routes: RouteRecordRaw[] = [
 	{ path: '/', redirect: AREAS.app.basePath },
+
+	// Login único: un solo formulario que redirige según el rol del usuario.
+	{
+		path: '/login',
+		name: 'login',
+		component: LoginForm,
+		meta: { guestOnly: true },
+	},
 
 	...superadminRoutes,
 	...adminRoutes,
@@ -53,9 +62,9 @@ router.beforeEach(async to => {
 	if (to.meta.requiresAuth && area) {
 		const user = await userStore.currentUser();
 
-		// Sin sesión → al login del área pedida.
+		// Sin sesión → al login único, recordando el destino.
 		if (!user) {
-			return { path: area.loginPath, query: { redirect: to.fullPath } };
+			return { path: '/login', query: { redirect: to.fullPath } };
 		}
 
 		// Rol distinto al del área → a SU propia área.

@@ -6,9 +6,12 @@
 		"packages/*"
 	],
 	"scripts": {
-		"dev": "npm-run-all --parallel dev:frontend dev:api",
+		"dev": "concurrently -k -n emulator,api,web -c yellow,green,cyan \"npm:emulator\" \"npm:dev:api\" \"npm:dev:frontend\"",
 		"dev:frontend": "dotenvx run -f .env.development -- npm run dev --prefix packages/frontend",
 		"dev:api": "npm run start:nest:dev --prefix packages/api",
+		"emulator": "firebase emulators:start --only auth --import=./.firebase-data --export-on-exit=./.firebase-data",
+		"seed": "npm run seed --prefix packages/api",
+		"seed:demo": "npm run seed:demo --prefix packages/api",
 		"build": "turbo build",
 		"build:frontend": "turbo build --filter=@base-template/frontend",
 		"build:api": "turbo build --filter=@base-template/api",
@@ -22,9 +25,10 @@
 	"devDependencies": {
 		"@dotenvx/dotenvx": "1.65.0",
 		"@openapitools/openapi-generator-cli": "2.32.0",
+		"concurrently": "9.2.1",
+		"firebase-tools": "13.35.1",
 		"husky": "9.1.7",
 		"lint-staged": "17.0.2",
-		"npm-run-all": "4.1.5",
 		"prettier": "3.8.3",
 		"sass": "1.99.0",
 		"turbo": "2.9.10"

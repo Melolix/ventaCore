@@ -6,16 +6,125 @@
 		"password": "Contraseña",
 		"loading": "Cargando...",
 		"welcome": "Bienvenido",
-		"notFound": "Página no encontrada"
+		"notFound": "Página no encontrada",
+		"cancel": "Cancelar",
+		"delete": "Eliminar"
 	},
 	"areas": {
 		"superadmin": "Super Admin",
 		"admin": "Administración",
 		"app": "Aplicación"
 	},
+	"app": {
+		"brand": "VentaCore"
+	},
+	"nav": {
+		"goToPanel": "Ir al panel"
+	},
 	"auth": {
+		"signIn": "Iniciar sesión",
 		"signInTo": "Ingresá a {area}",
 		"invalidCredentials": "Credenciales inválidas",
 		"forbidden": "No tenés permiso para esta área"
+	},
+	"public": {
+		"hero": {
+			"titlePre": "Gestión de Ventas y Marketing",
+			"titleHi": "Multi-Rubro",
+			"subtitle": "Tu catálogo profesional listo para impactar en redes sociales. Centralizá, diseñá y vendé con la potencia de VentaCore.",
+			"cta": "Explorar Catálogo"
+		},
+		"products": "Productos",
+		"empty": "Todavía no hay rubros publicados.",
+		"back": "Volver",
+		"sector": "Sector",
+		"detailTitle": "Rubro",
+		"showing": "Mostrando {n} productos",
+		"searchPlaceholder": "Buscar producto...",
+		"noProducts": "Este rubro todavía no tiene productos.",
+		"generateAd": "Generar Publicidad",
+		"sort": {
+			"relevance": "Ordenar por: Relevancia",
+			"priceAsc": "Precio: Menor a Mayor",
+			"priceDesc": "Precio: Mayor a Menor"
+		},
+		"stats": {
+			"conversion": "Conversión",
+			"leads": "Leads Generados",
+			"support": "Soporte IA",
+			"catalogs": "Catálogos"
+		}
+	},
+	"admin": {
+		"panelTitle": "Panel Admin",
+		"panelSubtitle": "Gestión VentaCore",
+		"soon": "Próximamente",
+		"viewSite": "Ver el sitio",
+		"nav": {
+			"rubros": "Rubros",
+			"creativos": "Creativos",
+			"config": "Configuración"
+		},
+		"status": {
+			"active": "Activo",
+			"draft": "Borrador"
+		},
+		"errors": {
+			"load": "No se pudieron cargar los datos",
+			"save": "No se pudo guardar",
+			"delete": "No se pudo eliminar"
+		},
+		"rubros": {
+			"title": "Gestión de Rubros",
+			"subtitle": "Administrá los sectores comerciales, definí sus datos de marca y organizá sus productos.",
+			"exportReport": "Exportar Reporte",
+			"createTitle": "Crear Nuevo Rubro",
+			"createSubtitle": "Configurá la identidad del sector",
+			"existingTitle": "Rubros Existentes",
+			"activeCount": "{n} Activos",
+			"draftCount": "{n} Borradores",
+			"empty": "Todavía no creaste ningún rubro.",
+			"noDescription": "Sin descripción",
+			"reach": "Alcance",
+			"publishInstagram": "Publicar en Instagram",
+			"assetsPlaceholder": "Arrastrá tu logo y guía de estilos",
+			"save": "Guardar Rubro",
+			"created": "Rubro creado",
+			"updated": "Rubro actualizado",
+			"deleted": "Rubro eliminado",
+			"editTitle": "Editar Rubro",
+			"saveChanges": "Guardar cambios",
+			"deleteTitle": "Eliminar rubro",
+			"deleteConfirm": "¿Seguro que querés eliminar \"{name}\" y todos sus productos?",
+			"fields": {
+				"name": "Nombre del rubro",
+				"namePlaceholder": "Ej. Inmobiliaria Premium",
+				"description": "Descripción",
+				"descriptionPlaceholder": "Describí brevemente el sector y sus objetivos...",
+				"imageUrl": "URL de imagen (opcional)",
+				"status": "Estado"
+			}
+		},
+		"productos": {
+			"eyebrow": "Rubro",
+			"title": "Productos",
+			"createTitle": "Agregar Producto",
+			"listTitle": "Productos ({n})",
+			"empty": "Este rubro todavía no tiene productos.",
+			"save": "Agregar Producto",
+			"created": "Producto agregado",
+			"updated": "Producto actualizado",
+			"deleted": "Producto eliminado",
+			"editTitle": "Editar Producto",
+			"saveChanges": "Guardar cambios",
+			"deleteTitle": "Eliminar producto",
+			"deleteConfirm": "¿Seguro que querés eliminar \"{name}\"?",
+			"fields": {
+				"name": "Nombre",
+				"description": "Descripción",
+				"price": "Precio",
+				"imageUrl": "URL de imagen (opcional)"
+			}
+		}
 	}
 }

@@ -12,9 +12,12 @@ export class FirebaseService implements OnModuleInit {
 
 	onModuleInit() {
 		if (!admin.apps.length) {
+			// Con el emulador (FIREBASE_AUTH_EMULATOR_HOST) no hacen falta credenciales
+			// reales: firebase-admin enruta las operaciones de auth al emulador local.
+			const useEmulator = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
 			this.app = admin.initializeApp({
-				credential: admin.credential.applicationDefault(),
 				projectId: process.env.FIREBASE_PROJECT_ID,
+				...(useEmulator ? {} : { credential: admin.credential.applicationDefault() }),
 			});
 		} else {
 			this.app = admin.app();
