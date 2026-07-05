@@ -26,6 +26,15 @@ const ESPACIOS = [
 		logoUrl: img('1594771804886-a933bb2d609b'),
 		adminEmail: 'admin@ventacore.com',
 		adminPassword: 'admin123',
+		about: {
+			whatsapp: '5493511234567',
+			instagramUrl: 'https://instagram.com/campo.ruta',
+			aboutHeadline: 'Máquinas que trabajan tanto como vos',
+			aboutImageUrl: img('1615811361523-6bd03d7748e7'),
+			aboutText:
+				'<p>En <strong>Campo &amp; Ruta</strong> llevamos más de <strong>20 años</strong> acercando maquinaria agrícola y vehículos a quienes hacen producir la tierra. Empezamos como un taller familiar y hoy somos referentes en la zona.</p>' +
+				'<p>Trabajamos con las <strong>mejores marcas</strong> del mercado y ofrecemos <strong>financiación a medida</strong>, asesoramiento técnico y servicio de posventa. Porque sabemos que tu equipo no puede parar.</p>',
+		},
 		rubros: [
 			{
 				nombre: 'Maquinaria de Campo',
@@ -59,6 +68,15 @@ const ESPACIOS = [
 		logoUrl: img('1515940175183-6798529cb860'),
 		adminEmail: 'admin2@ventacore.com',
 		adminPassword: 'admin123',
+		about: {
+			whatsapp: '5491145678901',
+			instagramUrl: 'https://instagram.com/hogar.tech',
+			aboutHeadline: 'Tu casa y tu tecnología, en un solo lugar',
+			aboutImageUrl: img('1712254293792-1013ae15fafd'),
+			aboutText:
+				'<p><strong>Hogar &amp; Tech</strong> nació de una idea simple: que puedas <strong>equipar tu casa y renovar tu tecnología</strong> sin dar mil vueltas. Diseño de exteriores premium y los últimos gadgets, con la misma atención de siempre.</p>' +
+				'<p>Cada proyecto y cada producto pasa por nuestro <strong>control de calidad</strong>. Comprás con <strong>garantía oficial</strong> y el respaldo de un equipo que te acompaña antes y después de la compra.</p>',
+		},
 		rubros: [
 			{
 				nombre: 'Exteriores y Jardines',
@@ -160,8 +178,14 @@ async function seed() {
 		const yaExiste = existentes.find(x => x.nombre === e.nombre);
 
 		if (yaExiste) {
-			// Datos ya presentes: solo re-sincronizamos el admin en el emulador.
+			// Datos ya presentes: re-sincronizamos el admin en el emulador y,
+			// si todavía no tiene "Sobre Nosotros" cargado, lo completamos.
 			await ensureAuthUser(e.adminEmail, e.adminPassword, Role.ADMIN, e.nombre, yaExiste.id);
+			if (!yaExiste.aboutText) {
+				await espaciosSvc.updateAbout(yaExiste.id, e.about);
+				// eslint-disable-next-line no-console
+				console.log(`↻ "Sobre Nosotros" completado: ${e.nombre}`);
+			}
 			continue;
 		}
 
@@ -175,6 +199,9 @@ async function seed() {
 		});
 		// eslint-disable-next-line no-console
 		console.log(`✅ Espacio: ${espacio.nombre} (admin: ${e.adminEmail})`);
+
+		// Página "Sobre Nosotros" de ejemplo (contacto + historia con formato).
+		await espaciosSvc.updateAbout(espacio.id, e.about);
 
 		for (const r of e.rubros) {
 			const rubro = await rubrosSvc.create(espacio.id, {

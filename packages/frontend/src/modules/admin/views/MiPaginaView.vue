@@ -23,7 +23,19 @@
 				<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 					{{ $t('admin.about.fields.text') }}
 				</label>
-				<Textarea v-model="form.aboutText" class="w-full" rows="8" :placeholder="$t('admin.about.fields.textPlaceholder')" />
+				<Editor v-model="form.aboutText" editorStyle="height: 240px" :placeholder="$t('admin.about.fields.textPlaceholder')">
+					<template #toolbar>
+						<span class="ql-formats">
+							<button class="ql-bold" type="button"></button>
+							<button class="ql-italic" type="button"></button>
+							<button class="ql-underline" type="button"></button>
+						</span>
+						<span class="ql-formats">
+							<button class="ql-list" value="ordered" type="button"></button>
+							<button class="ql-list" value="bullet" type="button"></button>
+						</span>
+					</template>
+				</Editor>
 			</div>
 
 			<div class="space-y-2">
@@ -95,12 +107,18 @@ export default defineComponent({
 		}
 	},
 	methods: {
+		/** El Editor emite null o "<p><br></p>" cuando queda vacío: lo normalizamos a "". */
+		normalizeAboutText(): string {
+			const html = this.form.aboutText || '';
+			const sinFormato = html.replace(/<[^>]+>/g, '').replace(/ /g, ' ').trim();
+			return sinFormato.length === 0 ? '' : html.trim();
+		},
 		async save() {
 			this.saving = true;
 			try {
 				await this.catalog.updateMiEspacio({
 					aboutHeadline: this.form.aboutHeadline.trim(),
-					aboutText: this.form.aboutText.trim(),
+					aboutText: this.normalizeAboutText(),
 					aboutImageUrl: this.form.aboutImageUrl.trim(),
 					whatsapp: this.form.whatsapp.trim(),
 					instagramUrl: this.form.instagramUrl.trim(),

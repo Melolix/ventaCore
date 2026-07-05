@@ -13,8 +13,13 @@
 		<section class="mb-16 grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
 			<div :class="espacio?.aboutImageUrl ? 'order-2 lg:order-1' : 'lg:col-span-2 text-center max-w-2xl mx-auto'">
 				<span class="text-xs font-bold uppercase tracking-widest text-primary">{{ $t('public.about.storyEyebrow') }}</span>
-				<p class="mt-4 whitespace-pre-line text-lg leading-relaxed text-surface-600 dark:text-surface-300">
-					{{ espacio?.aboutText || $t('public.about.empty') }}
+				<div
+					v-if="aboutHtml"
+					class="about-prose mt-4 text-lg leading-relaxed text-surface-600 dark:text-surface-300"
+					v-html="aboutHtml"
+				/>
+				<p v-else class="mt-4 text-lg leading-relaxed text-surface-600 dark:text-surface-300">
+					{{ $t('public.about.empty') }}
 				</p>
 
 				<a
@@ -46,6 +51,7 @@
 import { defineComponent } from 'vue';
 import type { Espacio } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { renderRichText } from '@/modules/app/utils/richText';
 
 export default defineComponent({
 	name: 'AboutView',
@@ -53,6 +59,45 @@ export default defineComponent({
 		espacio(): Espacio | null {
 			return useCatalogStore().currentEspacio;
 		},
+		aboutHtml(): string {
+			return renderRichText(this.espacio?.aboutText);
+		},
 	},
 });
 </script>
+
+<style scoped>
+.about-prose :deep(p) {
+	margin-bottom: 1rem;
+}
+.about-prose :deep(p:last-child) {
+	margin-bottom: 0;
+}
+.about-prose :deep(strong),
+.about-prose :deep(b) {
+	font-weight: 700;
+	color: var(--p-surface-900);
+}
+:global(.dark) .about-prose :deep(strong),
+:global(.dark) .about-prose :deep(b) {
+	color: var(--p-surface-0);
+}
+.about-prose :deep(ul),
+.about-prose :deep(ol) {
+	margin: 0.75rem 0;
+	padding-left: 1.5rem;
+}
+.about-prose :deep(ul) {
+	list-style: disc;
+}
+.about-prose :deep(ol) {
+	list-style: decimal;
+}
+.about-prose :deep(li) {
+	margin-bottom: 0.35rem;
+}
+.about-prose :deep(a) {
+	color: var(--p-primary-color);
+	text-decoration: underline;
+}
+</style>

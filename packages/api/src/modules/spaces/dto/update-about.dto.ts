@@ -22,7 +22,7 @@ export class UpdateAboutDto {
 	@ApiProperty({ required: false })
 	@IsOptional()
 	@IsString()
-	@MaxLength(5000)
+	@MaxLength(10000)
 	aboutText?: string;
 
 	@ApiProperty({ required: false, example: 'https://.../foto.jpg' })
