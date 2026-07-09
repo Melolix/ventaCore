@@ -30,6 +30,18 @@
 		"forbidden": "You don't have access to this area",
 		"spaceSuspended": "Your site is suspended. Please contact the administrator."
 	},
+	"image": {
+		"upload": "Upload image",
+		"cropTitle": "Crop the image",
+		"cropSave": "Crop and upload",
+		"err": {
+			"type": "Invalid format. Use JPG, PNG or WebP.",
+			"size": "The image exceeds the maximum size (8 MB).",
+			"dimensions": "The image is too small and would look blurry. Upload a higher-resolution one.",
+			"decode": "Could not read the image.",
+			"upload": "Could not upload the image. Please try again."
+		}
+	},
 	"public": {
 		"unavailable": {
 			"title": "This site is unavailable",
@@ -144,7 +156,7 @@
 				"headlinePlaceholder": "e.g. Our mission: bringing you the best products",
 				"text": "Your story",
 				"textPlaceholder": "Tell how you started, what sets you apart, your values...",
-				"image": "Image (URL)",
+				"image": "Image (optional)",
 				"whatsapp": "WhatsApp",
 				"whatsappHint": "With country code, no + or spaces (e.g. 5491112345678).",
 				"instagram": "Instagram (URL)"
@@ -183,7 +195,8 @@
 				"namePlaceholder": "e.g. Premium Real Estate",
 				"description": "Description",
 				"descriptionPlaceholder": "Briefly describe the sector and its goals...",
-				"imageUrl": "Image URL (optional)",
+				"imageUrl": "Cover image (optional)",
+				"imageHint": "Main image of the category. Cropped to 3:1.",
 				"logoUrl": "Category logo (optional)",
 				"logoHint": "Shown next to the name in the storefront. Ideally square with a transparent background.",
 				"instagram": "Business Instagram",
@@ -209,7 +222,7 @@
 				"name": "Name",
 				"description": "Description",
 				"price": "Price",
-				"imageUrl": "Image URL (optional)"
+				"imageUrl": "Image (optional)"
 			}
 		}
 	}

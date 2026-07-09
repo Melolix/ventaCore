@@ -45,14 +45,22 @@
 							<label class="px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 								{{ $t('admin.rubros.fields.imageUrl') }}
 							</label>
-							<InputText v-model="form.imageUrl" class="w-full" placeholder="https://..." />
+							<ImageUpload
+								v-model="form.imageUrl"
+								folder="rubros"
+								:aspect-ratio="3"
+								:min-width="900"
+								:hint="$t('admin.rubros.fields.imageHint')"
+							/>
 						</div>
 
 						<div class="space-y-2">
 							<label class="px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 								{{ $t('admin.rubros.fields.logoUrl') }}
 							</label>
-							<InputText v-model="form.logoUrl" class="w-full" placeholder="https://..." />
+							<div class="max-w-[160px]">
+								<ImageUpload v-model="form.logoUrl" folder="rubros" :aspect-ratio="1" :min-width="200" />
+							</div>
 							<p class="px-1 text-xs text-surface-400">{{ $t('admin.rubros.fields.logoHint') }}</p>
 						</div>
 
@@ -167,11 +175,13 @@
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.rubros.fields.imageUrl') }}</label>
-					<InputText v-model="edit.imageUrl" class="w-full" placeholder="https://..." />
+					<ImageUpload v-model="edit.imageUrl" folder="rubros" :aspect-ratio="3" :min-width="900" />
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.rubros.fields.logoUrl') }}</label>
-					<InputText v-model="edit.logoUrl" class="w-full" placeholder="https://..." />
+					<div class="max-w-[160px]">
+						<ImageUpload v-model="edit.logoUrl" folder="rubros" :aspect-ratio="1" :min-width="200" />
+					</div>
 				</div>
 				<div class="space-y-1">
 					<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-instagram" /> {{ $t('admin.rubros.fields.instagram') }}</label>
@@ -194,9 +204,11 @@
 import { defineComponent } from 'vue';
 import { RubroStatus, type Rubro } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import ImageUpload from '@/shared/components/ImageUpload.vue';
 
 export default defineComponent({
 	name: 'RubrosView',
+	components: { ImageUpload },
 	data() {
 		return {
 			catalog: useCatalogStore(),

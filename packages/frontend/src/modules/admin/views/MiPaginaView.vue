@@ -42,7 +42,7 @@
 				<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 					{{ $t('admin.about.fields.image') }}
 				</label>
-				<InputText v-model="form.aboutImageUrl" class="w-full" placeholder="https://..." />
+				<ImageUpload v-model="form.aboutImageUrl" folder="about" :aspect-ratio="4 / 3" :min-width="800" />
 			</div>
 
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -61,10 +61,6 @@
 				</div>
 			</div>
 
-			<div v-if="form.aboutImageUrl" class="overflow-hidden rounded-2xl border border-surface-200 dark:border-surface-700">
-				<img :src="form.aboutImageUrl" class="max-h-56 w-full object-cover" alt="preview" />
-			</div>
-
 			<div class="flex items-center justify-end gap-3 border-t border-surface-200/50 pt-4 dark:border-surface-700/50">
 				<Button :label="$t('admin.about.save')" :loading="saving" type="submit" class="primary-gradient border-0 font-semibold text-white" />
 			</div>
@@ -75,9 +71,11 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import ImageUpload from '@/shared/components/ImageUpload.vue';
 
 export default defineComponent({
 	name: 'MiPaginaView',
+	components: { ImageUpload },
 	data() {
 		return {
 			catalog: useCatalogStore(),

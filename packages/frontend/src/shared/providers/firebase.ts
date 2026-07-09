@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, connectAuthEmulator, type User } from 'firebase/auth';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
 const firebaseConfig = {
 	apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,11 +13,19 @@ const firebaseConfig = {
 
 export const firebaseApp = initializeApp(firebaseConfig);
 export const auth = getAuth(firebaseApp);
+export const storage = getStorage(firebaseApp);
 
 // En desarrollo, apuntar el SDK al emulador de Auth si está configurado.
 const emulatorHost = import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST;
 if (emulatorHost) {
 	connectAuthEmulator(auth, `http://${emulatorHost}`, { disableWarnings: true });
+}
+
+// Íd. para Storage: si hay host de emulador, subimos/leemos contra el local.
+const storageEmulatorHost = import.meta.env.VITE_FIREBASE_STORAGE_EMULATOR_HOST;
+if (storageEmulatorHost) {
+	const [host, port] = storageEmulatorHost.split(':');
+	connectStorageEmulator(storage, host, Number(port));
 }
 
 /**

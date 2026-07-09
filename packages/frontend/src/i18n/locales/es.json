@@ -30,6 +30,18 @@
 		"forbidden": "No tenés permiso para esta área",
 		"spaceSuspended": "Tu sitio está suspendido. Contactá al administrador."
 	},
+	"image": {
+		"upload": "Subir imagen",
+		"cropTitle": "Recortá la imagen",
+		"cropSave": "Recortar y subir",
+		"err": {
+			"type": "Formato no válido. Usá JPG, PNG o WebP.",
+			"size": "La imagen supera el tamaño máximo (8 MB).",
+			"dimensions": "La imagen es muy chica y se vería borrosa. Subí una de mayor resolución.",
+			"decode": "No se pudo leer la imagen.",
+			"upload": "No se pudo subir la imagen. Probá de nuevo."
+		}
+	},
 	"public": {
 		"unavailable": {
 			"title": "Este sitio no está disponible",
@@ -144,7 +156,7 @@
 				"headlinePlaceholder": "Ej. Nuestra misión: acercarte los mejores productos",
 				"text": "Tu historia",
 				"textPlaceholder": "Contá cómo empezaste, qué te diferencia, tus valores...",
-				"image": "Imagen (URL)",
+				"image": "Imagen (opcional)",
 				"whatsapp": "WhatsApp",
 				"whatsappHint": "Con código de país, sin + ni espacios (ej. 5491112345678).",
 				"instagram": "Instagram (URL)"
@@ -183,7 +195,8 @@
 				"namePlaceholder": "Ej. Inmobiliaria Premium",
 				"description": "Descripción",
 				"descriptionPlaceholder": "Describí brevemente el sector y sus objetivos...",
-				"imageUrl": "URL de imagen (opcional)",
+				"imageUrl": "Portada (opcional)",
+				"imageHint": "Imagen principal del rubro. Se recorta apaisada (3:1).",
 				"logoUrl": "Logo del rubro (opcional)",
 				"logoHint": "Se muestra junto al nombre en la vitrina. Ideal cuadrado y con fondo transparente.",
 				"instagram": "Instagram del negocio",
@@ -209,7 +222,7 @@
 				"name": "Nombre",
 				"description": "Descripción",
 				"price": "Precio",
-				"imageUrl": "URL de imagen (opcional)"
+				"imageUrl": "Imagen (opcional)"
 			}
 		}
 	}

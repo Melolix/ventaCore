@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import type { Rubro, Producto, Espacio } from '@base-template/shared';
 import { api } from '@/shared/services/api';
+import { deleteImage } from '@/shared/utils/image';
 
 interface CatalogState {
 	rubros: Rubro[];
@@ -59,15 +60,26 @@ export const useCatalogStore = defineStore('catalog', {
 		},
 
 		async updateRubro(id: string, input: RubroInput): Promise<Rubro> {
+			const prev = this.rubros.find(r => r.id === id);
 			const { data } = await api.patch<Rubro>(`/rubros/${id}`, input);
 			const i = this.rubros.findIndex(r => r.id === id);
 			if (i !== -1) this.rubros[i] = data;
+			// Borra las imágenes reemplazadas (solo tras persistir con éxito).
+			if (prev) {
+				if (prev.imageUrl !== data.imageUrl) void deleteImage(prev.imageUrl);
+				if (prev.logoUrl !== data.logoUrl) void deleteImage(prev.logoUrl);
+			}
 			return data;
 		},
 
 		async deleteRubro(id: string): Promise<void> {
+			const prev = this.rubros.find(r => r.id === id);
 			await api.delete(`/rubros/${id}`);
 			this.rubros = this.rubros.filter(r => r.id !== id);
+			if (prev) {
+				void deleteImage(prev.imageUrl);
+				void deleteImage(prev.logoUrl);
+			}
 		},
 
 		// ── Productos (de un rubro) ──
@@ -83,15 +95,19 @@ export const useCatalogStore = defineStore('catalog', {
 		},
 
 		async updateProducto(rubroId: string, id: string, input: ProductoInput): Promise<Producto> {
+			const prev = this.productos.find(p => p.id === id);
 			const { data } = await api.patch<Producto>(`/rubros/${rubroId}/productos/${id}`, input);
 			const i = this.productos.findIndex(p => p.id === id);
 			if (i !== -1) this.productos[i] = data;
+			if (prev && prev.imageUrl !== data.imageUrl) void deleteImage(prev.imageUrl);
 			return data;
 		},
 
 		async deleteProducto(rubroId: string, id: string): Promise<void> {
+			const prev = this.productos.find(p => p.id === id);
 			await api.delete(`/rubros/${rubroId}/productos/${id}`);
 			this.productos = this.productos.filter(p => p.id !== id);
+			if (prev) void deleteImage(prev.imageUrl);
 		},
 
 		// ── "Sobre Nosotros" del admin logueado ──
@@ -101,7 +117,9 @@ export const useCatalogStore = defineStore('catalog', {
 		},
 
 		async updateMiEspacio(input: AboutInput): Promise<void> {
+			const prev = this.miEspacio;
 			const { data } = await api.patch<Espacio>('/mi-espacio', input);
+			if (prev && prev.aboutImageUrl !== data.aboutImageUrl) void deleteImage(prev.aboutImageUrl);
 			this.miEspacio = data;
 		},
 

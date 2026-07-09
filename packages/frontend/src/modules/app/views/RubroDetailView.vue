@@ -1,7 +1,7 @@
 <template>
 	<div>
-		<!-- Hero del rubro -->
-		<section class="relative mb-10 h-72 overflow-hidden rounded-[2rem]">
+		<!-- Hero del rubro (3:1 en desktop → coincide con el recorte de la portada) -->
+		<section class="relative mb-10 min-h-[18rem] overflow-hidden rounded-[2rem] md:min-h-0 md:aspect-[3/1]">
 			<div
 				class="absolute inset-0 bg-cover bg-center"
 				:style="rubro?.imageUrl ? { backgroundImage: `url('${rubro.imageUrl}')` } : {}"
@@ -24,9 +24,9 @@
 				<div class="flex items-center gap-4">
 					<div
 						v-if="rubro?.logoUrl"
-						class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/95 p-2 shadow-lg backdrop-blur-sm md:h-16 md:w-16 dark:bg-surface-900/90"
+						class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/20 shadow-lg md:h-16 md:w-16"
 					>
-						<img :src="rubro.logoUrl" :alt="rubro?.nombre" class="h-full w-full object-contain" />
+						<img :src="rubro.logoUrl" :alt="rubro?.nombre" class="h-full w-full object-cover" />
 					</div>
 					<h1 class="max-w-2xl text-3xl font-extrabold leading-tight text-white md:text-4xl">
 						{{ rubro?.nombre || $t('public.detailTitle') }}

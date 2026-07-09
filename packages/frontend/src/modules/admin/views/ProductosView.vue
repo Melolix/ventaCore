@@ -47,7 +47,7 @@
 							<label class="px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 								{{ $t('admin.productos.fields.imageUrl') }}
 							</label>
-							<InputText v-model="form.imageUrl" class="w-full" placeholder="https://..." />
+							<ImageUpload v-model="form.imageUrl" folder="productos" :aspect-ratio="1" :min-width="500" />
 						</div>
 						<Button
 							type="submit"
@@ -116,7 +116,7 @@
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.productos.fields.imageUrl') }}</label>
-					<InputText v-model="edit.imageUrl" class="w-full" placeholder="https://..." />
+					<ImageUpload v-model="edit.imageUrl" folder="productos" :aspect-ratio="1" :min-width="500" />
 				</div>
 			</div>
 			<template #footer>
@@ -131,9 +131,11 @@
 import { defineComponent } from 'vue';
 import type { Producto } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import ImageUpload from '@/shared/components/ImageUpload.vue';
 
 export default defineComponent({
 	name: 'ProductosView',
+	components: { ImageUpload },
 	data() {
 		return {
 			catalog: useCatalogStore(),

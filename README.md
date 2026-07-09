@@ -114,9 +114,66 @@ proyecto real ni service account). El emulador de Auth no requiere Java.
 > `npm run emulator`.
 
 > **Producción / Firebase real:** dejá vacías (o quitá) las variables
-> `*_AUTH_EMULATOR_HOST` y completá el proyecto Firebase real (config web +
-> `GOOGLE_APPLICATION_CREDENTIALS` con el service account). El código detecta el
-> emulador por esas variables; sin ellas usa credenciales reales.
+> `*_AUTH_EMULATOR_HOST` y `*_STORAGE_EMULATOR_HOST`, y completá el proyecto
+> Firebase real (config web + `GOOGLE_APPLICATION_CREDENTIALS` con el service
+> account). El código detecta el emulador por esas variables; sin ellas usa
+> credenciales reales. Para las imágenes, ver **[Imágenes (Firebase Storage)](#imágenes-firebase-storage)**.
+
+## Imágenes (Firebase Storage)
+
+Las imágenes (portada y logo de rubros, foto de productos, imagen de "Sobre
+Nosotros") se suben **desde el frontend directo a Firebase Storage**; en Postgres
+se guarda solo la **URL** (campos `imageUrl` / `logoUrl` / `aboutImageUrl`). El
+componente `frontend/src/shared/components/ImageUpload.vue` recorta al aspecto
+correcto, comprime a WebP y valida tipo/peso/dimensiones **en el navegador** antes
+de subir (`shared/utils/image.ts`).
+
+**En desarrollo** corre contra el **emulador de Storage** (`:9199`), ya
+configurado en `firebase.json`, el script `emulator` de `package.json`
+(`--only auth,storage`) y `.env.development` (`VITE_FIREBASE_STORAGE_EMULATOR_HOST`).
+No hace falta nada de la nube; los archivos persisten en `./.firebase-data`. Las
+**reglas** están en `storage.rules` (lectura pública para la vitrina; escritura
+solo del usuario logueado en su carpeta `uploads/{uid}/`, máx. 8 MB, solo
+imágenes) y el emulador ya las aplica.
+
+### Pasarlo a producción
+
+Cuando publiques (no antes):
+
+1. **Proyecto Firebase real:** creá/usá uno en <https://console.firebase.google.com>.
+   Apuntá el CLI con `firebase use --add` (o editá `.firebaserc`).
+2. **Activar Storage:** consola → *Build → Storage → Comenzar*. Si pide el plan
+   **Blaze**, activalo: requiere **tarjeta** pero **no cobra** bajo el tier gratis
+   (~5 GB guardados + 1 GB/día de descarga; tu escala está muy por debajo). Elegí
+   la región más cercana (ej. `southamerica-east1`).
+3. **Publicar las reglas** (el archivo ya está listo): `firebase deploy --only storage`
+   — o pegá el contenido de `storage.rules` en *Storage → Rules → Publicar*.
+4. **Completar `.env.production`** con la config web real (Project Settings → tu app web):
+   ```
+   VITE_FIREBASE_API_KEY=...
+   VITE_FIREBASE_AUTH_DOMAIN=<proyecto>.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=<proyecto>
+   VITE_FIREBASE_STORAGE_BUCKET=<proyecto>.appspot.com   # o <proyecto>.firebasestorage.app
+   VITE_FIREBASE_MESSAGING_SENDER_ID=...
+   VITE_FIREBASE_APP_ID=...
+   ```
+   **Dejá vacías** `VITE_FIREBASE_AUTH_EMULATOR_HOST` y
+   `VITE_FIREBASE_STORAGE_EMULATOR_HOST` → así el SDK usa Firebase real en vez del
+   emulador.
+
+No hay que tocar código: el frontend sube directo a Storage y guarda la URL.
+
+### Pendientes para cuando escale (producción)
+
+- **Miniaturas (thumbnails):** para reducir el ancho de banda de las grillas,
+  instalar la extensión oficial **"Resize Images"** (consola → *Extensions*).
+  Genera versiones chicas automáticamente al subir, **sin tocar código**; después
+  se apuntan las grillas (Home, listas) a la versión reducida.
+- **Huérfanos en cascada:** el reemplazo de una imagen y el borrado directo de un
+  rubro/producto ya limpian sus archivos desde el frontend. Pero al borrar un
+  rubro, las imágenes de **sus productos** (borrados en cascada por el backend)
+  quedan en Storage → conviene un job de limpieza con **Firebase Admin** en el
+  backend.
 
 ## Flujo de auth (resumen)
 

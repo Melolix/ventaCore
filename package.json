@@ -10,7 +10,7 @@
 		"dev:frontend": "dotenvx run -f .env.development -- npm run dev --prefix packages/frontend",
 		"dev:api": "npm run start:nest:dev --prefix packages/api",
 		"dev:seed": "npm run seed:demo --prefix packages/api",
-		"emulator": "firebase emulators:start --only auth --import=./.firebase-data --export-on-exit=./.firebase-data",
+		"emulator": "firebase emulators:start --only auth,storage --import=./.firebase-data --export-on-exit=./.firebase-data",
 		"seed": "npm run seed --prefix packages/api",
 		"seed:demo": "npm run seed:demo --prefix packages/api",
 		"build": "turbo build",
