@@ -42,8 +42,10 @@ if [ ! -f "$APP_DIR/.env.production" ]; then
 fi
 
 # ── 3. Instalar dependencias ──
+# tsc y vite son devDependencies: con --omit=dev el build no las encuentra.
+# Se instala todo, se compila, y al final se podan las de desarrollo.
 echo "[2/5] Instalando dependencias..."
-npm ci --omit=dev
+npm ci
 
 # ── 4. Build ──
 echo "[3/5] Construyendo proyecto..."
@@ -69,6 +71,11 @@ cd "$APP_DIR"
 
 # El heap grande era solo para el build; la API corre con el default.
 unset NODE_OPTIONS
+
+# Ya compilamos: las devDependencies no hacen falta en runtime y ocupan
+# disco y RAM. Podarlas deja el server liviano.
+echo "[3/5] Podando dependencias de desarrollo..."
+npm prune --omit=dev
 
 # ── 5. Configurar Nginx ──
 echo "[4/5] Configurando Nginx..."
