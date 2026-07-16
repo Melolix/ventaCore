@@ -34,6 +34,7 @@
 
 		<p v-if="hint" class="px-1 text-xs text-surface-400">{{ hint }}</p>
 		<p v-if="errorKey" class="px-1 text-xs text-red-500">{{ $t(errorKey) }}</p>
+		<p v-if="errorDetail" class="px-1 text-xs break-words text-red-500">{{ errorDetail }}</p>
 
 		<input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onFile" />
 
@@ -83,6 +84,7 @@ const cropVisible = ref(false);
 const cropSrc = ref('');
 const uploading = ref(false);
 const errorKey = ref('');
+const errorDetail = ref('');
 
 const errKey = (e: ImageError): string => `image.err.${e}`;
 
@@ -124,6 +126,7 @@ async function confirmCrop(): Promise<void> {
 	if (!cropper.value) return;
 	uploading.value = true;
 	errorKey.value = '';
+	errorDetail.value = '';
 	try {
 		const { canvas } = (cropper.value as unknown as { getResult(): { canvas?: HTMLCanvasElement } }).getResult();
 		if (!canvas) throw new Error('canvas');
@@ -131,8 +134,12 @@ async function confirmCrop(): Promise<void> {
 		const url = await uploadImage(blob, props.folder);
 		emit('update:modelValue', url);
 		cropVisible.value = false;
-	} catch {
+	} catch (e: unknown) {
 		errorKey.value = 'image.err.upload';
+		// Superficie temporal del error real (código Firebase / mensaje) para diagnóstico.
+		const code = (e as { code?: string })?.code;
+		const msg = e instanceof Error ? e.message : String(e);
+		errorDetail.value = code ? `${code} — ${msg}` : msg;
 	} finally {
 		uploading.value = false;
 	}
