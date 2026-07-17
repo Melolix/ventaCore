@@ -179,15 +179,27 @@ export default defineComponent({
 		}
 	},
 	methods: {
-		/** Host visible del negocio: su dominio propio o {slug}.localhost en dev. */
+		/**
+		 * Base para el subdominio de la vitrina, derivada del host donde corre el panel:
+		 *  - dev → 'localhost' (queda {slug}.localhost)
+		 *  - prod por IP pelada → la envolvemos con nip.io, porque una IP no tiene
+		 *    subdominios ({slug}.54.94.232.142.nip.io resuelve a la IP)
+		 *  - prod con dominio propio → ese dominio ({slug}.midominio.com)
+		 */
+		subdomainBase(): string {
+			const host = window.location.hostname;
+			const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+			return isIp ? `${host}.nip.io` : host;
+		},
+		/** Host visible del negocio: su dominio propio o {slug}.<base>. */
 		previewHost(espacio: Espacio): string {
-			return espacio.domain || `${espacio.slug}.localhost`;
+			return espacio.domain || `${espacio.slug}.${this.subdomainBase()}`;
 		},
 		/** URL para abrir la vitrina del negocio. */
 		previewUrl(espacio: Espacio): string {
 			if (espacio.domain) return `https://${espacio.domain}`;
 			const port = window.location.port ? `:${window.location.port}` : '';
-			return `http://${espacio.slug}.localhost${port}`;
+			return `${window.location.protocol}//${espacio.slug}.${this.subdomainBase()}${port}`;
 		},
 		openCreate() {
 			this.form = { nombre: '', descripcion: '', logoUrl: '', domain: '', adminEmail: '', adminPassword: '' };
