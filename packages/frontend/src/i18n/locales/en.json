@@ -224,6 +224,45 @@
 				"price": "Price",
 				"imageUrl": "Image (optional)"
 			}
+		},
+		"meta": {
+			"button": "Social",
+			"title": "Rubro social networks",
+			"appTitle": "Business Meta app",
+			"appIdLabel": "App ID",
+			"appSecretLabel": "App Secret",
+			"appHint": "Each business uses its own Meta app (developers.facebook.com). The secret is stored encrypted.",
+			"saveApp": "Save credentials",
+			"appSaved": "Credentials saved",
+			"changeApp": "Change",
+			"notConnected": "This rubro hasn't connected a Meta account yet.",
+			"connect": "Connect with Meta",
+			"connectedAs": "Connected as {name}",
+			"chooseTarget": "Choose where to publish",
+			"targetHint": "Facebook Page (and its linked Instagram, if any).",
+			"saveTarget": "Save destination",
+			"disconnect": "Disconnect",
+			"disconnectConfirm": "Disconnect the Meta account of \"{name}\"?",
+			"disconnected": "Account disconnected",
+			"targetSaved": "Destination saved",
+			"connectedToast": "Meta account connected",
+			"errorToast": "Couldn't connect to Meta: {reason}",
+			"noTargets": "This account has no available Pages. Make sure you are an admin of a Facebook Page with a linked Instagram.",
+			"ready": "Ready to publish",
+			"pickPending": "Pick where to publish"
+		},
+		"publish": {
+			"button": "Publish",
+			"notReady": "Connect a Meta account on the rubro to publish",
+			"confirmTitle": "Publish to social",
+			"confirmMessage": "Publish \"{name}\" to the rubro's social networks?",
+			"captionLabel": "Post caption (optional)",
+			"captionPlaceholder": "If left empty, it's built from the product data.",
+			"testUrlLabel": "Test image URL (optional)",
+			"testUrlHint": "For testing: a public JPEG URL (Meta downloads it). If empty, uses the product image (not public in local dev).",
+			"done": "Published successfully",
+			"partial": "Published with some errors",
+			"failed": "Couldn't publish"
 		}
 	}
 }

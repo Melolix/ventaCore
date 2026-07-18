@@ -1,5 +1,13 @@
 import { defineStore } from 'pinia';
-import type { Rubro, Producto, Espacio } from '@base-template/shared';
+import type {
+	Rubro,
+	Producto,
+	Espacio,
+	MetaConnection,
+	MetaRubroState,
+	MetaNetwork,
+	MetaPublishResult,
+} from '@base-template/shared';
 import { api } from '@/shared/services/api';
 import { deleteImage } from '@/shared/utils/image';
 
@@ -108,6 +116,53 @@ export const useCatalogStore = defineStore('catalog', {
 			await api.delete(`/rubros/${rubroId}/productos/${id}`);
 			this.productos = this.productos.filter(p => p.id !== id);
 			if (prev) void deleteImage(prev.imageUrl);
+		},
+
+		// ── Meta (redes sociales) por rubro ──
+		/** Estado de Meta del rubro: app configurada + conexión. */
+		async fetchMetaState(rubroId: string): Promise<MetaRubroState> {
+			const { data } = await api.get<MetaRubroState>(`/rubros/${rubroId}/meta`);
+			return data;
+		},
+
+		/** Carga/actualiza el App ID + App Secret de la app de Meta del rubro. */
+		async saveMetaApp(rubroId: string, appId: string, appSecret: string): Promise<MetaRubroState> {
+			const { data } = await api.put<MetaRubroState>(`/rubros/${rubroId}/meta/app`, { appId, appSecret });
+			return data;
+		},
+
+		/** Arranca el OAuth: devuelve la URL de consentimiento para redirigir. */
+		async connectMeta(rubroId: string): Promise<string> {
+			const { data } = await api.post<{ url: string }>(`/rubros/${rubroId}/meta/connect`, {});
+			return data.url;
+		},
+
+		/** Elige a qué Página/IG publica el rubro. Refleja el cambio local. */
+		async setMetaTarget(rubroId: string, metaTargetId: string): Promise<MetaConnection> {
+			const { data } = await api.patch<MetaConnection>(`/rubros/${rubroId}/meta/target`, { metaTargetId });
+			const rubro = this.rubros.find(r => r.id === rubroId);
+			if (rubro) rubro.metaTargetId = metaTargetId;
+			return data;
+		},
+
+		/** Desconecta la cuenta de Meta del rubro. */
+		async disconnectMeta(rubroId: string): Promise<void> {
+			await api.delete(`/rubros/${rubroId}/meta`);
+			const rubro = this.rubros.find(r => r.id === rubroId);
+			if (rubro) rubro.metaTargetId = null;
+		},
+
+		/** Publica un producto en las redes del rubro. */
+		async publishProducto(
+			rubroId: string,
+			productoId: string,
+			payload: { networks?: MetaNetwork[]; caption?: string; imageUrl?: string } = {},
+		): Promise<MetaPublishResult[]> {
+			const { data } = await api.post<MetaPublishResult[]>(
+				`/rubros/${rubroId}/productos/${productoId}/publish`,
+				payload,
+			);
+			return data;
 		},
 
 		// ── "Sobre Nosotros" del admin logueado ──

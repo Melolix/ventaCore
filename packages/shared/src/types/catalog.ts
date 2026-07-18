@@ -22,6 +22,12 @@ export interface Rubro {
 	logoUrl: string | null;
 	/** Instagram propio del rubro (cada rubro es un negocio distinto). */
 	instagramUrl: string | null;
+	/**
+	 * Destino de publicación en Meta: id del `MetaTarget` (Página FB + IG) al que
+	 * publica este rubro. null si el rubro todavía no eligió una cuenta. El botón
+	 * "Publicar" de sus productos se habilita solo cuando está seteado.
+	 */
+	metaTargetId: string | null;
 	status: RubroStatus;
 	createdAt: string;
 	updatedAt: string;

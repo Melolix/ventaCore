@@ -91,6 +91,14 @@
 						</div>
 						<span v-if="producto.precio != null" class="font-bold text-primary">{{ formatPrice(producto.precio) }}</span>
 						<div class="flex gap-2">
+							<Button
+								icon="pi pi-send"
+								:label="$t('admin.publish.button')"
+								size="small"
+								:disabled="!metaReady"
+								:title="metaReady ? '' : $t('admin.publish.notReady')"
+								@click="openPublish(producto)"
+							/>
 							<Button icon="pi pi-pencil" severity="secondary" outlined size="small" @click="openEdit(producto)" />
 							<Button icon="pi pi-trash" severity="danger" outlined size="small" @click="confirmDelete(producto)" />
 						</div>
@@ -124,6 +132,32 @@
 				<Button :label="$t('admin.productos.saveChanges')" :loading="savingEdit" @click="submitEdit" />
 			</template>
 		</Dialog>
+
+		<!-- Dialog de publicación en redes -->
+		<Dialog v-model:visible="publishVisible" modal :header="$t('admin.publish.confirmTitle')" class="w-full max-w-md">
+			<div class="flex flex-col gap-4 pt-2">
+				<p class="text-sm font-semibold text-surface-800 dark:text-surface-100">{{ publishRef?.nombre }}</p>
+
+				<div class="space-y-1">
+					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
+						{{ $t('admin.publish.captionLabel') }}
+					</label>
+					<Textarea v-model="publishCaption" class="w-full" rows="3" :placeholder="$t('admin.publish.captionPlaceholder')" />
+				</div>
+
+				<div class="space-y-1">
+					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
+						{{ $t('admin.publish.testUrlLabel') }}
+					</label>
+					<InputText v-model="publishTestUrl" class="w-full" placeholder="https://.../foto.jpg" />
+					<p class="text-xs text-surface-400">{{ $t('admin.publish.testUrlHint') }}</p>
+				</div>
+			</div>
+			<template #footer>
+				<Button :label="$t('common.cancel')" text @click="publishVisible = false" />
+				<Button :label="$t('admin.publish.button')" icon="pi pi-send" :loading="publishing" @click="doPublish" />
+			</template>
+		</Dialog>
 	</div>
 </template>
 
@@ -143,6 +177,12 @@ export default defineComponent({
 			saving: false,
 			savingEdit: false,
 			rubroNombre: '',
+			// Publicación en redes
+			publishVisible: false,
+			publishRef: null as Producto | null,
+			publishCaption: '',
+			publishTestUrl: '',
+			publishing: false,
 			form: { nombre: '', descripcion: '', precio: null as number | null, imageUrl: '' },
 			editVisible: false,
 			editId: '',
@@ -152,6 +192,10 @@ export default defineComponent({
 	computed: {
 		rubroId(): string {
 			return this.$route.params.id as string;
+		},
+		/** El rubro está listo para publicar si eligió un destino de Meta. */
+		metaReady(): boolean {
+			return !!this.catalog.rubroById(this.rubroId)?.metaTargetId;
 		},
 	},
 	async created() {
@@ -232,6 +276,53 @@ export default defineComponent({
 					}
 				},
 			});
+		},
+
+		// ── Publicar en redes (Meta) ──
+		openPublish(producto: Producto) {
+			this.publishRef = producto;
+			this.publishCaption = '';
+			this.publishTestUrl = '';
+			this.publishVisible = true;
+		},
+		async doPublish() {
+			const producto = this.publishRef;
+			if (!producto) return;
+			this.publishing = true;
+			try {
+				const results = await this.catalog.publishProducto(this.rubroId, producto.id, {
+					caption: this.publishCaption.trim() || undefined,
+					imageUrl: this.publishTestUrl.trim() || undefined,
+				});
+				const net = (n: string): string => (n === 'facebook' ? 'Facebook' : 'Instagram');
+				const ok = results.filter(r => r.ok).map(r => net(r.network));
+				const fail = results.filter(r => !r.ok);
+				if (!fail.length) {
+					this.$toast.add({ severity: 'success', summary: this.$t('admin.publish.done'), detail: ok.join(', '), life: 4000 });
+					this.publishVisible = false;
+				} else if (ok.length) {
+					const okPart = `✓ ${ok.join(', ')}`;
+					const failPart = fail.map(f => `✗ ${net(f.network)}: ${f.error}`).join(' · ');
+					this.$toast.add({
+						severity: 'warn',
+						summary: this.$t('admin.publish.partial'),
+						detail: `${okPart} · ${failPart}`,
+						life: 8000,
+					});
+				} else {
+					this.$toast.add({
+						severity: 'error',
+						summary: this.$t('admin.publish.failed'),
+						detail: fail.map(f => `${net(f.network)}: ${f.error}`).join(' · '),
+						life: 7000,
+					});
+				}
+			} catch (e: unknown) {
+				const detail = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+				this.$toast.add({ severity: 'error', summary: this.$t('admin.publish.failed'), detail, life: 6000 });
+			} finally {
+				this.publishing = false;
+			}
 		},
 	},
 });

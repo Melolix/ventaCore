@@ -10,6 +10,10 @@ import { RubroEntity } from './modules/catalog/entities/rubro.entity';
 import { ProductoEntity } from './modules/catalog/entities/producto.entity';
 import { SpacesModule } from './modules/spaces/spaces.module';
 import { EspacioEntity } from './modules/spaces/entities/espacio.entity';
+import { SocialModule } from './modules/social/social.module';
+import { MetaConnectionEntity } from './modules/social/entities/meta-connection.entity';
+import { MetaTargetEntity } from './modules/social/entities/meta-target.entity';
+import { MetaAppConfigEntity } from './modules/social/entities/meta-app-config.entity';
 
 @Module({
 	imports: [
@@ -23,7 +27,15 @@ import { EspacioEntity } from './modules/spaces/entities/espacio.entity';
 			username: process.env.DB_USER || 'postgres',
 			password: process.env.DB_PASSWORD || 'postgres',
 			database: process.env.DB_NAME || 'base_template',
-			entities: [UserEntity, RubroEntity, ProductoEntity, EspacioEntity],
+			entities: [
+				UserEntity,
+				RubroEntity,
+				ProductoEntity,
+				EspacioEntity,
+				MetaConnectionEntity,
+				MetaTargetEntity,
+				MetaAppConfigEntity,
+			],
 			synchronize: process.env.DB_SYNCHRONIZE === 'true',
 		}),
 		FirebaseModule,
@@ -31,6 +43,7 @@ import { EspacioEntity } from './modules/spaces/entities/espacio.entity';
 		UsersModule,
 		SpacesModule,
 		CatalogModule,
+		SocialModule,
 	],
 })
 export class AppModule {}

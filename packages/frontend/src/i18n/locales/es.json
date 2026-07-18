@@ -224,6 +224,45 @@
 				"price": "Precio",
 				"imageUrl": "Imagen (opcional)"
 			}
+		},
+		"meta": {
+			"button": "Redes",
+			"title": "Redes sociales del rubro",
+			"appTitle": "App de Meta del negocio",
+			"appIdLabel": "App ID",
+			"appSecretLabel": "App Secret",
+			"appHint": "Cada negocio usa su propia app de Meta (developers.facebook.com). El secret se guarda cifrado.",
+			"saveApp": "Guardar credenciales",
+			"appSaved": "Credenciales guardadas",
+			"changeApp": "Cambiar",
+			"notConnected": "Este rubro todavía no conectó una cuenta de Meta.",
+			"connect": "Conectar con Meta",
+			"connectedAs": "Conectado como {name}",
+			"chooseTarget": "Elegí dónde publicar",
+			"targetHint": "Página de Facebook (y su Instagram vinculado, si tiene).",
+			"saveTarget": "Guardar destino",
+			"disconnect": "Desconectar",
+			"disconnectConfirm": "¿Desconectar la cuenta de Meta de \"{name}\"?",
+			"disconnected": "Cuenta desconectada",
+			"targetSaved": "Destino guardado",
+			"connectedToast": "Cuenta de Meta conectada",
+			"errorToast": "No se pudo conectar con Meta: {reason}",
+			"noTargets": "Esta cuenta no tiene Páginas disponibles. Verificá que seas administrador de una Página de Facebook con Instagram vinculado.",
+			"ready": "Listo para publicar",
+			"pickPending": "Falta elegir dónde publicar"
+		},
+		"publish": {
+			"button": "Publicar",
+			"notReady": "Conectá una cuenta de Meta en el rubro para poder publicar",
+			"confirmTitle": "Publicar en redes",
+			"confirmMessage": "¿Publicar \"{name}\" en las redes del rubro?",
+			"captionLabel": "Texto del posteo (opcional)",
+			"captionPlaceholder": "Si lo dejás vacío, se arma con los datos del producto.",
+			"testUrlLabel": "URL de imagen de prueba (opcional)",
+			"testUrlHint": "Para probar: URL pública y JPEG (Meta la descarga). Si la dejás vacía, usa la imagen del producto (que en local no es pública).",
+			"done": "Publicado con éxito",
+			"partial": "Publicado con algunos errores",
+			"failed": "No se pudo publicar"
 		}
 	}
 }

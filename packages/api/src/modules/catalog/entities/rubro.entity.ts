@@ -37,6 +37,15 @@ export class RubroEntity {
 	@Column({ type: 'varchar', nullable: true })
 	instagramUrl!: string | null;
 
+	/**
+	 * Destino de publicación en Meta: id del `MetaTargetEntity` (Página FB + IG)
+	 * elegido dentro de la conexión de este rubro. null si aún no eligió cuenta.
+	 * Columna uuid plana (sin FK entre módulos), igual que `espacioId`.
+	 */
+	@Index()
+	@Column({ type: 'uuid', nullable: true })
+	metaTargetId!: string | null;
+
 	@Column({ type: 'enum', enum: RubroStatus, default: RubroStatus.DRAFT })
 	status!: RubroStatus;
 
