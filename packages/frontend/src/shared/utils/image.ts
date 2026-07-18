@@ -83,8 +83,11 @@ export async function uploadImage(blob: Blob, folder: string): Promise<string> {
 	if (!uid) throw new Error('auth');
 
 	const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
-	// Nombre único sin depender de Date.now(): timestamp + aleatorio del navegador.
-	const name = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+	// Nombre único: timestamp + sufijo aleatorio. Evitamos crypto.randomUUID(),
+	// que solo existe en contextos seguros (HTTPS); sobre HTTP plano no está
+	// definida y rompía la subida.
+	const rand = Math.random().toString(36).slice(2, 10);
+	const name = `${Date.now()}-${rand}.${ext}`;
 	const path = `uploads/${uid}/${folder}/${name}`;
 
 	const r = storageRef(storage, path);

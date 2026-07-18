@@ -51,10 +51,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { Cropper } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
-import { validateFile, loadImage, checkDimensions, canvasToBlob, uploadImage, type ImageError } from '@/shared/utils/image';
+import { validateFile, loadImage, checkDimensions, canvasToBlob, uploadImage, deleteImage, type ImageError } from '@/shared/utils/image';
 
 const props = withDefaults(
 	defineProps<{
@@ -85,6 +85,23 @@ const uploading = ref(false);
 const errorKey = ref('');
 
 const errKey = (e: ImageError): string => `image.err.${e}`;
+
+// URLs subidas por esta instancia y todavía NO persistidas (el padre no guardó).
+// Si el usuario las descarta (reemplaza o quita) antes de guardar, las borramos
+// de Storage para no dejar huérfanos. Nunca contiene la imagen ya guardada de un
+// rubro en edición: esas llegan como cambio EXTERNO de modelValue y limpian el set.
+const pending = new Set<string>();
+// Distingue un cambio de modelValue causado por nosotros (emit) de uno externo
+// (carga al editar, reset tras guardar). Ante un cambio externo, lo ya subido
+// quedó persistido o el padre siguió de largo: en ningún caso es seguro borrarlo.
+let selfEmitted: string | null = null;
+watch(
+	() => props.modelValue,
+	val => {
+		if (val === selfEmitted) return; // cambio propio: lo ignoramos
+		pending.clear(); // cambio externo (guardado/carga): olvidamos lo pendiente
+	},
+);
 
 function pick(): void {
 	errorKey.value = '';
@@ -128,7 +145,16 @@ async function confirmCrop(): Promise<void> {
 		const { canvas } = (cropper.value as unknown as { getResult(): { canvas?: HTMLCanvasElement } }).getResult();
 		if (!canvas) throw new Error('canvas');
 		const blob = await canvasToBlob(canvas, props.maxWidth);
+		const prevUrl = props.modelValue;
 		const url = await uploadImage(blob, props.folder);
+		// Si reemplazamos una subida pendiente (aún sin guardar), la anterior es
+		// basura: la borramos ya. La imagen persistida no está en `pending`.
+		if (prevUrl && pending.has(prevUrl)) {
+			pending.delete(prevUrl);
+			void deleteImage(prevUrl);
+		}
+		pending.add(url);
+		selfEmitted = url;
 		emit('update:modelValue', url);
 		cropVisible.value = false;
 	} catch {
@@ -140,6 +166,15 @@ async function confirmCrop(): Promise<void> {
 
 function remove(): void {
 	errorKey.value = '';
+	const cur = props.modelValue;
+	// Solo borramos de Storage si era una subida pendiente (sin guardar). Si es la
+	// imagen ya persistida de un rubro, la limpia el store al guardar el cambio;
+	// borrarla acá rompería el rubro si el usuario cancela la edición.
+	if (cur && pending.has(cur)) {
+		pending.delete(cur);
+		void deleteImage(cur);
+	}
+	selfEmitted = '';
 	emit('update:modelValue', '');
 }
 

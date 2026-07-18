@@ -59,6 +59,12 @@ set +a
 # pedirle más sin que el kernel lo mate. Requiere haber corrido setup-swap.sh.
 export NODE_OPTIONS="--max-old-space-size=2048"
 
+# Build shared: la API compilada lo carga como paquete (require), no por
+# tsconfig-paths, así que necesita el JS emitido en packages/shared/lib.
+cd packages/shared
+npx tsc -p tsconfig.json
+cd "$APP_DIR"
+
 # Build API (TypeScript -> JavaScript)
 cd packages/api
 npx tsc -p tsconfig.json
