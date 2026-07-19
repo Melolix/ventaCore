@@ -54,7 +54,16 @@
 import { ref, watch } from 'vue';
 import { Cropper } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
-import { validateFile, loadImage, checkDimensions, canvasToBlob, uploadImage, deleteImage, type ImageError } from '@/shared/utils/image';
+import {
+	validateFile,
+	loadImage,
+	checkDimensions,
+	canvasToBlob,
+	uploadImage,
+	deleteImage,
+	type ImageError,
+	type ImageFormat,
+} from '@/shared/utils/image';
 
 const props = withDefaults(
 	defineProps<{
@@ -70,9 +79,11 @@ const props = withDefaults(
 		minHeight?: number;
 		/** Preview con object-contain (para logos con fondo transparente). */
 		rounded?: boolean;
+		/** Formato de salida. 'jpeg' para fotos que se publican en Instagram. */
+		format?: ImageFormat;
 		hint?: string;
 	}>(),
-	{ aspectRatio: 16 / 9, maxWidth: 1600, minWidth: 600, minHeight: 0, rounded: false, hint: '' },
+	{ aspectRatio: 16 / 9, maxWidth: 1600, minWidth: 600, minHeight: 0, rounded: false, format: 'webp', hint: '' },
 );
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
@@ -144,7 +155,7 @@ async function confirmCrop(): Promise<void> {
 	try {
 		const { canvas } = (cropper.value as unknown as { getResult(): { canvas?: HTMLCanvasElement } }).getResult();
 		if (!canvas) throw new Error('canvas');
-		const blob = await canvasToBlob(canvas, props.maxWidth);
+		const blob = await canvasToBlob(canvas, props.maxWidth, { format: props.format });
 		const prevUrl = props.modelValue;
 		const url = await uploadImage(blob, props.folder);
 		// Si reemplazamos una subida pendiente (aún sin guardar), la anterior es

@@ -44,11 +44,24 @@ export function checkDimensions(img: HTMLImageElement, v: ImageValidation): Imag
 	return null;
 }
 
+/** Formato de salida al comprimir. WebP es más liviano; JPEG lo exige Instagram. */
+export type ImageFormat = 'webp' | 'jpeg';
+
 /**
  * Redimensiona un canvas (ya recortado al aspecto deseado) a un ancho máximo y
- * lo exporta comprimido. Prefiere WebP; si el navegador no lo soporta, JPEG.
+ * lo exporta comprimido.
+ *
+ * `format` por defecto WebP (más liviano, con transparencia). Para las fotos que
+ * se publican en Instagram usamos JPEG, que es el único formato que IG acepta.
+ * JPEG no tiene canal alfa: rellenamos el fondo de blanco para que las zonas
+ * transparentes no queden negras.
  */
-export function canvasToBlob(source: HTMLCanvasElement, maxWidth: number, quality = 0.85): Promise<Blob> {
+export function canvasToBlob(
+	source: HTMLCanvasElement,
+	maxWidth: number,
+	opts: { format?: ImageFormat; quality?: number } = {},
+): Promise<Blob> {
+	const { format = 'webp', quality = 0.85 } = opts;
 	const scale = Math.min(1, maxWidth / source.width);
 	const w = Math.round(source.width * scale);
 	const h = Math.round(source.height * scale);
@@ -59,16 +72,21 @@ export function canvasToBlob(source: HTMLCanvasElement, maxWidth: number, qualit
 	const ctx = out.getContext('2d');
 	if (!ctx) throw new Error('canvas');
 	ctx.imageSmoothingQuality = 'high';
+	if (format === 'jpeg') {
+		ctx.fillStyle = '#ffffff';
+		ctx.fillRect(0, 0, w, h);
+	}
 	ctx.drawImage(source, 0, 0, w, h);
 
+	const mime = format === 'jpeg' ? 'image/jpeg' : 'image/webp';
 	return new Promise((resolve, reject) => {
 		out.toBlob(
 			blob => {
 				if (blob) resolve(blob);
-				// Fallback a JPEG si WebP no está disponible.
+				// Fallback a JPEG si el formato pedido no está disponible.
 				else out.toBlob(b => (b ? resolve(b) : reject(new Error('encode'))), 'image/jpeg', quality);
 			},
-			'image/webp',
+			mime,
 			quality,
 		);
 	});

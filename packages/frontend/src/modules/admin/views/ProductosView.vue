@@ -47,7 +47,7 @@
 							<label class="px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 								{{ $t('admin.productos.fields.imageUrl') }}
 							</label>
-							<ImageUpload v-model="form.imageUrl" folder="productos" :aspect-ratio="1" :min-width="500" />
+							<ImageUpload v-model="form.imageUrl" folder="productos" :aspect-ratio="1" :min-width="500" format="jpeg" />
 						</div>
 						<Button
 							type="submit"
@@ -124,7 +124,7 @@
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.productos.fields.imageUrl') }}</label>
-					<ImageUpload v-model="edit.imageUrl" folder="productos" :aspect-ratio="1" :min-width="500" />
+					<ImageUpload v-model="edit.imageUrl" folder="productos" :aspect-ratio="1" :min-width="500" format="jpeg" />
 				</div>
 			</div>
 			<template #footer>
@@ -145,7 +145,17 @@
 					<Textarea v-model="publishCaption" class="w-full" rows="3" :placeholder="$t('admin.publish.captionPlaceholder')" />
 				</div>
 
-				<div class="space-y-1">
+				<div v-if="!showTestUrl">
+					<Button
+						:label="$t('admin.publish.useTestImage')"
+						text
+						size="small"
+						icon="pi pi-image"
+						class="px-0"
+						@click="showTestUrl = true"
+					/>
+				</div>
+				<div v-else class="space-y-1">
 					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 						{{ $t('admin.publish.testUrlLabel') }}
 					</label>
@@ -182,6 +192,7 @@ export default defineComponent({
 			publishRef: null as Producto | null,
 			publishCaption: '',
 			publishTestUrl: '',
+			showTestUrl: false,
 			publishing: false,
 			form: { nombre: '', descripcion: '', precio: null as number | null, imageUrl: '' },
 			editVisible: false,
@@ -279,10 +290,18 @@ export default defineComponent({
 		},
 
 		// ── Publicar en redes (Meta) ──
+		/** Arma el texto por defecto con los datos del producto (igual que el backend). */
+		buildCaption(producto: Producto): string {
+			const parts = [producto.nombre];
+			if (producto.descripcion) parts.push(producto.descripcion);
+			if (producto.precio != null) parts.push(this.formatPrice(producto.precio));
+			return parts.join('\n\n');
+		},
 		openPublish(producto: Producto) {
 			this.publishRef = producto;
-			this.publishCaption = '';
+			this.publishCaption = this.buildCaption(producto);
 			this.publishTestUrl = '';
+			this.showTestUrl = false;
 			this.publishVisible = true;
 		},
 		async doPublish() {
