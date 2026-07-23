@@ -1,11 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { EspacioType } from '@base-template/shared';
 
 export class CreateEspacioDto {
 	@ApiProperty({ example: 'Agropecuaria del Sur' })
 	@IsString()
 	@MinLength(2)
 	nombre!: string;
+
+	@ApiProperty({ enum: EspacioType, required: false, default: EspacioType.CATALOG })
+	@IsOptional()
+	@IsEnum(EspacioType)
+	type?: EspacioType;
 
 	@ApiProperty({ required: false })
 	@IsOptional()

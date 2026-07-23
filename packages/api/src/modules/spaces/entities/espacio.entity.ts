@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { EspacioType } from '@base-template/shared';
 
 @Entity('espacios')
 export class EspacioEntity {
@@ -7,6 +8,10 @@ export class EspacioEntity {
 
 	@Column()
 	nombre!: string;
+
+	/** Cómo se presenta la vitrina (catálogo comercial vs. página de apps). */
+	@Column({ type: 'enum', enum: EspacioType, default: EspacioType.CATALOG })
+	type!: EspacioType;
 
 	/** Slug único (identificador; subdominio en dev: {slug}.localhost). */
 	@Index({ unique: true })

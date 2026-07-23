@@ -10,6 +10,7 @@
 		"dev": "npm run start:nest",
 		"seed": "dotenvx run -f ../../.env.development -- ts-node -r tsconfig-paths/register src/seed.ts",
 		"seed:demo": "dotenvx run -f ../../.env.development -- ts-node -r tsconfig-paths/register src/seed-demo.ts",
+		"add:ventacore": "dotenvx run -f ../../.env.development -- ts-node -r tsconfig-paths/register src/add-ventacore.ts",
 		"lint": "eslint .",
 		"lint:fix": "eslint --fix .",
 		"test": "jest --passWithNoTests",

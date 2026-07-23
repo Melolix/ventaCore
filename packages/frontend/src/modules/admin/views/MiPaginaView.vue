@@ -71,6 +71,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { apiErrorMessage } from '@/shared/utils/apiError';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
 
 export default defineComponent({
@@ -122,8 +123,8 @@ export default defineComponent({
 					instagramUrl: this.form.instagramUrl.trim(),
 				});
 				this.$toast.add({ severity: 'success', summary: this.$t('admin.about.saved'), life: 3000 });
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.about.errorSave'), life: 4000 });
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.about.errorSave')), life: 5000 });
 			} finally {
 				this.saving = false;
 			}

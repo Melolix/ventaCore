@@ -72,6 +72,48 @@
 							<p class="px-1 text-xs text-surface-400">{{ $t('admin.rubros.fields.instagramHint') }}</p>
 						</div>
 
+						<template v-if="isApps">
+							<div class="space-y-2">
+								<label class="flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
+									<i class="pi pi-th-large" /> {{ $t('admin.rubros.fields.platforms') }}
+								</label>
+								<MultiSelect
+									v-model="form.platforms"
+									:options="platformOptions"
+									option-label="label"
+									option-value="value"
+									display="chip"
+									:placeholder="$t('admin.rubros.fields.platformsPlaceholder')"
+									class="w-full"
+								/>
+								<p class="px-1 text-xs text-surface-400">{{ $t('admin.rubros.fields.platformsHint') }}</p>
+							</div>
+							<div v-if="form.platforms.includes('android')" class="space-y-2">
+								<label class="flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
+									<i class="pi pi-android" /> {{ $t('admin.rubros.fields.androidUrl') }}
+								</label>
+								<ApkUpload
+									v-model="form.androidUrl"
+									folder="apks"
+									:placeholder="$t('admin.rubros.fields.androidPlaceholder')"
+								/>
+								<p class="px-1 text-xs text-surface-400">{{ $t('admin.rubros.fields.androidHint') }}</p>
+							</div>
+							<div v-if="form.platforms.includes('ios')" class="space-y-2">
+								<label class="flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
+									<i class="pi pi-apple" /> {{ $t('admin.rubros.fields.iosUrl') }}
+								</label>
+								<InputText v-model="form.iosUrl" class="w-full" placeholder="https://apps.apple.com/app/id..." />
+							</div>
+							<div v-if="form.platforms.includes('web') || form.platforms.includes('desktop')" class="space-y-2">
+								<label class="flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
+									<i class="pi pi-globe" /> {{ $t('admin.rubros.fields.webUrl') }}
+								</label>
+								<InputText v-model="form.webUrl" class="w-full" placeholder="https://app.miempresa.com" />
+								<p class="px-1 text-xs text-surface-400">{{ $t('admin.rubros.fields.linksHint') }}</p>
+							</div>
+						</template>
+
 						<div class="space-y-2">
 							<label class="px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 								{{ $t('admin.rubros.fields.status') }}
@@ -192,6 +234,32 @@
 					<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-instagram" /> {{ $t('admin.rubros.fields.instagram') }}</label>
 					<InputText v-model="edit.instagramUrl" class="w-full" placeholder="https://instagram.com/el.negocio" />
 				</div>
+				<template v-if="isApps">
+					<div class="space-y-1">
+						<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-th-large" /> {{ $t('admin.rubros.fields.platforms') }}</label>
+						<MultiSelect
+							v-model="edit.platforms"
+							:options="platformOptions"
+							option-label="label"
+							option-value="value"
+							display="chip"
+							:placeholder="$t('admin.rubros.fields.platformsPlaceholder')"
+							class="w-full"
+						/>
+					</div>
+					<div v-if="edit.platforms.includes('android')" class="space-y-1">
+						<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-android" /> {{ $t('admin.rubros.fields.androidUrl') }}</label>
+						<ApkUpload v-model="edit.androidUrl" folder="apks" :placeholder="$t('admin.rubros.fields.androidPlaceholder')" />
+					</div>
+					<div v-if="edit.platforms.includes('ios')" class="space-y-1">
+						<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-apple" /> {{ $t('admin.rubros.fields.iosUrl') }}</label>
+						<InputText v-model="edit.iosUrl" class="w-full" placeholder="https://apps.apple.com/app/id..." />
+					</div>
+					<div v-if="edit.platforms.includes('web') || edit.platforms.includes('desktop')" class="space-y-1">
+						<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-globe" /> {{ $t('admin.rubros.fields.webUrl') }}</label>
+						<InputText v-model="edit.webUrl" class="w-full" placeholder="https://app.miempresa.com" />
+					</div>
+				</template>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.rubros.fields.status') }}</label>
 					<Select v-model="edit.status" :options="statusOptions" option-label="label" option-value="value" class="w-full" />
@@ -310,13 +378,15 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { RubroStatus, type Rubro, type MetaRubroState } from '@base-template/shared';
+import { ALL_APP_PLATFORMS, AppPlatform, EspacioType, RubroStatus, type Rubro, type MetaRubroState } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { apiErrorMessage } from '@/shared/utils/apiError';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
+import ApkUpload from '@/shared/components/ApkUpload.vue';
 
 export default defineComponent({
 	name: 'RubrosView',
-	components: { ImageUpload },
+	components: { ImageUpload, ApkUpload },
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -329,6 +399,10 @@ export default defineComponent({
 				imageUrl: '',
 				logoUrl: '',
 				instagramUrl: '',
+				platforms: [] as string[],
+				androidUrl: '',
+				iosUrl: '',
+				webUrl: '',
 				status: RubroStatus.DRAFT as RubroStatus,
 			},
 			editVisible: false,
@@ -339,6 +413,10 @@ export default defineComponent({
 				imageUrl: '',
 				logoUrl: '',
 				instagramUrl: '',
+				platforms: [] as string[],
+				androidUrl: '',
+				iosUrl: '',
+				webUrl: '',
 				status: RubroStatus.DRAFT as RubroStatus,
 			},
 			// Redes (Meta)
@@ -370,10 +448,20 @@ export default defineComponent({
 				value: t.id,
 			}));
 		},
+		/** Espacios tipo "apps": cada rubro es una app con links de descarga. */
+		isApps(): boolean {
+			return this.catalog.miEspacio?.type === EspacioType.APPS;
+		},
+		/** Opciones del multiselect de plataformas de la app. */
+		platformOptions(): { label: string; value: string }[] {
+			return ALL_APP_PLATFORMS.map(value => ({ label: this.$t(`admin.rubros.platforms.${value}`), value }));
+		},
 	},
 	async created() {
 		this.loading = true;
 		try {
+			// El layout ya suele cargar miEspacio; lo aseguramos para saber si mostrar los links.
+			if (!this.catalog.miEspacio) await this.catalog.fetchMiEspacio().catch(() => undefined);
 			await this.catalog.fetchRubros();
 		} catch {
 			this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.load'), life: 4000 });
@@ -393,12 +481,27 @@ export default defineComponent({
 					imageUrl: this.form.imageUrl.trim() || undefined,
 					logoUrl: this.form.logoUrl.trim() || undefined,
 					instagramUrl: this.form.instagramUrl.trim() || undefined,
+					platforms: this.isApps ? (this.form.platforms as AppPlatform[]) : undefined,
+					androidUrl: this.isApps ? this.form.androidUrl.trim() || undefined : undefined,
+					iosUrl: this.isApps ? this.form.iosUrl.trim() || undefined : undefined,
+					webUrl: this.isApps ? this.form.webUrl.trim() || undefined : undefined,
 					status: this.form.status,
 				});
 				this.$toast.add({ severity: 'success', summary: this.$t('admin.rubros.created'), life: 3000 });
-				this.form = { nombre: '', descripcion: '', imageUrl: '', logoUrl: '', instagramUrl: '', status: RubroStatus.DRAFT };
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
+				this.form = {
+					nombre: '',
+					descripcion: '',
+					imageUrl: '',
+					logoUrl: '',
+					instagramUrl: '',
+					platforms: [],
+					androidUrl: '',
+					iosUrl: '',
+					webUrl: '',
+					status: RubroStatus.DRAFT,
+				};
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
 			} finally {
 				this.saving = false;
 			}
@@ -411,6 +514,10 @@ export default defineComponent({
 				imageUrl: rubro.imageUrl ?? '',
 				logoUrl: rubro.logoUrl ?? '',
 				instagramUrl: rubro.instagramUrl ?? '',
+				platforms: [...(rubro.platforms ?? [])],
+				androidUrl: rubro.androidUrl ?? '',
+				iosUrl: rubro.iosUrl ?? '',
+				webUrl: rubro.webUrl ?? '',
 				status: rubro.status,
 			};
 			this.editVisible = true;
@@ -424,12 +531,20 @@ export default defineComponent({
 					imageUrl: this.edit.imageUrl.trim() || undefined,
 					logoUrl: this.edit.logoUrl.trim() || undefined,
 					instagramUrl: this.edit.instagramUrl.trim(),
+					...(this.isApps
+						? {
+								platforms: this.edit.platforms as AppPlatform[],
+								androidUrl: this.edit.androidUrl.trim(),
+								iosUrl: this.edit.iosUrl.trim(),
+								webUrl: this.edit.webUrl.trim(),
+							}
+						: {}),
 					status: this.edit.status,
 				});
 				this.$toast.add({ severity: 'success', summary: this.$t('admin.rubros.updated'), life: 3000 });
 				this.editVisible = false;
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
 			} finally {
 				this.savingEdit = false;
 			}
@@ -445,8 +560,8 @@ export default defineComponent({
 					try {
 						await this.catalog.deleteRubro(rubro.id);
 						this.$toast.add({ severity: 'success', summary: this.$t('admin.rubros.deleted'), life: 3000 });
-					} catch {
-						this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.delete'), life: 4000 });
+					} catch (e: unknown) {
+						this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.delete')), life: 5000 });
 					}
 				},
 			});

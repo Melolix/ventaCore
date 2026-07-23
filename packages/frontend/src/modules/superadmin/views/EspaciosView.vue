@@ -84,12 +84,19 @@
 					<InputText v-model="form.nombre" class="w-full" required />
 				</div>
 				<div class="space-y-1">
+					<label class="text-sm font-medium">{{ $t('superadmin.espacios.fields.type') }}</label>
+					<Select v-model="form.type" :options="typeOptions" option-label="label" option-value="value" class="w-full" />
+					<p class="text-xs text-surface-400">{{ $t('superadmin.espacios.typeHint') }}</p>
+				</div>
+				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('superadmin.espacios.fields.description') }}</label>
 					<Textarea v-model="form.descripcion" class="w-full" rows="2" />
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('superadmin.espacios.fields.logoUrl') }}</label>
-					<InputText v-model="form.logoUrl" class="w-full" placeholder="https://..." />
+					<div class="max-w-[160px]">
+						<ImageUpload v-model="form.logoUrl" folder="espacios" :aspect-ratio="1" :min-width="200" />
+					</div>
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('superadmin.espacios.fields.domain') }}</label>
@@ -127,12 +134,18 @@
 					<InputText v-model="edit.nombre" class="w-full" />
 				</div>
 				<div class="space-y-1">
+					<label class="text-sm font-medium">{{ $t('superadmin.espacios.fields.type') }}</label>
+					<Select v-model="edit.type" :options="typeOptions" option-label="label" option-value="value" class="w-full" />
+				</div>
+				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('superadmin.espacios.fields.description') }}</label>
 					<Textarea v-model="edit.descripcion" class="w-full" rows="2" />
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('superadmin.espacios.fields.logoUrl') }}</label>
-					<InputText v-model="edit.logoUrl" class="w-full" placeholder="https://..." />
+					<div class="max-w-[160px]">
+						<ImageUpload v-model="edit.logoUrl" folder="espacios" :aspect-ratio="1" :min-width="200" />
+					</div>
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('superadmin.espacios.fields.domain') }}</label>
@@ -149,11 +162,15 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { Espacio } from '@base-template/shared';
+import { ALL_ESPACIO_TYPES, EspacioType, type Espacio } from '@base-template/shared';
 import { useSpacesStore } from '@/modules/superadmin/store/spaces';
+import { vitrinaHost, vitrinaUrl } from '@/shared/utils/site';
+import { apiErrorMessage } from '@/shared/utils/apiError';
+import ImageUpload from '@/shared/components/ImageUpload.vue';
 
 export default defineComponent({
 	name: 'EspaciosView',
+	components: { ImageUpload },
 	data() {
 		return {
 			store: useSpacesStore(),
@@ -162,11 +179,24 @@ export default defineComponent({
 			savingEdit: false,
 			error: '',
 			createVisible: false,
-			form: { nombre: '', descripcion: '', logoUrl: '', domain: '', adminEmail: '', adminPassword: '' },
+			form: {
+				nombre: '',
+				type: EspacioType.CATALOG as EspacioType,
+				descripcion: '',
+				logoUrl: '',
+				domain: '',
+				adminEmail: '',
+				adminPassword: '',
+			},
 			editVisible: false,
 			editId: '',
-			edit: { nombre: '', descripcion: '', logoUrl: '', domain: '' },
+			edit: { nombre: '', type: EspacioType.CATALOG as EspacioType, descripcion: '', logoUrl: '', domain: '' },
 		};
+	},
+	computed: {
+		typeOptions(): { label: string; value: EspacioType }[] {
+			return ALL_ESPACIO_TYPES.map(value => ({ label: this.$t(`superadmin.espacios.types.${value}`), value }));
+		},
 	},
 	async created() {
 		this.loading = true;
@@ -179,30 +209,24 @@ export default defineComponent({
 		}
 	},
 	methods: {
-		/**
-		 * Base para el subdominio de la vitrina, derivada del host donde corre el panel:
-		 *  - dev → 'localhost' (queda {slug}.localhost)
-		 *  - prod por IP pelada → la envolvemos con nip.io, porque una IP no tiene
-		 *    subdominios ({slug}.54.94.232.142.nip.io resuelve a la IP)
-		 *  - prod con dominio propio → ese dominio ({slug}.midominio.com)
-		 */
-		subdomainBase(): string {
-			const host = window.location.hostname;
-			const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
-			return isIp ? `${host}.nip.io` : host;
-		},
 		/** Host visible del negocio: su dominio propio o {slug}.<base>. */
 		previewHost(espacio: Espacio): string {
-			return espacio.domain || `${espacio.slug}.${this.subdomainBase()}`;
+			return vitrinaHost(espacio);
 		},
 		/** URL para abrir la vitrina del negocio. */
 		previewUrl(espacio: Espacio): string {
-			if (espacio.domain) return `https://${espacio.domain}`;
-			const port = window.location.port ? `:${window.location.port}` : '';
-			return `${window.location.protocol}//${espacio.slug}.${this.subdomainBase()}${port}`;
+			return vitrinaUrl(espacio);
 		},
 		openCreate() {
-			this.form = { nombre: '', descripcion: '', logoUrl: '', domain: '', adminEmail: '', adminPassword: '' };
+			this.form = {
+				nombre: '',
+				type: EspacioType.CATALOG,
+				descripcion: '',
+				logoUrl: '',
+				domain: '',
+				adminEmail: '',
+				adminPassword: '',
+			};
 			this.error = '';
 			this.createVisible = true;
 		},
@@ -216,6 +240,7 @@ export default defineComponent({
 			try {
 				await this.store.createEspacio({
 					nombre: this.form.nombre.trim(),
+					type: this.form.type,
 					descripcion: this.form.descripcion.trim() || undefined,
 					logoUrl: this.form.logoUrl.trim() || undefined,
 					domain: this.form.domain.trim() || undefined,
@@ -225,8 +250,7 @@ export default defineComponent({
 				this.$toast.add({ severity: 'success', summary: this.$t('superadmin.espacios.created'), life: 3000 });
 				this.createVisible = false;
 			} catch (e: unknown) {
-				const status = (e as { response?: { status?: number } })?.response?.status;
-				this.error = status === 409 ? this.$t('superadmin.espacios.errorEmail') : this.$t('superadmin.espacios.errorSave');
+				this.error = apiErrorMessage(e, this.$t('superadmin.espacios.errorSave'));
 			} finally {
 				this.saving = false;
 			}
@@ -235,6 +259,7 @@ export default defineComponent({
 			this.editId = espacio.id;
 			this.edit = {
 				nombre: espacio.nombre,
+				type: espacio.type,
 				descripcion: espacio.descripcion ?? '',
 				logoUrl: espacio.logoUrl ?? '',
 				domain: espacio.domain ?? '',
@@ -246,14 +271,15 @@ export default defineComponent({
 			try {
 				await this.store.updateEspacio(this.editId, {
 					nombre: this.edit.nombre.trim(),
+					type: this.edit.type,
 					descripcion: this.edit.descripcion.trim() || undefined,
 					logoUrl: this.edit.logoUrl.trim() || undefined,
 					domain: this.edit.domain.trim() || undefined,
 				});
 				this.$toast.add({ severity: 'success', summary: this.$t('superadmin.espacios.updated'), life: 3000 });
 				this.editVisible = false;
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('superadmin.espacios.errorSave'), life: 4000 });
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('superadmin.espacios.errorSave')), life: 5000 });
 			} finally {
 				this.savingEdit = false;
 			}
@@ -269,8 +295,8 @@ export default defineComponent({
 					summary: this.$t(activando ? 'superadmin.espacios.activatedToast' : 'superadmin.espacios.suspendedToast'),
 					life: 3000,
 				});
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('superadmin.espacios.errorSave'), life: 4000 });
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('superadmin.espacios.errorSave')), life: 5000 });
 			}
 		},
 		confirmDelete(espacio: Espacio) {
@@ -284,8 +310,8 @@ export default defineComponent({
 					try {
 						await this.store.deleteEspacio(espacio.id);
 						this.$toast.add({ severity: 'success', summary: this.$t('superadmin.espacios.deleted'), life: 3000 });
-					} catch {
-						this.$toast.add({ severity: 'error', summary: this.$t('superadmin.espacios.errorDelete'), life: 4000 });
+					} catch (e: unknown) {
+						this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('superadmin.espacios.errorDelete')), life: 5000 });
 					}
 				},
 			});

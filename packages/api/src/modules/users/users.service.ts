@@ -37,7 +37,18 @@ export class UsersService {
 		const existing = await this.findByEmail(dto.email);
 		if (existing) throw new ConflictException('Ya existe un usuario con ese email');
 
-		const fbUser = await this.firebase.createUser(dto.email, dto.password, dto.displayName);
+		let fbUser: { uid: string };
+		try {
+			fbUser = await this.firebase.createUser(dto.email, dto.password, dto.displayName);
+		} catch (err) {
+			// El email puede existir en Firebase aunque no en Postgres (datos
+			// desincronizados). Lo devolvemos como 409 para un mensaje claro, no un 500.
+			const code = (err as { errorInfo?: { code?: string } })?.errorInfo?.code;
+			if (code === 'auth/email-already-exists') {
+				throw new ConflictException('Ya existe un usuario con ese email');
+			}
+			throw err;
+		}
 
 		const entity = this.repo.create({
 			uid: fbUser.uid,

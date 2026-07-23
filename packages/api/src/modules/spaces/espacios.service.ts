@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Role, type Espacio } from '@base-template/shared';
+import { EspacioType, Role, type Espacio } from '@base-template/shared';
 import { UsersService } from '../users/users.service';
 import { UserEntity } from '../users/entities/user.entity';
 import { RubroEntity } from '../catalog/entities/rubro.entity';
@@ -48,6 +48,7 @@ export class EspaciosService {
 		return {
 			id: espacio.id,
 			nombre: espacio.nombre,
+			type: espacio.type,
 			slug: espacio.slug,
 			domain: espacio.domain,
 			descripcion: espacio.descripcion,
@@ -84,6 +85,7 @@ export class EspaciosService {
 		const espacio = await this.repo.save(
 			this.repo.create({
 				nombre: dto.nombre,
+				type: dto.type ?? EspacioType.CATALOG,
 				slug,
 				domain: dto.domain?.trim() || null,
 				descripcion: dto.descripcion ?? null,

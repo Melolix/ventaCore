@@ -7,7 +7,7 @@ import {
 	PrimaryGeneratedColumn,
 	UpdateDateColumn,
 } from 'typeorm';
-import { RubroStatus } from '@base-template/shared';
+import { AppPlatform, RubroStatus } from '@base-template/shared';
 import { ProductoEntity } from './producto.entity';
 
 @Entity('rubros')
@@ -45,6 +45,22 @@ export class RubroEntity {
 	@Index()
 	@Column({ type: 'uuid', nullable: true })
 	metaTargetId!: string | null;
+
+	/** Plataformas de la app (solo espacios tipo `apps`). Definen los íconos en la vitrina. */
+	@Column({ type: 'simple-array', default: '' })
+	platforms!: AppPlatform[];
+
+	/** Link de descarga en Google Play o al APK (solo espacios tipo `apps`). */
+	@Column({ type: 'varchar', nullable: true })
+	androidUrl!: string | null;
+
+	/** Link de descarga en la App Store (solo espacios tipo `apps`). */
+	@Column({ type: 'varchar', nullable: true })
+	iosUrl!: string | null;
+
+	/** Link para abrir la versión web/escritorio (solo espacios tipo `apps`). */
+	@Column({ type: 'varchar', nullable: true })
+	webUrl!: string | null;
 
 	@Column({ type: 'enum', enum: RubroStatus, default: RubroStatus.DRAFT })
 	status!: RubroStatus;

@@ -42,6 +42,17 @@
 			"upload": "No se pudo subir la imagen. Probá de nuevo."
 		}
 	},
+	"file": {
+		"uploadApk": "Subir APK",
+		"replaceApk": "Reemplazar APK",
+		"uploaded": "APK subido",
+		"download": "Descargar",
+		"err": {
+			"type": "El archivo tiene que ser un .apk",
+			"size": "El archivo supera el tamaño máximo (100 MB).",
+			"upload": "No se pudo subir el archivo. Probá de nuevo."
+		}
+	},
 	"public": {
 		"unavailable": {
 			"title": "Este sitio no está disponible",
@@ -75,12 +86,32 @@
 		"sector": "Sector",
 		"detailTitle": "Rubro",
 		"showing": "Mostrando {n} productos",
+		"showingScreens": "Mostrando {n} capturas",
 		"searchPlaceholder": "Buscar producto...",
 		"noProducts": "Este rubro todavía no tiene productos.",
+		"noScreens": "Esta app todavía no tiene capturas.",
+		"app": "App",
+		"viewScreens": "Ver capturas",
 		"generateAd": "Publicar",
 		"noInstagram": "Configurá el Instagram de este rubro (Rubros → editar)",
 		"consultWhatsapp": "Consultar por WhatsApp",
 		"whatsappMsg": "¡Hola! Quería consultar sobre {producto}.",
+		"download": {
+			"android": "Android",
+			"ios": "iOS",
+			"soon": "Descargas próximamente",
+			"apk": "Descargar APK",
+			"playstore": "Google Play",
+			"appstore": "App Store",
+			"openWeb": "Abrir la web"
+		},
+		"platform": {
+			"android": "Android",
+			"ios": "iOS",
+			"web": "Web",
+			"desktop": "Escritorio"
+		},
+		"viewFull": "Ver en grande",
 		"sort": {
 			"relevance": "Ordenar por: Relevancia",
 			"priceAsc": "Precio: Menor a Mayor",
@@ -121,6 +152,11 @@
 			"deleteTitle": "Eliminar espacio",
 			"deleteConfirm": "¿Eliminar \"{name}\"? Se borrarán su admin, sus rubros y productos.",
 			"domainHint": "En desarrollo se accede por {slug}.localhost. En producción, apuntá este dominio al sitio.",
+			"typeHint": "\"Catálogo\": rubros con productos (precio y WhatsApp). \"Apps\": cada rubro es una app con links de descarga.",
+			"types": {
+				"catalog": "Catálogo comercial",
+				"apps": "Página de apps"
+			},
 			"adminSection": "Admin del espacio (CM)",
 			"errorLoad": "No se pudieron cargar los espacios",
 			"errorForm": "Completá nombre, email y una contraseña de al menos 6 caracteres",
@@ -129,8 +165,9 @@
 			"errorDelete": "No se pudo eliminar",
 			"fields": {
 				"name": "Nombre del negocio",
+				"type": "Tipo de espacio",
 				"description": "Descripción",
-				"logoUrl": "URL del logo (opcional)",
+				"logoUrl": "Logo (opcional)",
 				"domain": "Dominio (opcional)"
 			}
 		}
@@ -201,7 +238,22 @@
 				"logoHint": "Se muestra junto al nombre en la vitrina. Ideal cuadrado y con fondo transparente.",
 				"instagram": "Instagram del negocio",
 				"instagramHint": "Cada rubro es un negocio distinto: su publicación va a este Instagram.",
+				"platforms": "Plataformas de la app",
+				"platformsPlaceholder": "Elegí para qué está disponible",
+				"platformsHint": "Definen los íconos que se ven en la vitrina y qué descargas aparecen.",
+				"androidUrl": "Descarga Android",
+				"androidPlaceholder": "Link de Google Play, o subí el .apk",
+				"androidHint": "Si no está en Google Play, subí el archivo .apk: al tocar el botón se descarga directo.",
+				"iosUrl": "Link de la App Store (iOS)",
+				"webUrl": "Link de la web / app",
+				"linksHint": "Los links se muestran como botones de descarga en el detalle de la app. Dejá vacío el que no tengas.",
 				"status": "Estado"
+			},
+			"platforms": {
+				"android": "Android",
+				"ios": "iOS",
+				"web": "Web",
+				"desktop": "Escritorio"
 			}
 		},
 		"productos": {

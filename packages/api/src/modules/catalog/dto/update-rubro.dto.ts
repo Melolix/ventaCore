@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
-import { RubroStatus } from '@base-template/shared';
+import { IsArray, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { AppPlatform, RubroStatus } from '@base-template/shared';
 
 export class UpdateRubroDto {
 	@ApiProperty({ required: false, example: 'Bienes Raíces' })
@@ -28,6 +28,27 @@ export class UpdateRubroDto {
 	@IsOptional()
 	@IsString()
 	instagramUrl?: string;
+
+	@ApiProperty({ enum: AppPlatform, isArray: true, required: false })
+	@IsOptional()
+	@IsArray()
+	@IsEnum(AppPlatform, { each: true })
+	platforms?: AppPlatform[];
+
+	@ApiProperty({ required: false })
+	@IsOptional()
+	@IsString()
+	androidUrl?: string;
+
+	@ApiProperty({ required: false })
+	@IsOptional()
+	@IsString()
+	iosUrl?: string;
+
+	@ApiProperty({ required: false })
+	@IsOptional()
+	@IsString()
+	webUrl?: string;
 
 	@ApiProperty({ enum: RubroStatus, required: false })
 	@IsOptional()

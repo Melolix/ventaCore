@@ -30,7 +30,21 @@ export type AboutInput = Partial<
 >;
 
 /** Payloads de creación/edición (el backend infiere el dueño desde el token). */
-export type RubroInput = Partial<Pick<Rubro, 'nombre' | 'descripcion' | 'imageUrl' | 'logoUrl' | 'instagramUrl' | 'status'>>;
+export type RubroInput = Partial<
+	Pick<
+		Rubro,
+		| 'nombre'
+		| 'descripcion'
+		| 'imageUrl'
+		| 'logoUrl'
+		| 'instagramUrl'
+		| 'platforms'
+		| 'androidUrl'
+		| 'iosUrl'
+		| 'webUrl'
+		| 'status'
+	>
+>;
 export type ProductoInput = Partial<Pick<Producto, 'nombre' | 'descripcion' | 'precio' | 'imageUrl'>>;
 
 export const useCatalogStore = defineStore('catalog', {

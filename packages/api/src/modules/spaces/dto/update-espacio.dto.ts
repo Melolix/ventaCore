@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { EspacioType } from '@base-template/shared';
 
 export class UpdateEspacioDto {
 	@ApiProperty({ required: false })
@@ -7,6 +8,11 @@ export class UpdateEspacioDto {
 	@IsString()
 	@MinLength(2)
 	nombre?: string;
+
+	@ApiProperty({ enum: EspacioType, required: false })
+	@IsOptional()
+	@IsEnum(EspacioType)
+	type?: EspacioType;
 
 	@ApiProperty({ required: false })
 	@IsOptional()

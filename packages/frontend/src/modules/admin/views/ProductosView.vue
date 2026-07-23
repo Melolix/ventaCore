@@ -37,7 +37,7 @@
 							</label>
 							<Textarea v-model="form.descripcion" class="w-full" rows="3" />
 						</div>
-						<div class="space-y-2">
+						<div v-if="!isApps" class="space-y-2">
 							<label class="px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 								{{ $t('admin.productos.fields.price') }}
 							</label>
@@ -89,7 +89,7 @@
 							<h4 class="font-semibold text-surface-900 dark:text-surface-0">{{ producto.nombre }}</h4>
 							<p class="line-clamp-1 text-sm text-surface-500">{{ producto.descripcion || '—' }}</p>
 						</div>
-						<span v-if="producto.precio != null" class="font-bold text-primary">{{ formatPrice(producto.precio) }}</span>
+						<span v-if="!isApps && producto.precio != null" class="font-bold text-primary">{{ formatPrice(producto.precio) }}</span>
 						<div class="flex gap-2">
 							<Button
 								icon="pi pi-send"
@@ -118,7 +118,7 @@
 					<label class="text-sm font-medium">{{ $t('admin.productos.fields.description') }}</label>
 					<Textarea v-model="edit.descripcion" class="w-full" rows="3" />
 				</div>
-				<div class="space-y-1">
+				<div v-if="!isApps" class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.productos.fields.price') }}</label>
 					<InputNumber v-model="edit.precio" class="w-full" mode="currency" currency="ARS" locale="es-AR" :min="0" />
 				</div>
@@ -173,8 +173,9 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { Producto } from '@base-template/shared';
+import { EspacioType, type Producto } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { apiErrorMessage } from '@/shared/utils/apiError';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
 
 export default defineComponent({
@@ -208,10 +209,16 @@ export default defineComponent({
 		metaReady(): boolean {
 			return !!this.catalog.rubroById(this.rubroId)?.metaTargetId;
 		},
+		/** Espacios tipo "apps": los "productos" son capturas de la app (sin precio). */
+		isApps(): boolean {
+			return this.catalog.miEspacio?.type === EspacioType.APPS;
+		},
 	},
 	async created() {
 		this.loading = true;
 		try {
+			// El layout ya suele cargar miEspacio; lo aseguramos para saber si es una app.
+			if (!this.catalog.miEspacio) await this.catalog.fetchMiEspacio().catch(() => undefined);
 			// Asegura tener el rubro cargado para mostrar su nombre.
 			if (!this.catalog.rubroById(this.rubroId)) await this.catalog.fetchRubros();
 			this.rubroNombre = this.catalog.rubroById(this.rubroId)?.nombre ?? '';
@@ -238,8 +245,8 @@ export default defineComponent({
 				});
 				this.$toast.add({ severity: 'success', summary: this.$t('admin.productos.created'), life: 3000 });
 				this.form = { nombre: '', descripcion: '', precio: null, imageUrl: '' };
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
 			} finally {
 				this.saving = false;
 			}
@@ -265,8 +272,8 @@ export default defineComponent({
 				});
 				this.$toast.add({ severity: 'success', summary: this.$t('admin.productos.updated'), life: 3000 });
 				this.editVisible = false;
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
 			} finally {
 				this.savingEdit = false;
 			}
@@ -282,8 +289,8 @@ export default defineComponent({
 					try {
 						await this.catalog.deleteProducto(this.rubroId, producto.id);
 						this.$toast.add({ severity: 'success', summary: this.$t('admin.productos.deleted'), life: 3000 });
-					} catch {
-						this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.delete'), life: 4000 });
+					} catch (e: unknown) {
+						this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.delete')), life: 5000 });
 					}
 				},
 			});

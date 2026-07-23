@@ -75,8 +75,9 @@
 			<div class="mt-2 border-t border-surface-200/60 pt-3 dark:border-surface-700/60">
 				<button
 					type="button"
-					class="flex w-full items-center gap-3 rounded-xl p-3 text-sm font-semibold text-surface-600 transition-all hover:translate-x-1 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800"
-					@click="$router.push('/')"
+					class="flex w-full items-center gap-3 rounded-xl p-3 text-sm font-semibold text-surface-600 transition-all hover:translate-x-1 hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-surface-300 dark:hover:bg-surface-800"
+					:disabled="!catalog.miEspacio"
+					@click="openSite"
 				>
 					<i class="pi pi-external-link" />
 					<span>{{ $t('admin.viewSite') }}</span>
@@ -97,7 +98,9 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { useUserStore } from '@/modules/auth/store/user';
+import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { isDark, toggleTheme } from '@/composables/useTheme';
+import { vitrinaUrl } from '@/shared/utils/site';
 import BrandLogo from '@/shared/components/BrandLogo.vue';
 
 interface NavItem {
@@ -112,7 +115,7 @@ export default defineComponent({
 	name: 'AdminLayout',
 	components: { BrandLogo },
 	setup() {
-		return { isDark, toggleTheme };
+		return { isDark, toggleTheme, catalog: useCatalogStore() };
 	},
 	data() {
 		return {
@@ -137,7 +140,19 @@ export default defineComponent({
 			return [{ label: this.$t('common.logout'), icon: 'pi pi-sign-out', command: () => this.onLogout() }];
 		},
 	},
+	async created() {
+		// Necesitamos el slug del negocio para armar el link "Ver el sitio".
+		if (!this.catalog.miEspacio) {
+			await this.catalog.fetchMiEspacio().catch(() => undefined);
+		}
+	},
 	methods: {
+		/** Abre la vitrina pública en su host propio (no un push interno: la vitrina
+		 *  se resuelve por hostname, así que hay que cambiar de host, no solo de path). */
+		openSite() {
+			if (!this.catalog.miEspacio) return;
+			window.open(vitrinaUrl(this.catalog.miEspacio), '_blank', 'noopener');
+		},
 		toggleUserMenu(event: Event) {
 			(this.$refs.userMenu as { toggle: (e: Event) => void }).toggle(event);
 		},

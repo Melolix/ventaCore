@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
-import type { Espacio } from '@base-template/shared';
+import type { Espacio, EspacioType } from '@base-template/shared';
 import { api } from '@/shared/services/api';
+import { deleteImage } from '@/shared/utils/image';
 
 interface SpacesState {
 	espacios: Espacio[];
@@ -8,6 +9,7 @@ interface SpacesState {
 
 export interface CreateEspacioInput {
 	nombre: string;
+	type?: EspacioType;
 	descripcion?: string;
 	logoUrl?: string;
 	domain?: string;
@@ -15,7 +17,7 @@ export interface CreateEspacioInput {
 	adminPassword: string;
 }
 
-export type UpdateEspacioInput = Partial<Pick<Espacio, 'nombre' | 'descripcion' | 'logoUrl' | 'domain' | 'active'>>;
+export type UpdateEspacioInput = Partial<Pick<Espacio, 'nombre' | 'type' | 'descripcion' | 'logoUrl' | 'domain' | 'active'>>;
 
 export const useSpacesStore = defineStore('spaces', {
 	state: (): SpacesState => ({
@@ -39,15 +41,19 @@ export const useSpacesStore = defineStore('spaces', {
 		},
 
 		async updateEspacio(id: string, input: UpdateEspacioInput): Promise<Espacio> {
+			const prev = this.espacios.find(e => e.id === id);
 			const { data } = await api.patch<Espacio>(`/espacios/${id}`, input);
 			const i = this.espacios.findIndex(e => e.id === id);
 			if (i !== -1) this.espacios[i] = data;
+			if (prev && prev.logoUrl !== data.logoUrl) void deleteImage(prev.logoUrl);
 			return data;
 		},
 
 		async deleteEspacio(id: string): Promise<void> {
+			const prev = this.espacios.find(e => e.id === id);
 			await api.delete(`/espacios/${id}`);
 			this.espacios = this.espacios.filter(e => e.id !== id);
+			if (prev) void deleteImage(prev.logoUrl);
 		},
 	},
 });

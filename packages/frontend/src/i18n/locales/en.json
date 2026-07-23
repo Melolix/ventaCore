@@ -42,6 +42,17 @@
 			"upload": "Could not upload the image. Please try again."
 		}
 	},
+	"file": {
+		"uploadApk": "Upload APK",
+		"replaceApk": "Replace APK",
+		"uploaded": "APK uploaded",
+		"download": "Download",
+		"err": {
+			"type": "The file must be an .apk",
+			"size": "The file exceeds the maximum size (100 MB).",
+			"upload": "Could not upload the file. Please try again."
+		}
+	},
 	"public": {
 		"unavailable": {
 			"title": "This site is unavailable",
@@ -75,12 +86,32 @@
 		"sector": "Sector",
 		"detailTitle": "Category",
 		"showing": "Showing {n} products",
+		"showingScreens": "Showing {n} screenshots",
 		"searchPlaceholder": "Search product...",
 		"noProducts": "This category has no products yet.",
+		"noScreens": "This app has no screenshots yet.",
+		"app": "App",
+		"viewScreens": "View screenshots",
 		"generateAd": "Publish",
 		"noInstagram": "Set this category's Instagram (Categories → edit)",
 		"consultWhatsapp": "Ask on WhatsApp",
 		"whatsappMsg": "Hi! I wanted to ask about {producto}.",
+		"download": {
+			"android": "Android",
+			"ios": "iOS",
+			"soon": "Downloads coming soon",
+			"apk": "Download APK",
+			"playstore": "Google Play",
+			"appstore": "App Store",
+			"openWeb": "Open the web app"
+		},
+		"platform": {
+			"android": "Android",
+			"ios": "iOS",
+			"web": "Web",
+			"desktop": "Desktop"
+		},
+		"viewFull": "View larger",
 		"sort": {
 			"relevance": "Sort by: Relevance",
 			"priceAsc": "Price: Low to High",
@@ -121,6 +152,11 @@
 			"deleteTitle": "Delete space",
 			"deleteConfirm": "Delete \"{name}\"? Its admin, categories and products will be removed.",
 			"domainHint": "In development it's reachable at {slug}.localhost. In production, point this domain to the site.",
+			"typeHint": "\"Catalog\": categories with products (price and WhatsApp). \"Apps\": each category is an app with download links.",
+			"types": {
+				"catalog": "Commercial catalog",
+				"apps": "Apps page"
+			},
 			"adminSection": "Space admin (CM)",
 			"errorLoad": "Could not load spaces",
 			"errorForm": "Enter a name, email and a password of at least 6 characters",
@@ -129,8 +165,9 @@
 			"errorDelete": "Could not delete",
 			"fields": {
 				"name": "Business name",
+				"type": "Space type",
 				"description": "Description",
-				"logoUrl": "Logo URL (optional)",
+				"logoUrl": "Logo (optional)",
 				"domain": "Domain (optional)"
 			}
 		}
@@ -201,7 +238,22 @@
 				"logoHint": "Shown next to the name in the storefront. Ideally square with a transparent background.",
 				"instagram": "Business Instagram",
 				"instagramHint": "Each category is a different business: its post goes to this Instagram.",
+				"platforms": "App platforms",
+				"platformsPlaceholder": "Choose where it's available",
+				"platformsHint": "They define the icons shown on the storefront and which downloads appear.",
+				"androidUrl": "Android download",
+				"androidPlaceholder": "Google Play link, or upload the .apk",
+				"androidHint": "Not on Google Play? Upload the .apk file: tapping the button downloads it directly.",
+				"iosUrl": "App Store link (iOS)",
+				"webUrl": "Web / app link",
+				"linksHint": "Links appear as download buttons on the app detail. Leave blank the one you don't have.",
 				"status": "Status"
+			},
+			"platforms": {
+				"android": "Android",
+				"ios": "iOS",
+				"web": "Web",
+				"desktop": "Desktop"
 			}
 		},
 		"productos": {
