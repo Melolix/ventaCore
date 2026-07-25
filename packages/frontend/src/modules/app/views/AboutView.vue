@@ -36,10 +36,12 @@
 			<div v-if="espacio?.aboutImageUrl" class="order-1 lg:order-2">
 				<div class="relative">
 					<div class="absolute -right-4 -top-4 -z-10 h-full w-full rounded-2xl bg-primary/10" />
+					<!-- Mismo aspecto (4:3) y object-cover que el editor → se ve idéntico al panel,
+					     sin el re-recorte cuadrado que agrandaba el logo y le comía el margen. -->
 					<img
 						:src="espacio.aboutImageUrl"
 						:alt="espacio?.nombre"
-						class="aspect-video w-full rounded-2xl object-cover shadow-xl md:aspect-square"
+						class="aspect-[4/3] w-full rounded-2xl object-cover shadow-xl"
 					/>
 				</div>
 			</div>
