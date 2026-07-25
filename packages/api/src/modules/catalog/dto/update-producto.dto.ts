@@ -23,4 +23,9 @@ export class UpdateProductoDto {
 	@IsOptional()
 	@IsString()
 	imageUrl?: string;
+
+	@ApiProperty({ required: false })
+	@IsOptional()
+	@IsString()
+	seccion?: string;
 }

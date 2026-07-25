@@ -39,6 +39,10 @@ export class ProductoEntity {
 	@Column({ type: 'varchar', nullable: true })
 	imageUrl!: string | null;
 
+	/** Pestaña/sección (solo apps multi-audiencia, ej. usuario/entrenador/admin). */
+	@Column({ type: 'varchar', nullable: true })
+	seccion!: string | null;
+
 	@CreateDateColumn()
 	createdAt!: Date;
 

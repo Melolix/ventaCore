@@ -274,7 +274,10 @@
 				"name": "Nombre",
 				"description": "Descripción",
 				"price": "Precio",
-				"imageUrl": "Imagen (opcional)"
+				"imageUrl": "Imagen (opcional)",
+				"seccion": "Sección / Pestaña",
+				"seccionPlaceholder": "Ej. usuario, entrenador, admin",
+				"seccionHint": "Agrupá las capturas en pestañas por audiencia. Con 2 o más secciones, la vitrina muestra pestañas."
 			}
 		},
 		"meta": {

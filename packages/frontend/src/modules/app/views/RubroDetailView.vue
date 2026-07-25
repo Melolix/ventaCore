@@ -5,9 +5,14 @@
 			<div
 				class="absolute inset-0 bg-cover bg-center"
 				:style="rubro?.imageUrl ? { backgroundImage: `url('${rubro.imageUrl}')` } : {}"
-				:class="{ 'primary-gradient': !rubro?.imageUrl }"
+				:class="[{ 'primary-gradient': !rubro?.imageUrl }, isApps && rubro?.imageUrl ? 'scale-110 blur-xl' : '']"
 			>
-				<div class="absolute inset-0 bg-gradient-to-r from-black/70 to-black/10" />
+				<!-- En apps el fondo va desenfocado: el título se lee limpio y no compite
+				     con el texto de la propia portada/banner. -->
+				<div
+					class="absolute inset-0"
+					:class="isApps ? 'bg-gradient-to-r from-black/80 via-black/60 to-black/40' : 'bg-gradient-to-r from-black/70 to-black/10'"
+				/>
 			</div>
 			<div class="relative flex h-full flex-col justify-center gap-3 p-8 md:p-12">
 				<Button
@@ -65,6 +70,18 @@
 		</section>
 
 		<div class="mx-auto max-w-7xl">
+			<!-- Apps con varias audiencias: pestañas por sección (usuario/entrenador/admin…) -->
+			<div v-if="isApps && showTabs" class="mb-6 overflow-x-auto">
+				<SelectButton
+					v-model="activeSeccion"
+					:options="seccionOptions"
+					option-label="label"
+					option-value="value"
+					:allow-empty="false"
+					class="w-fit"
+				/>
+			</div>
+
 			<!-- Filtros -->
 			<div class="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
 				<p class="text-surface-600 dark:text-surface-300">
@@ -215,11 +232,27 @@ export default defineComponent({
 			sort: 'relevance' as SortKey,
 			lightboxVisible: false,
 			lightboxItem: null as Producto | null,
+			activeSeccion: '',
 		};
 	},
 	computed: {
 		rubroId(): string {
 			return this.$route.params.id as string;
+		},
+		/** Secciones/pestañas distintas de las capturas, en orden de aparición. */
+		secciones(): string[] {
+			const out: string[] = [];
+			for (const p of this.catalog.publicProductos) {
+				if (p.seccion && !out.includes(p.seccion)) out.push(p.seccion);
+			}
+			return out;
+		},
+		seccionOptions(): { label: string; value: string }[] {
+			return this.secciones.map(s => ({ label: s.charAt(0).toUpperCase() + s.slice(1), value: s }));
+		},
+		/** Muestra pestañas solo si la app tiene capturas de 2+ secciones. */
+		showTabs(): boolean {
+			return this.isApps && this.secciones.length >= 2;
 		},
 		rubro() {
 			return this.catalog.currentRubro;
@@ -271,6 +304,8 @@ export default defineComponent({
 		filtered(): Producto[] {
 			const term = this.search.trim().toLowerCase();
 			let list = this.catalog.publicProductos.filter(p => !term || p.nombre.toLowerCase().includes(term));
+			// Apps con pestañas: mostrar solo las capturas de la sección activa.
+			if (this.showTabs) list = list.filter(p => p.seccion === this.activeSeccion);
 			if (this.sort !== 'relevance') {
 				const dir = this.sort === 'priceAsc' ? 1 : -1;
 				list = [...list].sort((a, b) => ((a.precio ?? 0) - (b.precio ?? 0)) * dir);
@@ -287,6 +322,8 @@ export default defineComponent({
 				this.catalog.fetchPublicRubro(this.rubroId),
 				this.catalog.fetchPublicProductos(this.rubroId),
 			]);
+			// Si hay pestañas, arrancamos en la primera sección.
+			if (this.showTabs) this.activeSeccion = this.secciones[0];
 		} catch {
 			// Rubro inexistente o en borrador → volver a la vitrina del negocio.
 			this.goBack();

@@ -68,6 +68,13 @@ export interface Producto {
 	descripcion: string | null;
 	precio: number | null;
 	imageUrl: string | null;
+	/**
+	 * Pestaña/sección a la que pertenece (solo apps con varias audiencias, ej.
+	 * Athlix: "usuario" | "entrenador" | "admin"). null = sin sección. Si un
+	 * rubro tiene productos con >= 2 secciones distintas, la vitrina muestra
+	 * pestañas; si no, galería plana.
+	 */
+	seccion: string | null;
 	createdAt: string;
 	updatedAt: string;
 }

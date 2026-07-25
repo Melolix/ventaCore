@@ -37,6 +37,24 @@
 							</label>
 							<Textarea v-model="form.descripcion" class="w-full" rows="3" />
 						</div>
+						<div v-if="isApps" class="space-y-2">
+							<label class="flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
+								<i class="pi pi-clone" /> {{ $t('admin.productos.fields.seccion') }}
+							</label>
+							<InputText v-model="form.seccion" class="w-full" :placeholder="$t('admin.productos.fields.seccionPlaceholder')" />
+							<div v-if="seccionesExistentes.length" class="flex flex-wrap gap-1.5 px-1">
+								<button
+									v-for="s in seccionesExistentes"
+									:key="s"
+									type="button"
+									class="rounded-full bg-surface-100 px-2.5 py-1 text-xs text-surface-600 transition-colors hover:bg-primary/10 hover:text-primary dark:bg-surface-800 dark:text-surface-300"
+									@click="form.seccion = s"
+								>
+									{{ s }}
+								</button>
+							</div>
+							<p class="px-1 text-xs text-surface-400">{{ $t('admin.productos.fields.seccionHint') }}</p>
+						</div>
 						<div v-if="!isApps" class="space-y-2">
 							<label class="px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 								{{ $t('admin.productos.fields.price') }}
@@ -86,7 +104,10 @@
 							</div>
 						</div>
 						<div class="flex-1">
-							<h4 class="font-semibold text-surface-900 dark:text-surface-0">{{ producto.nombre }}</h4>
+							<div class="flex items-center gap-2">
+								<h4 class="font-semibold text-surface-900 dark:text-surface-0">{{ producto.nombre }}</h4>
+								<Tag v-if="isApps && producto.seccion" :value="producto.seccion" severity="secondary" class="uppercase" />
+							</div>
 							<p class="line-clamp-1 text-sm text-surface-500">{{ producto.descripcion || '—' }}</p>
 						</div>
 						<span v-if="!isApps && producto.precio != null" class="font-bold text-primary">{{ formatPrice(producto.precio) }}</span>
@@ -117,6 +138,21 @@
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.productos.fields.description') }}</label>
 					<Textarea v-model="edit.descripcion" class="w-full" rows="3" />
+				</div>
+				<div v-if="isApps" class="space-y-1">
+					<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-clone" /> {{ $t('admin.productos.fields.seccion') }}</label>
+					<InputText v-model="edit.seccion" class="w-full" :placeholder="$t('admin.productos.fields.seccionPlaceholder')" />
+					<div v-if="seccionesExistentes.length" class="flex flex-wrap gap-1.5">
+						<button
+							v-for="s in seccionesExistentes"
+							:key="s"
+							type="button"
+							class="rounded-full bg-surface-100 px-2.5 py-1 text-xs text-surface-600 transition-colors hover:bg-primary/10 hover:text-primary dark:bg-surface-800 dark:text-surface-300"
+							@click="edit.seccion = s"
+						>
+							{{ s }}
+						</button>
+					</div>
 				</div>
 				<div v-if="!isApps" class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.productos.fields.price') }}</label>
@@ -195,15 +231,21 @@ export default defineComponent({
 			publishTestUrl: '',
 			showTestUrl: false,
 			publishing: false,
-			form: { nombre: '', descripcion: '', precio: null as number | null, imageUrl: '' },
+			form: { nombre: '', descripcion: '', precio: null as number | null, imageUrl: '', seccion: '' },
 			editVisible: false,
 			editId: '',
-			edit: { nombre: '', descripcion: '', precio: null as number | null, imageUrl: '' },
+			edit: { nombre: '', descripcion: '', precio: null as number | null, imageUrl: '', seccion: '' },
 		};
 	},
 	computed: {
 		rubroId(): string {
 			return this.$route.params.id as string;
+		},
+		/** Secciones/pestañas ya usadas en este rubro (para sugerir al cargar capturas). */
+		seccionesExistentes(): string[] {
+			const set = new Set<string>();
+			for (const p of this.catalog.productos) if (p.seccion) set.add(p.seccion);
+			return [...set];
 		},
 		/** El rubro está listo para publicar si eligió un destino de Meta. */
 		metaReady(): boolean {
@@ -242,9 +284,11 @@ export default defineComponent({
 					descripcion: this.form.descripcion.trim() || undefined,
 					precio: this.form.precio ?? undefined,
 					imageUrl: this.form.imageUrl.trim() || undefined,
+					seccion: this.isApps ? this.form.seccion.trim() || undefined : undefined,
 				});
 				this.$toast.add({ severity: 'success', summary: this.$t('admin.productos.created'), life: 3000 });
-				this.form = { nombre: '', descripcion: '', precio: null, imageUrl: '' };
+				// Conservamos la sección elegida para cargar varias capturas seguidas de la misma pestaña.
+				this.form = { nombre: '', descripcion: '', precio: null, imageUrl: '', seccion: this.form.seccion };
 			} catch (e: unknown) {
 				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
 			} finally {
@@ -258,6 +302,7 @@ export default defineComponent({
 				descripcion: producto.descripcion ?? '',
 				precio: producto.precio,
 				imageUrl: producto.imageUrl ?? '',
+				seccion: producto.seccion ?? '',
 			};
 			this.editVisible = true;
 		},
@@ -269,6 +314,7 @@ export default defineComponent({
 					descripcion: this.edit.descripcion.trim() || undefined,
 					precio: this.edit.precio ?? undefined,
 					imageUrl: this.edit.imageUrl.trim() || undefined,
+					...(this.isApps ? { seccion: this.edit.seccion.trim() || null } : {}),
 				});
 				this.$toast.add({ severity: 'success', summary: this.$t('admin.productos.updated'), life: 3000 });
 				this.editVisible = false;

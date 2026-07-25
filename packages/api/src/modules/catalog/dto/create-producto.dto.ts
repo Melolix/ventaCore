@@ -22,4 +22,9 @@ export class CreateProductoDto {
 	@IsOptional()
 	@IsString()
 	imageUrl?: string;
+
+	@ApiProperty({ required: false, example: 'usuario' })
+	@IsOptional()
+	@IsString()
+	seccion?: string;
 }

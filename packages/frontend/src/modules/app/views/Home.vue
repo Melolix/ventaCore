@@ -33,12 +33,29 @@
 					@click="onTileClick(rubro.id)"
 				>
 					<div class="relative flex-1 overflow-hidden bg-surface-100 dark:bg-surface-800">
-						<img
-							v-if="rubro.imageUrl"
-							:src="rubro.imageUrl"
-							:alt="rubro.nombre"
-							class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-						/>
+						<template v-if="rubro.imageUrl">
+							<!-- Apps: la portada se ve ENTERA (object-contain) sobre un fondo con la
+							     misma imagen ampliada + blur → se amolda a cualquier tamaño de tile. -->
+							<template v-if="isApps">
+								<div
+									class="absolute inset-0 scale-110 bg-cover bg-center opacity-50 blur-2xl"
+									:style="{ backgroundImage: `url('${rubro.imageUrl}')` }"
+								/>
+								<div class="absolute inset-0 bg-surface-900/20" />
+								<img
+									:src="rubro.imageUrl"
+									:alt="rubro.nombre"
+									class="relative h-full w-full object-contain transition-transform duration-700 group-hover:scale-105"
+								/>
+							</template>
+							<!-- Catálogo: la foto llena el tile (object-cover). -->
+							<img
+								v-else
+								:src="rubro.imageUrl"
+								:alt="rubro.nombre"
+								class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+							/>
+						</template>
 						<div v-else class="primary-gradient flex h-full w-full items-center justify-center opacity-90">
 							<i :class="isApps ? 'pi pi-th-large' : 'pi pi-tag'" class="text-5xl text-white/70" />
 						</div>

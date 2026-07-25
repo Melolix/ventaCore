@@ -274,7 +274,10 @@
 				"name": "Name",
 				"description": "Description",
 				"price": "Price",
-				"imageUrl": "Image (optional)"
+				"imageUrl": "Image (optional)",
+				"seccion": "Section / Tab",
+				"seccionPlaceholder": "e.g. user, trainer, admin",
+				"seccionHint": "Group screenshots into tabs by audience. With 2+ sections, the storefront shows tabs."
 			}
 		},
 		"meta": {

@@ -45,7 +45,7 @@ export type RubroInput = Partial<
 		| 'status'
 	>
 >;
-export type ProductoInput = Partial<Pick<Producto, 'nombre' | 'descripcion' | 'precio' | 'imageUrl'>>;
+export type ProductoInput = Partial<Pick<Producto, 'nombre' | 'descripcion' | 'precio' | 'imageUrl' | 'seccion'>>;
 
 export const useCatalogStore = defineStore('catalog', {
 	state: (): CatalogState => ({
