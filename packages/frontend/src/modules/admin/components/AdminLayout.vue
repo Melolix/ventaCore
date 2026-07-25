@@ -147,11 +147,12 @@ export default defineComponent({
 		}
 	},
 	methods: {
-		/** Abre la vitrina pública en su host propio (no un push interno: la vitrina
-		 *  se resuelve por hostname, así que hay que cambiar de host, no solo de path). */
+		/** Va a la vitrina pública en la MISMA pestaña, en su host propio (no un push
+		 *  interno: la vitrina se resuelve por hostname, así que hay que cambiar de
+		 *  host, no solo de path). */
 		openSite() {
 			if (!this.catalog.miEspacio) return;
-			window.open(vitrinaUrl(this.catalog.miEspacio), '_blank', 'noopener');
+			window.location.href = vitrinaUrl(this.catalog.miEspacio);
 		},
 		toggleUserMenu(event: Event) {
 			(this.$refs.userMenu as { toggle: (e: Event) => void }).toggle(event);
