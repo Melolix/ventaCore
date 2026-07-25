@@ -115,14 +115,30 @@
 						class="relative overflow-hidden bg-surface-100 dark:bg-surface-800"
 						:class="isApps ? 'h-72' : 'h-56'"
 					>
-						<img
-							v-if="producto.imageUrl"
-							:src="producto.imageUrl"
-							:alt="producto.nombre"
-							class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-							:class="{ 'cursor-zoom-in': isApps }"
-							@click="isApps && openLightbox(producto)"
-						/>
+						<template v-if="producto.imageUrl">
+							<!-- Apps: la captura se ve ENTERA (contain) sobre un fondo blur de sí
+							     misma → sirve igual para capturas de escritorio (apaisadas) y de
+							     celular (verticales), sin recortes feos. -->
+							<template v-if="isApps">
+								<div
+									class="absolute inset-0 scale-110 bg-cover bg-center opacity-40 blur-2xl"
+									:style="{ backgroundImage: `url('${producto.imageUrl}')` }"
+								/>
+								<img
+									:src="producto.imageUrl"
+									:alt="producto.nombre"
+									class="relative h-full w-full cursor-zoom-in object-contain transition-transform duration-500 group-hover:scale-105"
+									@click="openLightbox(producto)"
+								/>
+							</template>
+							<!-- Catálogo: la foto llena la card (object-cover). -->
+							<img
+								v-else
+								:src="producto.imageUrl"
+								:alt="producto.nombre"
+								class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+							/>
+						</template>
 						<div v-else class="flex h-full w-full items-center justify-center text-surface-400">
 							<i :class="isApps ? 'pi pi-image' : 'pi pi-shopping-bag'" class="text-4xl" />
 						</div>
