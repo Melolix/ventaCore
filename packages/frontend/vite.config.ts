@@ -51,6 +51,9 @@ export default defineConfig(({ mode }) => {
 				},
 				workbox: {
 					globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+					// Los screenshots de las páginas de apps son contenido pesado
+					// (>2 MB) y no forman parte del app shell: no se precachean.
+					globIgnores: ['**/screenshots/**'],
 					cleanupOutdatedCaches: true,
 					clientsClaim: true,
 					skipWaiting: true,

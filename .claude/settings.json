@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat -ano)",
+      "Bash(curl -s -o /dev/null -w \"frontend 5173: %{http_code}\\\\n\" http://localhost:5173)",
+      "Bash(curl -s -o /dev/null -w \"vitrina campo-ruta: %{http_code}\\\\n\" http://campo-ruta.localhost:5173)",
+      "Bash(curl -s -o /dev/null -w \"api site: %{http_code}\\\\n\" \"http://localhost:3000/api/public/site?host=campo-ruta.localhost\")",
+      "Bash(curl -s -o /dev/null -w \"emulador auth 9099: %{http_code}\\\\n\" http://127.0.0.1:9099/)"
+    ]
+  }
+}
