@@ -17,3 +17,7 @@ packages/sdk/src
 .firebase-data
 firebase-debug.log
 ui-debug.log
+
+# Autogenerado por unplugin-vue-components en cada build (vite). Trackearlo hace
+# que el `git pull` del deploy falle porque el build lo deja modificado.
+packages/frontend/components.d.ts
