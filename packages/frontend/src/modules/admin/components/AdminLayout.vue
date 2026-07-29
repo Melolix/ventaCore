@@ -23,7 +23,9 @@
 					@click="toggleUserMenu"
 				>
 					<Avatar :label="inicial" shape="circle" class="!bg-primary !text-white" />
-					<span class="hidden max-w-[10rem] truncate text-sm font-semibold text-surface-700 dark:text-surface-200 sm:inline">
+					<span
+						class="hidden max-w-[10rem] truncate text-sm font-semibold text-surface-700 dark:text-surface-200 sm:inline"
+					>
 						{{ nombre }}
 					</span>
 					<i class="pi pi-chevron-down text-xs text-surface-400" />
@@ -32,7 +34,11 @@
 					<template #start>
 						<div class="border-b border-surface-200 px-3 py-2 dark:border-surface-700">
 							<p class="text-xs text-surface-400">{{ $t('common.signedInAs') }}</p>
-							<p class="max-w-[14rem] truncate text-sm font-medium text-surface-700 dark:text-surface-200">{{ email }}</p>
+							<p
+								class="max-w-[14rem] truncate text-sm font-medium text-surface-700 dark:text-surface-200"
+							>
+								{{ email }}
+							</p>
 						</div>
 					</template>
 				</Menu>
@@ -121,6 +127,7 @@ export default defineComponent({
 		return {
 			navItems: [
 				{ key: 'rubros', label: 'admin.nav.rubros', icon: 'pi pi-tags', to: '/admin' },
+				{ key: 'carga', label: 'admin.nav.carga', icon: 'pi pi-upload', to: '/admin/cargar-productos' },
 				{ key: 'nosotros', label: 'admin.nav.nosotros', icon: 'pi pi-id-card', to: '/admin/nosotros' },
 			] as NavItem[],
 		};
@@ -160,6 +167,7 @@ export default defineComponent({
 		isActive(item: NavItem): boolean {
 			const path = this.$route.path;
 			if (item.key === 'nosotros') return path.startsWith('/admin/nosotros');
+			if (item.key === 'carga') return path.startsWith('/admin/cargar-productos');
 			// "Rubros" queda activo en la lista y en la vista de productos.
 			if (item.key === 'rubros') return path === '/admin' || path.startsWith('/admin/rubros');
 			return false;

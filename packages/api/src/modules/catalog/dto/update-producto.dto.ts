@@ -1,31 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { PartialType } from '@nestjs/swagger';
+import { CreateProductoDto } from './create-producto.dto';
 
-export class UpdateProductoDto {
-	@ApiProperty({ required: false, example: 'Departamento 2 ambientes' })
-	@IsOptional()
-	@IsString()
-	@MinLength(2)
-	nombre?: string;
-
-	@ApiProperty({ required: false })
-	@IsOptional()
-	@IsString()
-	descripcion?: string;
-
-	@ApiProperty({ required: false })
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	precio?: number;
-
-	@ApiProperty({ required: false })
-	@IsOptional()
-	@IsString()
-	imageUrl?: string;
-
-	@ApiProperty({ required: false })
-	@IsOptional()
-	@IsString()
-	seccion?: string;
-}
+/** Todos los campos de creación, pero opcionales (edición parcial). */
+export class UpdateProductoDto extends PartialType(CreateProductoDto) {}

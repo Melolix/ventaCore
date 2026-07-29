@@ -8,6 +8,7 @@
 		"welcome": "Welcome",
 		"notFound": "Page not found",
 		"cancel": "Cancel",
+		"apply": "Apply",
 		"delete": "Delete",
 		"edit": "Edit",
 		"signedInAs": "Signed in as"
@@ -179,6 +180,7 @@
 		"viewSite": "View site",
 		"nav": {
 			"rubros": "Categories",
+			"carga": "Upload products",
 			"nosotros": "About Us"
 		},
 		"about": {
@@ -208,6 +210,129 @@
 			"save": "Could not save",
 			"delete": "Could not delete"
 		},
+		"carga": {
+			"eyebrow": "Bulk upload",
+			"title": "Upload products",
+			"subtitle": "Bring in your products and publish them in bulk. The system fills in what it can.",
+			"sources": {
+				"scan": { "title": "Scan barcode", "desc": "Autofills from the Mercado Libre catalog" },
+				"excel": { "title": "Import Excel / CSV", "desc": "Map columns once" },
+				"erp": { "title": "From ERP / store", "desc": "Current ML, Tiendanube, POS" },
+				"ia": { "title": "Photo + name → AI", "desc": "For products without a code" },
+				"soon": "Coming soon"
+			},
+			"addRow": "Add row",
+			"selectedOf": "{sel} selected of {total}",
+			"cols": {
+				"producto": "Product",
+				"categoria": "Category",
+				"precio": "Price",
+				"stock": "Stock",
+				"estado": "Status",
+				"categoriaMl": "ML category"
+			},
+			"placeholders": {
+				"nombre": "Product name",
+				"rubro": "Pick a category",
+				"ean": "Barcode / EAN"
+			},
+			"source": {
+				"manual": "entered manually",
+				"excel": "imported from Excel",
+				"scan": "from the catalog",
+				"ia": "completed by AI",
+				"ml": "from Mercado Libre"
+			},
+			"estado": {
+				"ready": "Ready",
+				"review": "Review",
+				"missing": "{n} missing",
+				"draft": "Draft"
+			},
+			"bulk": {
+				"asignarRubro": "Assign category",
+				"precioEnLote": "Bulk price",
+				"completarIa": "Complete with AI"
+			},
+			"legend": {
+				"ready": "{n} ready",
+				"review": "{n} to review",
+				"missing": "{n} with missing data"
+			},
+			"publish": "Save selected",
+			"footnote": "Each product shows where its data came from — code, AI, Excel — so you know which to trust and which to review.",
+			"empty": "No products yet. Add a row or import an Excel to get started.",
+			"needRubro": "Assign a category to every selected row before saving.",
+			"pickStep": "Step 1",
+			"pickTitle": "Which category do you want to load products into?",
+			"pickCount": "{n} products",
+			"pickReview": "{n} to review",
+			"loadingIn": "Loading into",
+			"mlConnected": "ML connected",
+			"mlNotConnected": "ML not connected",
+			"mlConnectHint": "Connect ML to publish",
+			"needName": "Give every selected product a name.",
+			"saveAll": "Save all",
+			"unsaved": "unsaved",
+			"unsavedLeave": "You have unsaved changes. Leave anyway?",
+			"nothingSelected": "No rows selected.",
+			"noRubros": "Create at least one category first to upload products.",
+			"saved": "{n} products saved",
+			"savedPartial": "{ok} saved · {fail} failed",
+			"saveError": "Could not save the batch",
+			"faltanLabel": "Missing: {campos}",
+			"import": {
+				"title": "Import Excel / CSV",
+				"step1": "Upload the file",
+				"step2": "Map the columns",
+				"dropHint": "Drag an .xlsx or .csv, or click to choose",
+				"fileCols": "File column",
+				"targetField": "Product field",
+				"ignore": "Ignore",
+				"preview": "{n} rows detected",
+				"confirm": "Import {n} rows",
+				"parseError": "Could not read the file",
+				"noRows": "The file has no data rows"
+			},
+			"ml": {
+				"button": "Mercado Libre category & attributes",
+				"title": "Mercado Libre: category & attributes",
+				"categoryTitle": "Mercado Libre category",
+				"noCategory": "No category assigned",
+				"suggest": "Suggest",
+				"attrsTitle": "Required attributes",
+				"noAttrs": "This category has no required attributes.",
+				"attrPick": "Pick an option",
+				"attrValue": "Enter the value",
+				"needName": "Add a product name to suggest the category.",
+				"noSuggestions": "No categories found for that name.",
+				"predictError": "Couldn't predict the category",
+				"attrsError": "Couldn't fetch the attributes",
+				"assignInline": "Suggest category",
+				"catalogTitle": "Is it in the Mercado Libre catalog?",
+				"catalogPlaceholder": "Search by name or barcode",
+				"catalogFilling": "Fetching catalog data…",
+				"catalogHint": "For branded products, ML fills category, attributes, photos and description.",
+				"catalogNone": "Not found in the catalog.",
+				"catalogError": "Couldn't search the catalog",
+				"catalogFilled": "Catalog data loaded"
+			},
+			"images": {
+				"title": "Product images",
+				"cover": "Cover",
+				"makeCover": "Make cover",
+				"hint": "The first image is the cover (shown in your storefront). All are published to Mercado Libre.",
+				"done": "Done"
+			},
+			"pub": {
+				"button": "Publish to Mercado Libre",
+				"view": "View the listing on Mercado Libre",
+				"done": "Published to Mercado Libre",
+				"error": "Couldn't publish to Mercado Libre",
+				"saveFirst": "Save the product before publishing it.",
+				"alsoShared": "also shared on {n} network(s)"
+			}
+		},
 		"rubros": {
 			"title": "Category Management",
 			"subtitle": "Manage commercial sectors, define their brand data and organize their products.",
@@ -218,6 +343,8 @@
 			"draftCount": "{n} Drafts",
 			"empty": "You haven't created any category yet.",
 			"noDescription": "No description",
+			"channelMeta": "Instagram / Facebook",
+			"channelMl": "Mercado Libre",
 			"publishInstagram": "Publish to Instagram",
 			"save": "Save Category",
 			"created": "Category created",
@@ -305,6 +432,25 @@
 			"noTargets": "This account has no available Pages. Make sure you are an admin of a Facebook Page with a linked Instagram.",
 			"ready": "Ready to publish",
 			"pickPending": "Pick where to publish"
+		},
+		"ml": {
+			"button": "Mercado Libre",
+			"title": "Rubro's Mercado Libre",
+			"appTitle": "Business's Mercado Libre app",
+			"appIdLabel": "App ID (client_id)",
+			"appSecretLabel": "Client Secret",
+			"appHint": "Each business uses its own ML app (developers.mercadolibre.com.ar). The secret is stored encrypted. Redirect URI: http://localhost:3000/api/ml/callback",
+			"saveApp": "Save credentials",
+			"appSaved": "Credentials saved",
+			"changeApp": "Change",
+			"notConnected": "This rubro hasn't connected a Mercado Libre account yet.",
+			"connect": "Connect with Mercado Libre",
+			"connectedAs": "Connected as {name}",
+			"disconnect": "Disconnect",
+			"disconnectConfirm": "Disconnect the Mercado Libre account from \"{name}\"?",
+			"disconnected": "Account disconnected",
+			"connectedToast": "Mercado Libre account connected",
+			"errorToast": "Couldn't connect to Mercado Libre: {reason}"
 		},
 		"publish": {
 			"button": "Publish",

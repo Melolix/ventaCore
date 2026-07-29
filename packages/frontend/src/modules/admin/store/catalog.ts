@@ -2,11 +2,20 @@ import { defineStore } from 'pinia';
 import type {
 	Rubro,
 	Producto,
+	ProductoWrite,
+	BatchProductoItem,
+	BatchProductoResult,
 	Espacio,
 	MetaConnection,
 	MetaRubroState,
 	MetaNetwork,
 	MetaPublishResult,
+	MlRubroState,
+	MlCategoryPrediction,
+	MlAttribute,
+	MlPublishResult,
+	MlCatalogSearchResult,
+	MlCatalogProduct,
 } from '@base-template/shared';
 import { api } from '@/shared/services/api';
 import { deleteImage } from '@/shared/utils/image';
@@ -14,6 +23,8 @@ import { deleteImage } from '@/shared/utils/image';
 interface CatalogState {
 	rubros: Rubro[];
 	productos: Producto[];
+	// Todos los productos del espacio (cualquier rubro) — para la carga masiva.
+	allProductos: Producto[];
 	// El espacio del admin logueado (para editar su "Sobre Nosotros")
 	miEspacio: Espacio | null;
 	// Vitrina pública (negocio del dominio actual)
@@ -45,12 +56,13 @@ export type RubroInput = Partial<
 		| 'status'
 	>
 >;
-export type ProductoInput = Partial<Pick<Producto, 'nombre' | 'descripcion' | 'precio' | 'imageUrl' | 'seccion'>>;
+export type ProductoInput = ProductoWrite;
 
 export const useCatalogStore = defineStore('catalog', {
 	state: (): CatalogState => ({
 		rubros: [],
 		productos: [],
+		allProductos: [],
 		miEspacio: null,
 		currentEspacio: null,
 		siteResolved: false,
@@ -132,6 +144,19 @@ export const useCatalogStore = defineStore('catalog', {
 			if (prev) void deleteImage(prev.imageUrl);
 		},
 
+		// ── Carga masiva (todos los productos del espacio) ──
+		/** Trae todos los productos del espacio (de cualquier rubro). */
+		async fetchAllProductos(): Promise<void> {
+			const { data } = await api.get<Producto[]>('/productos');
+			this.allProductos = data;
+		},
+
+		/** Alta/edición masiva. Devuelve el resultado por fila (ok/error). */
+		async batchUpsert(items: BatchProductoItem[]): Promise<BatchProductoResult[]> {
+			const { data } = await api.post<BatchProductoResult[]>('/productos/batch', { items });
+			return data;
+		},
+
 		// ── Meta (redes sociales) por rubro ──
 		/** Estado de Meta del rubro: app configurada + conexión. */
 		async fetchMetaState(rubroId: string): Promise<MetaRubroState> {
@@ -176,6 +201,64 @@ export const useCatalogStore = defineStore('catalog', {
 				`/rubros/${rubroId}/productos/${productoId}/publish`,
 				payload,
 			);
+			return data;
+		},
+
+		// ── Mercado Libre por rubro ──
+		/** Estado de ML del rubro: app configurada + conexión. */
+		async fetchMlState(rubroId: string): Promise<MlRubroState> {
+			const { data } = await api.get<MlRubroState>(`/rubros/${rubroId}/ml`);
+			return data;
+		},
+
+		/** Carga/actualiza el App ID + Client Secret de la app de ML del rubro. */
+		async saveMlApp(rubroId: string, appId: string, appSecret: string): Promise<MlRubroState> {
+			const { data } = await api.put<MlRubroState>(`/rubros/${rubroId}/ml/app`, { appId, appSecret });
+			return data;
+		},
+
+		/** Arranca el OAuth: devuelve la URL de consentimiento para redirigir. */
+		async connectMl(rubroId: string): Promise<string> {
+			const { data } = await api.post<{ url: string }>(`/rubros/${rubroId}/ml/connect`, {});
+			return data.url;
+		},
+
+		/** Desconecta la cuenta de Mercado Libre del rubro. */
+		async disconnectMl(rubroId: string): Promise<void> {
+			await api.delete(`/rubros/${rubroId}/ml`);
+		},
+
+		/** Predice categorías de ML a partir del título del producto. */
+		async predictMlCategory(rubroId: string, q: string): Promise<MlCategoryPrediction[]> {
+			const { data } = await api.get<MlCategoryPrediction[]>(`/rubros/${rubroId}/ml/categories/predict`, {
+				params: { q },
+			});
+			return data;
+		},
+
+		/** Atributos obligatorios de una categoría de ML. */
+		async fetchMlAttributes(rubroId: string, categoryId: string): Promise<MlAttribute[]> {
+			const { data } = await api.get<MlAttribute[]>(`/rubros/${rubroId}/ml/categories/${categoryId}/attributes`);
+			return data;
+		},
+
+		/** Busca productos en el catálogo de ML (por nombre o EAN). */
+		async searchMlCatalog(rubroId: string, q: string): Promise<MlCatalogSearchResult[]> {
+			const { data } = await api.get<MlCatalogSearchResult[]>(`/rubros/${rubroId}/ml/catalog/search`, {
+				params: { q },
+			});
+			return data;
+		},
+
+		/** Trae un producto del catálogo listo para autocompletar. */
+		async fetchMlCatalogProduct(rubroId: string, productId: string): Promise<MlCatalogProduct> {
+			const { data } = await api.get<MlCatalogProduct>(`/rubros/${rubroId}/ml/catalog/${productId}`);
+			return data;
+		},
+
+		/** Publica un producto (ya guardado) en Mercado Libre. */
+		async publishToMl(rubroId: string, productoId: string): Promise<MlPublishResult> {
+			const { data } = await api.post<MlPublishResult>(`/rubros/${rubroId}/ml/productos/${productoId}/publish`, {});
 			return data;
 		},
 

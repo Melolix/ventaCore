@@ -8,6 +8,7 @@
 		"welcome": "Bienvenido",
 		"notFound": "Página no encontrada",
 		"cancel": "Cancelar",
+		"apply": "Aplicar",
 		"delete": "Eliminar",
 		"edit": "Editar",
 		"signedInAs": "Sesión iniciada como"
@@ -179,6 +180,7 @@
 		"viewSite": "Ver el sitio",
 		"nav": {
 			"rubros": "Rubros",
+			"carga": "Cargar productos",
 			"nosotros": "Sobre Nosotros"
 		},
 		"about": {
@@ -208,6 +210,129 @@
 			"save": "No se pudo guardar",
 			"delete": "No se pudo eliminar"
 		},
+		"carga": {
+			"eyebrow": "Carga masiva",
+			"title": "Cargar productos",
+			"subtitle": "Traé tus productos y publicalos en lote. El sistema completa lo que puede solo.",
+			"sources": {
+				"scan": { "title": "Escanear código", "desc": "Autocompleta del catálogo de Mercado Libre" },
+				"excel": { "title": "Importar Excel / CSV", "desc": "Mapeás columnas una vez" },
+				"erp": { "title": "Desde ERP / tienda", "desc": "ML actual, Tiendanube, POS" },
+				"ia": { "title": "Foto + nombre → IA", "desc": "Para productos sin código" },
+				"soon": "Próximamente"
+			},
+			"addRow": "Agregar fila",
+			"selectedOf": "{sel} seleccionados de {total}",
+			"cols": {
+				"producto": "Producto",
+				"categoria": "Categoría",
+				"precio": "Precio",
+				"stock": "Stock",
+				"estado": "Estado",
+				"categoriaMl": "Categoría de ML"
+			},
+			"placeholders": {
+				"nombre": "Nombre del producto",
+				"rubro": "Elegí un rubro",
+				"ean": "Código / EAN"
+			},
+			"source": {
+				"manual": "cargado a mano",
+				"excel": "importado de Excel",
+				"scan": "del catálogo",
+				"ia": "completado por IA",
+				"ml": "de Mercado Libre"
+			},
+			"estado": {
+				"ready": "Listo",
+				"review": "Revisar",
+				"missing": "Faltan {n}",
+				"draft": "Borrador"
+			},
+			"bulk": {
+				"asignarRubro": "Asignar categoría",
+				"precioEnLote": "Precio en lote",
+				"completarIa": "Completar con IA"
+			},
+			"legend": {
+				"ready": "{n} listo | {n} listos",
+				"review": "{n} a revisar",
+				"missing": "{n} con faltantes"
+			},
+			"publish": "Guardar seleccionados",
+			"footnote": "Cada producto muestra de dónde salió su dato — código, IA, Excel — así sabés de cuál fiarte y cuál revisar.",
+			"empty": "Todavía no hay productos. Agregá una fila o importá un Excel para empezar.",
+			"needRubro": "Asigná un rubro a cada fila seleccionada antes de guardar.",
+			"pickStep": "Paso 1",
+			"pickTitle": "¿A qué rubro querés cargar productos?",
+			"pickCount": "{n} productos",
+			"pickReview": "{n} a revisar",
+			"loadingIn": "Cargando en",
+			"mlConnected": "ML conectado",
+			"mlNotConnected": "ML sin conectar",
+			"mlConnectHint": "Conectá ML para publicar",
+			"needName": "Poné un nombre a cada producto seleccionado.",
+			"saveAll": "Guardar todo",
+			"unsaved": "sin guardar",
+			"unsavedLeave": "Tenés cambios sin guardar. ¿Salir igual?",
+			"nothingSelected": "No hay filas seleccionadas.",
+			"noRubros": "Primero creá al menos un rubro para poder cargar productos.",
+			"saved": "Se guardaron {n} productos",
+			"savedPartial": "{ok} guardados · {fail} con error",
+			"saveError": "No se pudo guardar la tanda",
+			"faltanLabel": "Faltan: {campos}",
+			"import": {
+				"title": "Importar Excel / CSV",
+				"step1": "Subí el archivo",
+				"step2": "Mapeá las columnas",
+				"dropHint": "Arrastrá un .xlsx o .csv, o hacé clic para elegir",
+				"fileCols": "Columna del archivo",
+				"targetField": "Campo del producto",
+				"ignore": "Ignorar",
+				"preview": "{n} filas detectadas",
+				"confirm": "Importar {n} filas",
+				"parseError": "No se pudo leer el archivo",
+				"noRows": "El archivo no tiene filas de datos"
+			},
+			"ml": {
+				"button": "Categoría y atributos de Mercado Libre",
+				"title": "Mercado Libre: categoría y atributos",
+				"categoryTitle": "Categoría de Mercado Libre",
+				"noCategory": "Sin categoría asignada",
+				"suggest": "Sugerir",
+				"attrsTitle": "Atributos obligatorios",
+				"noAttrs": "Esta categoría no tiene atributos obligatorios.",
+				"attrPick": "Elegí una opción",
+				"attrValue": "Escribí el valor",
+				"needName": "Poné un nombre al producto para sugerir la categoría.",
+				"noSuggestions": "No encontramos categorías para ese nombre.",
+				"predictError": "No se pudo predecir la categoría",
+				"attrsError": "No se pudieron traer los atributos",
+				"assignInline": "Sugerir categoría",
+				"catalogTitle": "¿Está en el catálogo de Mercado Libre?",
+				"catalogPlaceholder": "Buscá por nombre o código de barras",
+				"catalogFilling": "Trayendo datos del catálogo…",
+				"catalogHint": "Si es un producto de marca, ML completa categoría, atributos, fotos y descripción.",
+				"catalogNone": "No lo encontramos en el catálogo.",
+				"catalogError": "No se pudo buscar en el catálogo",
+				"catalogFilled": "Datos del catálogo cargados"
+			},
+			"images": {
+				"title": "Imágenes del producto",
+				"cover": "Portada",
+				"makeCover": "Hacer portada",
+				"hint": "La primera imagen es la portada (se muestra en tu vitrina). Todas se publican en Mercado Libre.",
+				"done": "Listo"
+			},
+			"pub": {
+				"button": "Publicar en Mercado Libre",
+				"view": "Ver el aviso en Mercado Libre",
+				"done": "Publicado en Mercado Libre",
+				"error": "No se pudo publicar en Mercado Libre",
+				"saveFirst": "Guardá el producto antes de publicarlo.",
+				"alsoShared": "también compartido en {n} red(es)"
+			}
+		},
 		"rubros": {
 			"title": "Gestión de Rubros",
 			"subtitle": "Administrá los sectores comerciales, definí sus datos de marca y organizá sus productos.",
@@ -218,6 +343,8 @@
 			"draftCount": "{n} Borradores",
 			"empty": "Todavía no creaste ningún rubro.",
 			"noDescription": "Sin descripción",
+			"channelMeta": "Instagram / Facebook",
+			"channelMl": "Mercado Libre",
 			"publishInstagram": "Publicar en Instagram",
 			"save": "Guardar Rubro",
 			"created": "Rubro creado",
@@ -305,6 +432,25 @@
 			"noTargets": "Esta cuenta no tiene Páginas disponibles. Verificá que seas administrador de una Página de Facebook con Instagram vinculado.",
 			"ready": "Listo para publicar",
 			"pickPending": "Falta elegir dónde publicar"
+		},
+		"ml": {
+			"button": "Mercado Libre",
+			"title": "Mercado Libre del rubro",
+			"appTitle": "App de Mercado Libre del negocio",
+			"appIdLabel": "App ID (client_id)",
+			"appSecretLabel": "Client Secret",
+			"appHint": "Cada negocio usa su propia app de ML (developers.mercadolibre.com.ar). El secret se guarda cifrado. Redirect URI: http://localhost:3000/api/ml/callback",
+			"saveApp": "Guardar credenciales",
+			"appSaved": "Credenciales guardadas",
+			"changeApp": "Cambiar",
+			"notConnected": "Este rubro todavía no conectó una cuenta de Mercado Libre.",
+			"connect": "Conectar con Mercado Libre",
+			"connectedAs": "Conectado como {name}",
+			"disconnect": "Desconectar",
+			"disconnectConfirm": "¿Desconectar la cuenta de Mercado Libre de \"{name}\"?",
+			"disconnected": "Cuenta desconectada",
+			"connectedToast": "Cuenta de Mercado Libre conectada",
+			"errorToast": "No se pudo conectar con Mercado Libre: {reason}"
 		},
 		"publish": {
 			"button": "Publicar",

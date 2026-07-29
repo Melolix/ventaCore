@@ -14,6 +14,9 @@ import { SocialModule } from './modules/social/social.module';
 import { MetaConnectionEntity } from './modules/social/entities/meta-connection.entity';
 import { MetaTargetEntity } from './modules/social/entities/meta-target.entity';
 import { MetaAppConfigEntity } from './modules/social/entities/meta-app-config.entity';
+import { MercadoLibreModule } from './modules/mercadolibre/mercadolibre.module';
+import { MlConnectionEntity } from './modules/mercadolibre/entities/ml-connection.entity';
+import { MlAppConfigEntity } from './modules/mercadolibre/entities/ml-app-config.entity';
 
 @Module({
 	imports: [
@@ -35,6 +38,8 @@ import { MetaAppConfigEntity } from './modules/social/entities/meta-app-config.e
 				MetaConnectionEntity,
 				MetaTargetEntity,
 				MetaAppConfigEntity,
+				MlConnectionEntity,
+				MlAppConfigEntity,
 			],
 			synchronize: process.env.DB_SYNCHRONIZE === 'true',
 		}),
@@ -44,6 +49,7 @@ import { MetaAppConfigEntity } from './modules/social/entities/meta-app-config.e
 		SpacesModule,
 		CatalogModule,
 		SocialModule,
+		MercadoLibreModule,
 	],
 })
 export class AppModule {}

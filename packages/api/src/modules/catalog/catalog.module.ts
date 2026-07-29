@@ -10,11 +10,12 @@ import { RubrosService } from './rubros.service';
 import { ProductosService } from './productos.service';
 import { RubrosController } from './rubros.controller';
 import { ProductosController } from './productos.controller';
+import { ProductosBatchController } from './productos-batch.controller';
 import { PublicController } from './public.controller';
 
 @Module({
 	imports: [TypeOrmModule.forFeature([RubroEntity, ProductoEntity]), UsersModule, SpacesModule],
-	controllers: [RubrosController, ProductosController, PublicController],
+	controllers: [RubrosController, ProductosController, ProductosBatchController, PublicController],
 	providers: [RubrosService, ProductosService, FirebaseAuthGuard, RolesGuard],
 	exports: [RubrosService, ProductosService],
 })
