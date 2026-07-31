@@ -121,6 +121,7 @@ export default defineComponent({
 		return {
 			navItems: [
 				{ key: 'rubros', label: 'admin.nav.rubros', icon: 'pi pi-tags', to: '/admin' },
+				{ key: 'cobros', label: 'admin.nav.cobros', icon: 'pi pi-credit-card', to: '/admin/cobros' },
 				{ key: 'nosotros', label: 'admin.nav.nosotros', icon: 'pi pi-id-card', to: '/admin/nosotros' },
 			] as NavItem[],
 		};
@@ -160,7 +161,8 @@ export default defineComponent({
 		isActive(item: NavItem): boolean {
 			const path = this.$route.path;
 			if (item.key === 'nosotros') return path.startsWith('/admin/nosotros');
-			// "Rubros" queda activo en la lista y en la vista de productos.
+			if (item.key === 'cobros') return path.startsWith('/admin/cobros');
+			// "Rubros" queda activo en la lista, productos y planes de suscripción.
 			if (item.key === 'rubros') return path === '/admin' || path.startsWith('/admin/rubros');
 			return false;
 		},

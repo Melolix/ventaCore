@@ -14,6 +14,11 @@ import { SocialModule } from './modules/social/social.module';
 import { MetaConnectionEntity } from './modules/social/entities/meta-connection.entity';
 import { MetaTargetEntity } from './modules/social/entities/meta-target.entity';
 import { MetaAppConfigEntity } from './modules/social/entities/meta-app-config.entity';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { PaymentProviderConfigEntity } from './modules/payments/entities/payment-provider-config.entity';
+import { SubscriptionPlanEntity } from './modules/payments/entities/subscription-plan.entity';
+import { SubscriptionEntity } from './modules/payments/entities/subscription.entity';
+import { SubscriptionEventEntity } from './modules/payments/entities/subscription-event.entity';
 
 @Module({
 	imports: [
@@ -35,6 +40,10 @@ import { MetaAppConfigEntity } from './modules/social/entities/meta-app-config.e
 				MetaConnectionEntity,
 				MetaTargetEntity,
 				MetaAppConfigEntity,
+				PaymentProviderConfigEntity,
+				SubscriptionPlanEntity,
+				SubscriptionEntity,
+				SubscriptionEventEntity,
 			],
 			synchronize: process.env.DB_SYNCHRONIZE === 'true',
 		}),
@@ -44,6 +53,7 @@ import { MetaAppConfigEntity } from './modules/social/entities/meta-app-config.e
 		SpacesModule,
 		CatalogModule,
 		SocialModule,
+		PaymentsModule,
 	],
 })
 export class AppModule {}

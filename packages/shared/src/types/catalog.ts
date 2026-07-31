@@ -55,6 +55,8 @@ export interface Rubro {
 	/** Link para abrir la versión web/escritorio (solo espacios tipo `apps`). */
 	webUrl: string | null;
 	status: RubroStatus;
+	/** Si el rubro ofrece suscripción (habilita el tab de suscripciones en la vitrina). */
+	subscriptionsEnabled: boolean;
 	createdAt: string;
 	updatedAt: string;
 	/** Cantidad de productos (solo lo devuelven los endpoints públicos). */

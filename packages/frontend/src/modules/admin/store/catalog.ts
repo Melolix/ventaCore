@@ -7,6 +7,10 @@ import type {
 	MetaRubroState,
 	MetaNetwork,
 	MetaPublishResult,
+	PaymentProvider,
+	PaymentProviderConfigPublic,
+	SubscriptionPlan,
+	SubscribableRubroPublic,
 } from '@base-template/shared';
 import { api } from '@/shared/services/api';
 import { deleteImage } from '@/shared/utils/image';
@@ -43,9 +47,27 @@ export type RubroInput = Partial<
 		| 'iosUrl'
 		| 'webUrl'
 		| 'status'
+		| 'subscriptionsEnabled'
 	>
 >;
 export type ProductoInput = Partial<Pick<Producto, 'nombre' | 'descripcion' | 'precio' | 'imageUrl' | 'seccion'>>;
+
+/** Credenciales del proveedor de cobro (los secretos vacíos se conservan). */
+export interface PaymentConfigInput {
+	provider?: PaymentProvider;
+	apiKey?: string;
+	storeId?: string;
+	webhookSecret?: string;
+	active?: boolean;
+}
+
+/** Campos de creación/edición de un plan de suscripción. */
+export type PlanInput = Partial<
+	Pick<
+		SubscriptionPlan,
+		'nombre' | 'descripcion' | 'precio' | 'moneda' | 'intervalo' | 'provider' | 'providerVariantId' | 'active' | 'orden'
+	>
+>;
 
 export const useCatalogStore = defineStore('catalog', {
 	state: (): CatalogState => ({
@@ -179,6 +201,41 @@ export const useCatalogStore = defineStore('catalog', {
 			return data;
 		},
 
+		// ── Cobros / Suscripciones (por espacio y por rubro) ──
+		/** Config del proveedor de cobro del espacio (vista sin secretos). */
+		async fetchPaymentConfig(provider?: PaymentProvider): Promise<PaymentProviderConfigPublic> {
+			const { data } = await api.get<PaymentProviderConfigPublic>('/mi-espacio/payment-config', {
+				params: provider ? { provider } : undefined,
+			});
+			return data;
+		},
+
+		/** Guarda (upsert) las credenciales del proveedor. */
+		async savePaymentConfig(input: PaymentConfigInput): Promise<PaymentProviderConfigPublic> {
+			const { data } = await api.put<PaymentProviderConfigPublic>('/mi-espacio/payment-config', input);
+			return data;
+		},
+
+		/** Planes de suscripción de un rubro. */
+		async fetchPlans(rubroId: string): Promise<SubscriptionPlan[]> {
+			const { data } = await api.get<SubscriptionPlan[]>(`/mi-espacio/rubros/${rubroId}/plans`);
+			return data;
+		},
+
+		async createPlan(rubroId: string, input: PlanInput): Promise<SubscriptionPlan> {
+			const { data } = await api.post<SubscriptionPlan>(`/mi-espacio/rubros/${rubroId}/plans`, input);
+			return data;
+		},
+
+		async updatePlan(rubroId: string, planId: string, input: PlanInput): Promise<SubscriptionPlan> {
+			const { data } = await api.patch<SubscriptionPlan>(`/mi-espacio/rubros/${rubroId}/plans/${planId}`, input);
+			return data;
+		},
+
+		async deletePlan(rubroId: string, planId: string): Promise<void> {
+			await api.delete(`/mi-espacio/rubros/${rubroId}/plans/${planId}`);
+		},
+
 		// ── "Sobre Nosotros" del admin logueado ──
 		async fetchMiEspacio(): Promise<void> {
 			const { data } = await api.get<Espacio>('/mi-espacio');
@@ -225,6 +282,24 @@ export const useCatalogStore = defineStore('catalog', {
 		async fetchPublicProductos(id: string): Promise<void> {
 			const { data } = await api.get<Producto[]>(`/public/rubros/${id}/productos`);
 			this.publicProductos = data;
+		},
+
+		// ── Suscripciones (vitrina pública) ──
+		/** Rubros suscribibles del negocio del dominio actual, con sus planes. */
+		async fetchSubscribables(): Promise<SubscribableRubroPublic[]> {
+			const host = window.location.hostname;
+			const { data } = await api.get<SubscribableRubroPublic[]>('/public/subscriptions', { params: { host } });
+			return data;
+		},
+
+		/** Inicia el checkout de un plan; devuelve la URL hosteada del proveedor. */
+		async createSubscriptionCheckout(planId: string, email: string, name?: string): Promise<string> {
+			const { data } = await api.post<{ checkoutUrl: string }>('/public/subscriptions/checkout', {
+				planId,
+				email,
+				...(name ? { name } : {}),
+			});
+			return data.checkoutUrl;
 		},
 	},
 });

@@ -19,10 +19,13 @@ export class TokenCryptoService {
 	private get key(): Buffer {
 		if (this.cachedKey) return this.cachedKey;
 
-		const raw = process.env.META_TOKEN_ENC_KEY;
+		// Clave compartida para cifrar secretos de cualquier integración (Meta,
+		// pagos, etc.). `SECRETS_ENC_KEY` es la genérica; mantenemos el fallback a
+		// `META_TOKEN_ENC_KEY` por compatibilidad con instalaciones previas.
+		const raw = process.env.SECRETS_ENC_KEY || process.env.META_TOKEN_ENC_KEY;
 		if (!raw) {
 			throw new InternalServerErrorException(
-				'Falta META_TOKEN_ENC_KEY: la integración con Meta no está configurada en el servidor.',
+				'Falta SECRETS_ENC_KEY: el cifrado de secretos no está configurado en el servidor.',
 			);
 		}
 

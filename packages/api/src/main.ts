@@ -5,7 +5,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-	const app = await NestFactory.create(AppModule);
+	// `rawBody: true` conserva el cuerpo crudo en `req.rawBody` para verificar la
+	// firma HMAC de los webhooks de pago (Lemon Squeezy).
+	const app = await NestFactory.create(AppModule, { rawBody: true });
 
 	const prefix = process.env.API_PREFIX || 'api';
 	app.setGlobalPrefix(prefix);
