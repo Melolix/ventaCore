@@ -117,14 +117,26 @@ export class LemonSqueezyProvider implements PaymentProviderService {
 
 		const attrs = payload.data?.attributes ?? {};
 		const custom = payload.meta?.custom_data ?? {};
-		const status = mapStatus(attrs.status);
+
+		// Los eventos `subscription_payment_*` traen un objeto INVOICE, no una
+		// suscripción: `data.id` es el id de la factura y `data.attributes.status`
+		// es el estado de la factura (ej. "paid"). El id de la suscripción está en
+		// `attributes.subscription_id`. Si no distinguimos, se crearía una fila
+		// espuria en `pending` con el id de la factura.
+		const isInvoiceEvent = eventType.startsWith('subscription_payment');
+		const subscriptionId = isInvoiceEvent
+			? attrs.subscription_id != null
+				? String(attrs.subscription_id)
+				: null
+			: (payload.data?.id ?? null);
+		const status = isInvoiceEvent ? null : mapStatus(attrs.status);
 
 		return {
 			// LS no manda un id de evento único; hasheamos el body → dos entregas
 			// idénticas (reintentos) deduplican; eventos distintos difieren.
 			providerEventId: createHash('sha256').update(rawBody).digest('hex'),
 			eventType,
-			providerSubscriptionId: payload.data?.id ?? null,
+			providerSubscriptionId: subscriptionId,
 			providerCustomerId: attrs.customer_id != null ? String(attrs.customer_id) : null,
 			status,
 			subscriberEmail: attrs.user_email ?? custom.email ?? null,
@@ -174,6 +186,8 @@ interface LsWebhookPayload {
 			renews_at?: string;
 			ends_at?: string;
 			cancelled?: boolean;
+			/** Solo en eventos de factura (subscription_payment_*): id de la suscripción. */
+			subscription_id?: number | string;
 		};
 	};
 }
