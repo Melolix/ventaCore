@@ -34,8 +34,21 @@ export class ProductoEntity {
 	@Column({ type: 'text', nullable: true })
 	descripcion!: string | null;
 
+	/** Precio de venta en la tienda propia (vitrina). costo + margen. */
 	@Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, transformer: numericTransformer })
 	precio!: number | null;
+
+	/** Precio de costo (lo que sale del Excel/proveedor). Base para el margen. */
+	@Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, transformer: numericTransformer })
+	precioCosto!: number | null;
+
+	/** Precio en Mercado Libre (mayor que el de tienda: absorbe la comisión de ML). */
+	@Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, transformer: numericTransformer })
+	precioMl!: number | null;
+
+	/** Tipo de publicación en ML: gold_special (Clásica) | gold_pro (Premium). */
+	@Column({ type: 'varchar', default: 'gold_special' })
+	mlListingType!: string;
 
 	@Column({ type: 'varchar', nullable: true })
 	imageUrl!: string | null;

@@ -178,9 +178,31 @@
 		"panelSubtitle": "Gestión VentaCore",
 		"soon": "Próximamente",
 		"viewSite": "Ver el sitio",
+		"business": "Negocio",
+		"businessPlaceholder": "Elegí un negocio",
+		"businessNone": "Creá un negocio primero",
+		"config": {
+			"eyebrow": "Configuración",
+			"title": "Configuraciones",
+			"subtitle": "Conectá las cuentas del negocio. Se hace una sola vez y no lo mirás más.",
+			"pickAbove": "Elegí un negocio arriba para configurar sus conexiones.",
+			"configuring": "Configurando",
+			"mlHint": "Vendé en Mercado Libre con la cuenta de este negocio.",
+			"metaHint": "Publicá en el Instagram/Facebook de este negocio."
+		},
+		"instagram": {
+			"eyebrow": "Redes",
+			"title": "Instagram",
+			"subtitle": "Publicá y programá contenido en el Instagram del negocio.",
+			"soonTitle": "En construcción",
+			"soonBody": "Esta sección la está armando el equipo. Mientras tanto, conectá la cuenta de Instagram del negocio en Configuraciones."
+		},
 		"nav": {
 			"rubros": "Rubros",
 			"carga": "Cargar productos",
+			"ml": "Mercado Libre",
+			"instagram": "Instagram",
+			"config": "Configuraciones",
 			"nosotros": "Sobre Nosotros"
 		},
 		"about": {
@@ -227,6 +249,7 @@
 				"producto": "Producto",
 				"categoria": "Categoría",
 				"precio": "Precio",
+				"costo": "Costo",
 				"stock": "Stock",
 				"estado": "Estado",
 				"categoriaMl": "Categoría de ML"
@@ -252,6 +275,10 @@
 			"bulk": {
 				"asignarRubro": "Asignar categoría",
 				"precioEnLote": "Precio en lote",
+				"margen": "Ganar %",
+				"margenHint": "Poné el % que querés ganar. Calculamos el precio sobre el costo de cada producto seleccionado.",
+				"margenApplies": "Se aplica a {n} productos seleccionados.",
+				"margenNoCost": "{n} sin costo cargado: a esos no se les tocó el precio.",
 				"completarIa": "Completar con IA"
 			},
 			"legend": {
@@ -264,6 +291,7 @@
 			"empty": "Todavía no hay productos. Agregá una fila o importá un Excel para empezar.",
 			"needRubro": "Asigná un rubro a cada fila seleccionada antes de guardar.",
 			"pickStep": "Paso 1",
+			"pickAbove": "Elegí un negocio arriba para empezar a cargar sus productos.",
 			"pickTitle": "¿A qué rubro querés cargar productos?",
 			"pickCount": "{n} productos",
 			"pickReview": "{n} a revisar",
@@ -275,6 +303,12 @@
 			"saveAll": "Guardar todo",
 			"unsaved": "sin guardar",
 			"unsavedLeave": "Tenés cambios sin guardar. ¿Salir igual?",
+			"importMl": {
+				"button": "Bajar de Mercado Libre",
+				"done": "{imported} nuevas · {updated} actualizadas",
+				"none": "No hay publicaciones activas en tu cuenta de ML.",
+				"error": "No se pudieron bajar las publicaciones"
+			},
 			"nothingSelected": "No hay filas seleccionadas.",
 			"noRubros": "Primero creá al menos un rubro para poder cargar productos.",
 			"saved": "Se guardaron {n} productos",
@@ -345,6 +379,7 @@
 			"noDescription": "Sin descripción",
 			"channelMeta": "Instagram / Facebook",
 			"channelMl": "Mercado Libre",
+			"configure": "Configurar",
 			"publishInstagram": "Publicar en Instagram",
 			"save": "Guardar Rubro",
 			"created": "Rubro creado",
@@ -450,7 +485,50 @@
 			"disconnectConfirm": "¿Desconectar la cuenta de Mercado Libre de \"{name}\"?",
 			"disconnected": "Cuenta desconectada",
 			"connectedToast": "Cuenta de Mercado Libre conectada",
-			"errorToast": "No se pudo conectar con Mercado Libre: {reason}"
+			"errorToast": "No se pudo conectar con Mercado Libre: {reason}",
+			"eyebrow": "Mercado Libre",
+			"pageTitle": "Mercado Libre",
+			"pageSubtitle": "Gestioná y publicá lo que vendés en Mercado Libre, con el precio y la comisión calculados.",
+			"pickAbove": "Elegí un negocio arriba para ver sus publicaciones.",
+			"notConnectedHere": "{nombre} todavía no tiene Mercado Libre conectado.",
+			"searchPlaceholder": "Buscar publicación...",
+			"emptyList": "No hay productos para este filtro.",
+			"noCategoryShort": "Sin categoría",
+			"colMl": "Precio ML",
+			"editBtn": "Editar",
+			"editorTitle": "Editar para Mercado Libre",
+			"categoryLabel": "Categoría",
+			"listingTypeLabel": "Tipo de publicación",
+			"cost": "Costo",
+			"margin": "Margen",
+			"storePrice": "Precio en tu tienda",
+			"storePriceHint": "Costo + margen. Es lo que querés ganar por unidad.",
+			"mlPrice": "Precio en Mercado Libre",
+			"calcBtn": "Calcular",
+			"needCategory": "Asigná una categoría de ML (en Cargar productos) para calcular la comisión.",
+			"needMlPrice": "Poné un precio de ML o tocá Calcular.",
+			"gain": "Ganancia",
+			"commission": "Comisión ML",
+			"lossWarn": "Con este precio perdés plata: el neto no cubre el costo. No se puede guardar.",
+			"saveBtn": "Guardar",
+			"savePublishBtn": "Guardar y publicar",
+			"saved": "Cambios guardados",
+			"feeError": "No se pudo calcular la comisión de Mercado Libre",
+			"filter": {
+				"all": "Todas",
+				"published": "Publicadas",
+				"ready": "Listas",
+				"missing": "Faltan datos"
+			},
+			"state": {
+				"published": "Publicada",
+				"ready": "Lista",
+				"missing": "Faltan datos"
+			},
+			"listingType": {
+				"gold_special": "Clásica",
+				"gold_pro": "Premium"
+			}
 		},
 		"publish": {
 			"button": "Publicar",

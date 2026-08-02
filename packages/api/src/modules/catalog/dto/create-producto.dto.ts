@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsEnum, IsInt, IsNumber, IsObject, IsOptional, IsString, Min, MinLength } from 'class-validator';
-import { ProductoSource, type ProductoAtributos } from '@base-template/shared';
+import { IsArray, IsBoolean, IsEnum, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { ML_LISTING_TYPES, ProductoSource, type MlListingType, type ProductoAtributos } from '@base-template/shared';
 
 export class CreateProductoDto {
 	@ApiProperty({ example: 'Departamento 2 ambientes' })
@@ -18,6 +18,23 @@ export class CreateProductoDto {
 	@IsNumber()
 	@Min(0)
 	precio?: number;
+
+	@ApiProperty({ required: false, example: 80000, description: 'Precio de costo (proveedor).' })
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	precioCosto?: number;
+
+	@ApiProperty({ required: false, example: 135000, description: 'Precio en Mercado Libre.' })
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	precioMl?: number;
+
+	@ApiProperty({ required: false, enum: ML_LISTING_TYPES, example: 'gold_special' })
+	@IsOptional()
+	@IsIn(ML_LISTING_TYPES)
+	mlListingType?: MlListingType;
 
 	@ApiProperty({ required: false, example: 'https://.../producto.png' })
 	@IsOptional()

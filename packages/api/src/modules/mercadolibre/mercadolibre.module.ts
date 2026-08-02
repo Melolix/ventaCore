@@ -11,11 +11,14 @@ import { MlAppConfigEntity } from './entities/ml-app-config.entity';
 import { MlConnectionService } from './ml-connection.service';
 import { MlOauthService } from './ml-oauth.service';
 import { MlCatalogService } from './ml-catalog.service';
+import { MlPricingService } from './ml-pricing.service';
 import { MlPublishService } from './ml-publish.service';
+import { MlImportService } from './ml-import.service';
 import { MlCallbackController } from './ml-callback.controller';
 import { MlConnectionsController } from './ml-connections.controller';
 import { MlCatalogController } from './ml-catalog.controller';
 import { MlPublishController } from './ml-publish.controller';
+import { MlImportController } from './ml-import.controller';
 
 /**
  * Integración con Mercado Libre.
@@ -29,12 +32,20 @@ import { MlPublishController } from './ml-publish.controller';
 		TypeOrmModule.forFeature([MlConnectionEntity, MlAppConfigEntity, RubroEntity, ProductoEntity]),
 		UsersModule,
 	],
-	controllers: [MlCallbackController, MlConnectionsController, MlCatalogController, MlPublishController],
+	controllers: [
+		MlCallbackController,
+		MlConnectionsController,
+		MlCatalogController,
+		MlPublishController,
+		MlImportController,
+	],
 	providers: [
 		MlConnectionService,
 		MlOauthService,
 		MlCatalogService,
+		MlPricingService,
 		MlPublishService,
+		MlImportService,
 		TokenCryptoService,
 		FirebaseAuthGuard,
 		RolesGuard,

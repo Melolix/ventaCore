@@ -22,9 +22,13 @@ export class MlPublishService {
 	private get apiHost(): string {
 		return process.env.ML_API_HOST || 'https://api.mercadolibre.com';
 	}
-	/** Tipo de publicación. En test users no tiene costo real. */
-	private get listingTypeId(): string {
-		return process.env.ML_LISTING_TYPE_ID || 'bronze';
+	/**
+	 * Tipo de publicación a usar. En desarrollo con test users, `ML_LISTING_TYPE_ID`
+	 * (ej. "bronze") fuerza uno gratis para no gastar. En producción no se setea y
+	 * manda el que eligió el producto (gold_special/gold_pro).
+	 */
+	private listingTypeFor(producto: ProductoEntity): string {
+		return process.env.ML_LISTING_TYPE_ID || producto.mlListingType || 'gold_special';
 	}
 
 	constructor(
@@ -46,10 +50,13 @@ export class MlPublishService {
 		const producto = await this.productos.findOne({ where: { id: productoId, rubroId } });
 		if (!producto) throw new NotFoundException('Producto no encontrado en el rubro');
 
+		// Precio a publicar en ML: el de ML si está calculado; si no, el de tienda.
+		const precioPublicacion = producto.precioMl ?? producto.precio;
+
 		// Datos obligatorios para publicar.
 		const faltan: string[] = [];
 		if (!producto.nombre?.trim()) faltan.push('nombre');
-		if (producto.precio == null) faltan.push('precio');
+		if (precioPublicacion == null) faltan.push('precio');
 		if (producto.stock == null) faltan.push('stock');
 		// La categoría la exigimos solo si NO se enlaza al catálogo (ahí la pone ML).
 		if (!producto.mlCategoryId && !producto.mlCatalogProductId) faltan.push('categoría de ML');
@@ -60,12 +67,12 @@ export class MlPublishService {
 		const { accessToken, siteId } = await this.connections.getValidAccessToken(rubroId, espacioId);
 
 		const common = {
-			price: producto.precio,
+			price: precioPublicacion,
 			currency_id: CURRENCY_BY_SITE[siteId] ?? 'ARS',
 			available_quantity: producto.stock,
 			buying_mode: 'buy_it_now',
 			condition: 'new',
-			listing_type_id: this.listingTypeId,
+			listing_type_id: this.listingTypeFor(producto),
 		};
 
 		let payload: Record<string, unknown>;
@@ -114,6 +121,57 @@ export class MlPublishService {
 		await this.productos.save(producto);
 
 		return { ok: true, itemId, permalink: created.permalink };
+	}
+
+	/**
+	 * Sincroniza una publicación YA existente en Mercado Libre con los datos del
+	 * producto (precio y stock). Es lo que corre cuando el usuario cambia el precio
+	 * de algo que ya está publicado: sin esto, el cambio queda solo en la app.
+	 */
+	async updateListing(rubroId: string, espacioId: string, productoId: string): Promise<MlPublishResult> {
+		const rubro = await this.rubros.findOne({ where: { id: rubroId, espacioId } });
+		if (!rubro) throw new NotFoundException('Rubro no encontrado');
+		const producto = await this.productos.findOne({ where: { id: productoId, rubroId } });
+		if (!producto) throw new NotFoundException('Producto no encontrado en el rubro');
+		if (!producto.mlItemId) throw new BadRequestException('El producto no está publicado en Mercado Libre');
+
+		const precio = producto.precioMl ?? producto.precio;
+		if (precio == null) throw new BadRequestException('El producto no tiene precio');
+
+		const { accessToken } = await this.connections.getValidAccessToken(rubroId, espacioId);
+
+		const payload: Record<string, unknown> = { price: precio };
+		if (producto.stock != null) payload.available_quantity = producto.stock;
+
+		const updated = await this.mlPut<{ id?: string; permalink?: string }>(
+			`/items/${producto.mlItemId}`,
+			accessToken,
+			payload,
+		);
+
+		if (updated.permalink && updated.permalink !== producto.mlPermalink) {
+			producto.mlPermalink = updated.permalink;
+			await this.productos.save(producto);
+		}
+		return { ok: true, itemId: producto.mlItemId, permalink: producto.mlPermalink ?? undefined };
+	}
+
+	private async mlPut<T>(path: string, accessToken: string, body: unknown): Promise<T> {
+		const res = await fetch(`${this.apiHost}${path}`, {
+			method: 'PUT',
+			headers: {
+				authorization: `Bearer ${accessToken}`,
+				'content-type': 'application/json',
+				accept: 'application/json',
+			},
+			body: JSON.stringify(body),
+		});
+		const data = (await res.json().catch(() => ({}))) as { message?: string; cause?: unknown };
+		if (!res.ok) {
+			const cause = data.cause ? ` (${JSON.stringify(data.cause).slice(0, 300)})` : '';
+			throw new BadRequestException(`Mercado Libre: ${data.message || res.statusText}${cause}`);
+		}
+		return data as T;
 	}
 
 	private async mlPost<T>(path: string, accessToken: string, body: unknown): Promise<T> {

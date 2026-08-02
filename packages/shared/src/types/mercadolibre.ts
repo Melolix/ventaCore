@@ -73,6 +73,16 @@ export interface MlCatalogProduct {
 	description: string | null;
 }
 
+/** Resultado de bajar las publicaciones activas de la cuenta de ML. */
+export interface MlImportResult {
+	/** Productos nuevos creados. */
+	imported: number;
+	/** Productos ya existentes (por item de ML) que se actualizaron. */
+	updated: number;
+	/** Total de publicaciones activas encontradas. */
+	total: number;
+}
+
 /** Resultado de publicar un producto en Mercado Libre. */
 export interface MlPublishResult {
 	ok: boolean;
@@ -118,6 +128,51 @@ export interface MlAttribute {
 	values: MlAttributeValue[];
 	/** true si `values` se recortó (hay más opciones que las devueltas). */
 	valuesTruncated: boolean;
+}
+
+/**
+ * Desglose de comisión de Mercado Libre para un precio dado. Lo devuelve la API
+ * `listing_prices` de ML: cuánto cobra ML por vender a ese precio (porcentaje +
+ * costo fijo por unidad, que se cae en precios altos).
+ */
+export interface MlFeeBreakdown {
+	/** Precio de venta consultado. */
+	price: number;
+	/** Comisión total en $ (porcentaje + fijo). */
+	saleFeeAmount: number;
+	/** Parte porcentual de la comisión (ej. 13 = 13%). */
+	percentageFee: number;
+	/** Costo fijo por unidad en $ (0 en precios altos). */
+	fixedFee: number;
+	/** Moneda (ej. "ARS"). */
+	currencyId: string;
+}
+
+/**
+ * Cálculo completo de precios para publicar en Mercado Libre. A partir del costo
+ * y el precio de venta en ML, dice cuánto queda neto tras la comisión y cuánta
+ * ganancia real hay. `loss` = true si el neto no cubre el costo (bloquea guardar).
+ */
+export interface MlPriceCalc {
+	/** Precio en ML consultado. */
+	precioMl: number;
+	/** Comisión de ML en $ a ese precio. */
+	comision: number;
+	/** Desglose de la comisión (porcentaje + fijo). */
+	fee: MlFeeBreakdown;
+	/** Neto que recibe el vendedor: precioMl − comisión (sin contar envío). */
+	neto: number;
+	/** Costo del producto (si se envió), para calcular la ganancia. */
+	costo: number | null;
+	/** Ganancia real: neto − costo (null si no hay costo). */
+	ganancia: number | null;
+	/** true si neto < costo: se estaría vendiendo a pérdida. */
+	loss: boolean;
+	/**
+	 * Precio en ML SUGERIDO para que, tras la comisión, quede una ganancia
+	 * objetivo intacta (costo + margen). null si no se pidió (sin costo/margen).
+	 */
+	precioMlSugerido: number | null;
 }
 
 /**

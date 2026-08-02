@@ -23,6 +23,21 @@ const adminRoutes: RouteRecordRaw[] = [
 				component: () => import('./views/CargaMasivaView.vue'),
 			},
 			{
+				path: 'mercado-libre',
+				name: 'admin-mercado-libre',
+				component: () => import('./views/MercadoLibreView.vue'),
+			},
+			{
+				path: 'instagram',
+				name: 'admin-instagram',
+				component: () => import('./views/InstagramView.vue'),
+			},
+			{
+				path: 'configuraciones',
+				name: 'admin-configuraciones',
+				component: () => import('./views/ConfiguracionesView.vue'),
+			},
+			{
 				path: 'nosotros',
 				name: 'admin-nosotros',
 				component: () => import('./views/MiPaginaView.vue'),

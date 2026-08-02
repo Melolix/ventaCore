@@ -16,6 +16,9 @@ import type {
 	MlPublishResult,
 	MlCatalogSearchResult,
 	MlCatalogProduct,
+	MlImportResult,
+	MlFeeBreakdown,
+	MlListingType,
 } from '@base-template/shared';
 import { api } from '@/shared/services/api';
 import { deleteImage } from '@/shared/utils/image';
@@ -256,9 +259,47 @@ export const useCatalogStore = defineStore('catalog', {
 			return data;
 		},
 
+		/** Baja las publicaciones activas de la cuenta de ML del rubro a la app. */
+		async importMlListings(rubroId: string): Promise<MlImportResult> {
+			const { data } = await api.post<MlImportResult>(`/rubros/${rubroId}/ml/import`, {});
+			return data;
+		},
+
 		/** Publica un producto (ya guardado) en Mercado Libre. */
 		async publishToMl(rubroId: string, productoId: string): Promise<MlPublishResult> {
 			const { data } = await api.post<MlPublishResult>(`/rubros/${rubroId}/ml/productos/${productoId}/publish`, {});
+			return data;
+		},
+
+		/** Sincroniza el precio/stock de una publicación existente en Mercado Libre. */
+		async updateMlListing(rubroId: string, productoId: string): Promise<MlPublishResult> {
+			const { data } = await api.post<MlPublishResult>(`/rubros/${rubroId}/ml/productos/${productoId}/update`, {});
+			return data;
+		},
+
+		/** Comisión de ML para un precio (desglose en vivo de la calculadora). */
+		async fetchMlFee(
+			rubroId: string,
+			price: number,
+			categoryId: string,
+			listingType: MlListingType,
+		): Promise<MlFeeBreakdown> {
+			const { data } = await api.get<MlFeeBreakdown>(`/rubros/${rubroId}/ml/fee`, {
+				params: { price, categoryId, listingType },
+			});
+			return data;
+		},
+
+		/** Sugiere el precio de ML para dejar un neto objetivo (costo + margen) intacto. */
+		async suggestMlPrice(
+			rubroId: string,
+			neto: number,
+			categoryId: string,
+			listingType: MlListingType,
+		): Promise<MlFeeBreakdown> {
+			const { data } = await api.get<MlFeeBreakdown>(`/rubros/${rubroId}/ml/suggest-price`, {
+				params: { neto, categoryId, listingType },
+			});
 			return data;
 		},
 

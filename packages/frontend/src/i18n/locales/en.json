@@ -178,9 +178,31 @@
 		"panelSubtitle": "VentaCore management",
 		"soon": "Coming soon",
 		"viewSite": "View site",
+		"business": "Business",
+		"businessPlaceholder": "Pick a business",
+		"businessNone": "Create a business first",
+		"config": {
+			"eyebrow": "Settings",
+			"title": "Settings",
+			"subtitle": "Connect the business accounts. Set it once and forget it.",
+			"pickAbove": "Pick a business above to set up its connections.",
+			"configuring": "Configuring",
+			"mlHint": "Sell on Mercado Libre with this business account.",
+			"metaHint": "Post to this business's Instagram/Facebook."
+		},
+		"instagram": {
+			"eyebrow": "Social",
+			"title": "Instagram",
+			"subtitle": "Publish and schedule content on the business's Instagram.",
+			"soonTitle": "Under construction",
+			"soonBody": "The team is building this section. In the meantime, connect the business Instagram account in Settings."
+		},
 		"nav": {
 			"rubros": "Categories",
 			"carga": "Upload products",
+			"ml": "Mercado Libre",
+			"instagram": "Instagram",
+			"config": "Settings",
 			"nosotros": "About Us"
 		},
 		"about": {
@@ -227,6 +249,7 @@
 				"producto": "Product",
 				"categoria": "Category",
 				"precio": "Price",
+				"costo": "Cost",
 				"stock": "Stock",
 				"estado": "Status",
 				"categoriaMl": "ML category"
@@ -252,6 +275,10 @@
 			"bulk": {
 				"asignarRubro": "Assign category",
 				"precioEnLote": "Bulk price",
+				"margen": "Earn %",
+				"margenHint": "Set the % you want to earn. We compute the price from each selected product's cost.",
+				"margenApplies": "Applies to {n} selected products.",
+				"margenNoCost": "{n} without a cost: their price wasn't changed.",
 				"completarIa": "Complete with AI"
 			},
 			"legend": {
@@ -264,6 +291,7 @@
 			"empty": "No products yet. Add a row or import an Excel to get started.",
 			"needRubro": "Assign a category to every selected row before saving.",
 			"pickStep": "Step 1",
+			"pickAbove": "Pick a business above to start loading its products.",
 			"pickTitle": "Which category do you want to load products into?",
 			"pickCount": "{n} products",
 			"pickReview": "{n} to review",
@@ -275,6 +303,12 @@
 			"saveAll": "Save all",
 			"unsaved": "unsaved",
 			"unsavedLeave": "You have unsaved changes. Leave anyway?",
+			"importMl": {
+				"button": "Import from Mercado Libre",
+				"done": "{imported} new · {updated} updated",
+				"none": "No active listings in your ML account.",
+				"error": "Couldn't import the listings"
+			},
 			"nothingSelected": "No rows selected.",
 			"noRubros": "Create at least one category first to upload products.",
 			"saved": "{n} products saved",
@@ -345,6 +379,7 @@
 			"noDescription": "No description",
 			"channelMeta": "Instagram / Facebook",
 			"channelMl": "Mercado Libre",
+			"configure": "Set up",
 			"publishInstagram": "Publish to Instagram",
 			"save": "Save Category",
 			"created": "Category created",
@@ -450,7 +485,50 @@
 			"disconnectConfirm": "Disconnect the Mercado Libre account from \"{name}\"?",
 			"disconnected": "Account disconnected",
 			"connectedToast": "Mercado Libre account connected",
-			"errorToast": "Couldn't connect to Mercado Libre: {reason}"
+			"errorToast": "Couldn't connect to Mercado Libre: {reason}",
+			"eyebrow": "Mercado Libre",
+			"pageTitle": "Mercado Libre",
+			"pageSubtitle": "Manage and publish what you sell on Mercado Libre, with price and fees calculated.",
+			"pickAbove": "Pick a business above to see its listings.",
+			"notConnectedHere": "{nombre} has no Mercado Libre connected yet.",
+			"searchPlaceholder": "Search listing...",
+			"emptyList": "No products for this filter.",
+			"noCategoryShort": "No category",
+			"colMl": "ML price",
+			"editBtn": "Edit",
+			"editorTitle": "Edit for Mercado Libre",
+			"categoryLabel": "Category",
+			"listingTypeLabel": "Listing type",
+			"cost": "Cost",
+			"margin": "Margin",
+			"storePrice": "Your store price",
+			"storePriceHint": "Cost + margin. What you want to earn per unit.",
+			"mlPrice": "Mercado Libre price",
+			"calcBtn": "Calculate",
+			"needCategory": "Assign an ML category (in Upload products) to compute the fee.",
+			"needMlPrice": "Enter an ML price or tap Calculate.",
+			"gain": "Profit",
+			"commission": "ML fee",
+			"lossWarn": "You'd lose money at this price: the net doesn't cover the cost. Can't save.",
+			"saveBtn": "Save",
+			"savePublishBtn": "Save and publish",
+			"saved": "Changes saved",
+			"feeError": "Could not calculate the Mercado Libre fee",
+			"filter": {
+				"all": "All",
+				"published": "Published",
+				"ready": "Ready",
+				"missing": "Missing data"
+			},
+			"state": {
+				"published": "Published",
+				"ready": "Ready",
+				"missing": "Missing data"
+			},
+			"listingType": {
+				"gold_special": "Classic",
+				"gold_pro": "Premium"
+			}
 		},
 		"publish": {
 			"button": "Publish",

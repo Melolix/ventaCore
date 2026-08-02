@@ -29,4 +29,14 @@ export class MlPublishController {
 	) {
 		return this.publisher.publish(rubroId, espacioDe(user), productoId);
 	}
+
+	/** Sincroniza el precio/stock de una publicación existente con la app. */
+	@Post('update')
+	update(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Param('productoId') productoId: string,
+	) {
+		return this.publisher.updateListing(rubroId, espacioDe(user), productoId);
+	}
 }

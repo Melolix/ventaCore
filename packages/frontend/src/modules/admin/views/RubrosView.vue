@@ -196,19 +196,12 @@
 
 						<div class="flex flex-row gap-2 md:flex-col" @click.stop>
 							<Button
-								:label="$t('admin.meta.button')"
-								icon="pi pi-share-alt"
+								:label="$t('admin.rubros.configure')"
+								icon="pi pi-cog"
 								size="small"
+								outlined
 								class="flex-1 md:flex-none"
-								@click="openMeta(rubro)"
-							/>
-							<Button
-								:label="$t('admin.ml.button')"
-								icon="pi pi-shopping-cart"
-								size="small"
-								severity="warn"
-								class="flex-1 md:flex-none"
-								@click="openMl(rubro)"
+								@click="goToConfig(rubro.id)"
 							/>
 							<div class="flex gap-2">
 								<Button icon="pi pi-pencil" severity="secondary" outlined size="small" @click="openEdit(rubro)" />
@@ -282,199 +275,14 @@
 			</template>
 		</Dialog>
 
-		<!-- Dialog de Redes (Meta): conectar la cuenta y elegir dónde publica el rubro -->
-		<Dialog v-model:visible="metaVisible" modal :header="$t('admin.meta.title')" class="w-full max-w-md">
-			<div v-if="metaLoading" class="py-8 text-center text-surface-500">
-				<i class="pi pi-spin pi-spinner text-2xl" />
-			</div>
-			<div v-else class="flex flex-col gap-5 pt-2">
-				<p class="text-sm font-semibold text-surface-800 dark:text-surface-100">{{ metaRubro?.nombre }}</p>
-
-				<!-- Paso 1: la app de Meta propia del rubro (BYO) -->
-				<div class="space-y-3">
-					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
-						{{ $t('admin.meta.appTitle') }}
-					</label>
-					<template v-if="!metaState?.appConfigured || editingApp">
-						<InputText v-model="appId" :placeholder="$t('admin.meta.appIdLabel')" class="w-full" />
-						<InputText
-							v-model="appSecret"
-							type="password"
-							:placeholder="$t('admin.meta.appSecretLabel')"
-							class="w-full"
-						/>
-						<p class="text-xs text-surface-400">{{ $t('admin.meta.appHint') }}</p>
-						<Button
-							:label="$t('admin.meta.saveApp')"
-							size="small"
-							:loading="metaSavingApp"
-							:disabled="!appId || !appSecret"
-							@click="saveApp"
-						/>
-					</template>
-					<div v-else class="flex items-center justify-between text-sm text-surface-500">
-						<span class="flex items-center gap-1.5">
-							<i class="pi pi-check-circle text-green-500" /> App ID: {{ metaState.appId }}
-						</span>
-						<Button :label="$t('admin.meta.changeApp')" text size="small" @click="editingApp = true" />
-					</div>
-				</div>
-
-				<!-- Paso 2: conexión OAuth (solo con la app ya configurada) -->
-				<div
-					v-if="metaState?.appConfigured && !editingApp"
-					class="flex flex-col gap-5 border-t border-surface-200 pt-4 dark:border-surface-700"
-				>
-					<!-- Sin conexión -->
-					<template v-if="!metaState.connection">
-						<p class="text-sm text-surface-500">{{ $t('admin.meta.notConnected') }}</p>
-						<Button
-							:label="$t('admin.meta.connect')"
-							icon="pi pi-facebook"
-							:loading="metaConnecting"
-							class="w-full"
-							@click="startMetaConnect"
-						/>
-					</template>
-
-					<!-- Conectado -->
-					<template v-else>
-						<div class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
-							<i class="pi pi-check-circle text-green-500" />
-							<span>{{ $t('admin.meta.connectedAs', { name: metaState.connection.metaUserName || '—' }) }}</span>
-						</div>
-
-						<div v-if="metaState.connection.targets.length" class="space-y-2">
-							<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
-								{{ $t('admin.meta.chooseTarget') }}
-							</label>
-							<Select
-								v-model="metaTargetId"
-								:options="targetOptions"
-								option-label="label"
-								option-value="value"
-								class="w-full"
-							/>
-							<p class="text-xs text-surface-400">{{ $t('admin.meta.targetHint') }}</p>
-							<Button
-								:label="$t('admin.meta.saveTarget')"
-								size="small"
-								:loading="metaSavingTarget"
-								:disabled="!metaTargetId"
-								@click="saveMetaTarget"
-							/>
-						</div>
-						<p
-							v-else
-							class="rounded-lg bg-amber-50 p-3 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-						>
-							{{ $t('admin.meta.noTargets') }}
-						</p>
-
-						<Button
-							:label="$t('admin.meta.disconnect')"
-							icon="pi pi-times"
-							severity="danger"
-							text
-							size="small"
-							class="self-start"
-							@click="disconnectMeta"
-						/>
-					</template>
-				</div>
-			</div>
-		</Dialog>
-
-		<!-- Dialog de Mercado Libre: conectar la cuenta de vendedor del rubro -->
-		<Dialog v-model:visible="mlVisible" modal :header="$t('admin.ml.title')" class="w-full max-w-md">
-			<div v-if="mlLoading" class="py-8 text-center text-surface-500">
-				<i class="pi pi-spin pi-spinner text-2xl" />
-			</div>
-			<div v-else class="flex flex-col gap-5 pt-2">
-				<p class="text-sm font-semibold text-surface-800 dark:text-surface-100">{{ mlRubro?.nombre }}</p>
-
-				<!-- Paso 1: la app de Mercado Libre propia del rubro (BYO) -->
-				<div class="space-y-3">
-					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
-						{{ $t('admin.ml.appTitle') }}
-					</label>
-					<template v-if="!mlState?.appConfigured || mlEditingApp">
-						<InputText v-model="mlAppId" :placeholder="$t('admin.ml.appIdLabel')" class="w-full" />
-						<InputText
-							v-model="mlAppSecret"
-							type="password"
-							:placeholder="$t('admin.ml.appSecretLabel')"
-							class="w-full"
-						/>
-						<p class="text-xs text-surface-400">{{ $t('admin.ml.appHint') }}</p>
-						<Button
-							:label="$t('admin.ml.saveApp')"
-							size="small"
-							:loading="mlSavingApp"
-							:disabled="!mlAppId || !mlAppSecret"
-							@click="saveMlApp"
-						/>
-					</template>
-					<div v-else class="flex items-center justify-between text-sm text-surface-500">
-						<span class="flex items-center gap-1.5">
-							<i class="pi pi-check-circle text-green-500" /> App ID: {{ mlState.appId }}
-						</span>
-						<Button :label="$t('admin.ml.changeApp')" text size="small" @click="mlEditingApp = true" />
-					</div>
-				</div>
-
-				<!-- Paso 2: conexión OAuth (solo con la app ya configurada) -->
-				<div
-					v-if="mlState?.appConfigured && !mlEditingApp"
-					class="flex flex-col gap-5 border-t border-surface-200 pt-4 dark:border-surface-700"
-				>
-					<template v-if="!mlState.connection">
-						<p class="text-sm text-surface-500">{{ $t('admin.ml.notConnected') }}</p>
-						<Button
-							:label="$t('admin.ml.connect')"
-							icon="pi pi-shopping-cart"
-							severity="warn"
-							:loading="mlConnecting"
-							class="w-full"
-							@click="startMlConnect"
-						/>
-					</template>
-
-					<template v-else>
-						<div class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
-							<i class="pi pi-check-circle text-green-500" />
-							<span>{{ $t('admin.ml.connectedAs', { name: mlState.connection.mlNickname || '—' }) }}</span>
-							<Tag v-if="mlState.connection.siteId" :value="mlState.connection.siteId" severity="secondary" />
-						</div>
-
-						<Button
-							:label="$t('admin.ml.disconnect')"
-							icon="pi pi-times"
-							severity="danger"
-							text
-							size="small"
-							class="self-start"
-							@click="disconnectMl"
-						/>
-					</template>
-				</div>
-			</div>
-		</Dialog>
 	</div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import {
-	ALL_APP_PLATFORMS,
-	AppPlatform,
-	EspacioType,
-	RubroStatus,
-	type Rubro,
-	type MetaRubroState,
-	type MlRubroState,
-} from '@base-template/shared';
+import { ALL_APP_PLATFORMS, AppPlatform, EspacioType, RubroStatus, type Rubro } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
 import ApkUpload from '@/shared/components/ApkUpload.vue';
@@ -485,6 +293,7 @@ export default defineComponent({
 	data() {
 		return {
 			catalog: useCatalogStore(),
+			ctx: useAdminContext(),
 			loading: false,
 			saving: false,
 			savingEdit: false,
@@ -514,29 +323,6 @@ export default defineComponent({
 				webUrl: '',
 				status: RubroStatus.DRAFT as RubroStatus,
 			},
-			// Redes (Meta)
-			metaVisible: false,
-			metaRubro: null as Rubro | null,
-			metaState: null as MetaRubroState | null,
-			metaLoading: false,
-			metaConnecting: false,
-			metaSavingTarget: false,
-			metaTargetId: '',
-			// App propia del rubro (BYO)
-			appId: '',
-			appSecret: '',
-			editingApp: false,
-			metaSavingApp: false,
-			// Mercado Libre
-			mlVisible: false,
-			mlRubro: null as Rubro | null,
-			mlState: null as MlRubroState | null,
-			mlLoading: false,
-			mlConnecting: false,
-			mlAppId: '',
-			mlAppSecret: '',
-			mlEditingApp: false,
-			mlSavingApp: false,
 			// ¿Cada rubro tiene ML conectado? (para los chips de la card)
 			mlStateByRubro: {} as Record<string, boolean>,
 		};
@@ -547,13 +333,6 @@ export default defineComponent({
 				{ label: this.$t('admin.status.active'), value: RubroStatus.ACTIVE },
 				{ label: this.$t('admin.status.draft'), value: RubroStatus.DRAFT },
 			];
-		},
-		/** Opciones del selector de destino: Página (+ IG si tiene). */
-		targetOptions(): { label: string; value: string }[] {
-			return (this.metaState?.connection?.targets ?? []).map(t => ({
-				label: t.igUsername ? `${t.pageName} · @${t.igUsername}` : t.pageName,
-				value: t.id,
-			}));
 		},
 		/** Espacios tipo "apps": cada rubro es una app con links de descarga. */
 		isApps(): boolean {
@@ -575,8 +354,6 @@ export default defineComponent({
 		} finally {
 			this.loading = false;
 		}
-		this.handleMetaReturn();
-		this.handleMlReturn();
 		void this.loadMlStates();
 	},
 	methods: {
@@ -678,6 +455,11 @@ export default defineComponent({
 		goToProductos(id: string) {
 			this.$router.push({ name: 'admin-rubro-productos', params: { id } });
 		},
+		/** Va a Configuraciones con ese negocio como contexto activo. */
+		goToConfig(id: string) {
+			this.ctx.setRubro(id);
+			this.$router.push({ name: 'admin-configuraciones' });
+		},
 		/** Trae el estado de ML de cada rubro (para los chips de conexión). */
 		async loadMlStates() {
 			await Promise.all(
@@ -697,195 +479,6 @@ export default defineComponent({
 			return connected
 				? `${base} bg-emerald-500/10 text-emerald-600 dark:text-emerald-400`
 				: `${base} bg-surface-100 text-surface-400 dark:bg-surface-800`;
-		},
-
-		// ── Redes (Meta) ──
-		async openMeta(rubro: Rubro) {
-			this.metaRubro = rubro;
-			this.metaVisible = true;
-			this.metaState = null;
-			this.editingApp = false;
-			this.appId = '';
-			this.appSecret = '';
-			await this.loadMeta();
-		},
-		async loadMeta() {
-			if (!this.metaRubro) return;
-			this.metaLoading = true;
-			try {
-				this.metaState = await this.catalog.fetchMetaState(this.metaRubro.id);
-				this.appId = this.metaState.appId ?? '';
-				this.metaTargetId = this.metaRubro.metaTargetId ?? this.metaState.connection?.targets[0]?.id ?? '';
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.load'), life: 4000 });
-			} finally {
-				this.metaLoading = false;
-			}
-		},
-		async saveApp() {
-			if (!this.metaRubro || !this.appId || !this.appSecret) return;
-			this.metaSavingApp = true;
-			try {
-				this.metaState = await this.catalog.saveMetaApp(this.metaRubro.id, this.appId.trim(), this.appSecret.trim());
-				this.appSecret = '';
-				this.editingApp = false;
-				this.$toast.add({ severity: 'success', summary: this.$t('admin.meta.appSaved'), life: 3000 });
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
-			} finally {
-				this.metaSavingApp = false;
-			}
-		},
-		async startMetaConnect() {
-			if (!this.metaRubro) return;
-			this.metaConnecting = true;
-			try {
-				const url = await this.catalog.connectMeta(this.metaRubro.id);
-				window.location.href = url; // sale del SPA hacia el consentimiento de Meta
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
-				this.metaConnecting = false;
-			}
-		},
-		async saveMetaTarget() {
-			if (!this.metaRubro || !this.metaTargetId) return;
-			this.metaSavingTarget = true;
-			try {
-				const conn = await this.catalog.setMetaTarget(this.metaRubro.id, this.metaTargetId);
-				if (this.metaState) this.metaState.connection = conn;
-				this.$toast.add({ severity: 'success', summary: this.$t('admin.meta.targetSaved'), life: 3000 });
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
-			} finally {
-				this.metaSavingTarget = false;
-			}
-		},
-		disconnectMeta() {
-			const rubro = this.metaRubro;
-			if (!rubro) return;
-			this.$confirm.require({
-				message: this.$t('admin.meta.disconnectConfirm', { name: rubro.nombre }),
-				header: this.$t('admin.meta.disconnect'),
-				icon: 'pi pi-exclamation-triangle',
-				rejectProps: { label: this.$t('common.cancel'), text: true },
-				acceptProps: { label: this.$t('admin.meta.disconnect'), severity: 'danger' },
-				accept: async () => {
-					try {
-						await this.catalog.disconnectMeta(rubro.id);
-						if (this.metaState) this.metaState.connection = null;
-						this.metaTargetId = '';
-						this.$toast.add({ severity: 'success', summary: this.$t('admin.meta.disconnected'), life: 3000 });
-					} catch {
-						this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
-					}
-				},
-			});
-		},
-		/** Procesa el retorno del OAuth de Meta (query ?meta=connected|error). */
-		handleMetaReturn() {
-			const q = this.$route.query;
-			if (q.meta === 'connected') {
-				this.$toast.add({ severity: 'success', summary: this.$t('admin.meta.connectedToast'), life: 4000 });
-				const rubro = this.catalog.rubroById(String(q.rubroId || ''));
-				if (rubro) void this.openMeta(rubro);
-				void this.$router.replace({ query: {} });
-			} else if (q.meta === 'error') {
-				this.$toast.add({
-					severity: 'error',
-					summary: this.$t('admin.meta.errorToast', { reason: String(q.reason || '') }),
-					life: 6000,
-				});
-				void this.$router.replace({ query: {} });
-			}
-		},
-
-		// ── Mercado Libre ──
-		async openMl(rubro: Rubro) {
-			this.mlRubro = rubro;
-			this.mlVisible = true;
-			this.mlState = null;
-			this.mlEditingApp = false;
-			this.mlAppId = '';
-			this.mlAppSecret = '';
-			await this.loadMl();
-		},
-		async loadMl() {
-			if (!this.mlRubro) return;
-			this.mlLoading = true;
-			try {
-				this.mlState = await this.catalog.fetchMlState(this.mlRubro.id);
-				this.mlAppId = this.mlState.appId ?? '';
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.load'), life: 4000 });
-			} finally {
-				this.mlLoading = false;
-			}
-		},
-		async saveMlApp() {
-			if (!this.mlRubro || !this.mlAppId || !this.mlAppSecret) return;
-			this.mlSavingApp = true;
-			try {
-				this.mlState = await this.catalog.saveMlApp(this.mlRubro.id, this.mlAppId.trim(), this.mlAppSecret.trim());
-				this.mlAppSecret = '';
-				this.mlEditingApp = false;
-				this.$toast.add({ severity: 'success', summary: this.$t('admin.ml.appSaved'), life: 3000 });
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
-			} finally {
-				this.mlSavingApp = false;
-			}
-		},
-		async startMlConnect() {
-			if (!this.mlRubro) return;
-			this.mlConnecting = true;
-			try {
-				const url = await this.catalog.connectMl(this.mlRubro.id);
-				window.location.href = url; // sale del SPA hacia el consentimiento de ML
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
-				this.mlConnecting = false;
-			}
-		},
-		disconnectMl() {
-			const rubro = this.mlRubro;
-			if (!rubro) return;
-			this.$confirm.require({
-				message: this.$t('admin.ml.disconnectConfirm', { name: rubro.nombre }),
-				header: this.$t('admin.ml.disconnect'),
-				icon: 'pi pi-exclamation-triangle',
-				rejectProps: { label: this.$t('common.cancel'), text: true },
-				acceptProps: { label: this.$t('admin.ml.disconnect'), severity: 'danger' },
-				accept: async () => {
-					try {
-						await this.catalog.disconnectMl(rubro.id);
-						if (this.mlState) this.mlState.connection = null;
-						this.mlStateByRubro[rubro.id] = false;
-						this.$toast.add({ severity: 'success', summary: this.$t('admin.ml.disconnected'), life: 3000 });
-					} catch {
-						this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
-					}
-				},
-			});
-		},
-		/** Procesa el retorno del OAuth de ML (query ?ml=connected|error). */
-		handleMlReturn() {
-			const q = this.$route.query;
-			if (q.ml === 'connected') {
-				this.$toast.add({ severity: 'success', summary: this.$t('admin.ml.connectedToast'), life: 4000 });
-				const rubro = this.catalog.rubroById(String(q.rubroId || ''));
-				if (rubro) {
-					this.mlStateByRubro[rubro.id] = true;
-					void this.openMl(rubro);
-				}
-				void this.$router.replace({ query: {} });
-			} else if (q.ml === 'error') {
-				this.$toast.add({
-					severity: 'error',
-					summary: this.$t('admin.ml.errorToast', { reason: String(q.reason || '') }),
-					life: 6000,
-				});
-				void this.$router.replace({ query: {} });
-			}
 		},
 	},
 });

@@ -49,36 +49,64 @@
 		<aside
 			class="fixed top-16 left-0 z-40 flex h-[calc(100vh-64px)] w-64 flex-col border-r border-surface-200/60 bg-surface-0/60 p-4 backdrop-blur-2xl dark:border-surface-700/60 dark:bg-surface-900/60"
 		>
-			<div class="mb-8 px-3">
-				<h2 class="text-lg font-black text-primary">{{ $t('admin.panelTitle') }}</h2>
-				<p class="text-xs text-surface-500">{{ $t('admin.panelSubtitle') }}</p>
+			<div class="mb-6 px-1">
+				<label class="mb-1.5 block px-2 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+					{{ $t('admin.business') }}
+				</label>
+				<Select
+					v-if="catalog.rubros.length"
+					v-model="currentRubroId"
+					:options="rubroOptions"
+					option-label="label"
+					option-value="value"
+					:placeholder="$t('admin.businessPlaceholder')"
+					class="w-full"
+				/>
+				<p v-else class="px-2 text-xs text-surface-400">{{ $t('admin.businessNone') }}</p>
 			</div>
 
 			<nav class="flex flex-1 flex-col gap-1">
-				<router-link
-					v-for="item in navItems"
-					:key="item.key"
-					:to="item.to"
-					:class="[
-						'flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition-all',
-						item.disabled
-							? 'cursor-not-allowed text-surface-400'
-							: isActive(item)
-								? 'bg-primary/10 text-primary shadow-sm'
-								: 'text-surface-600 hover:translate-x-1 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800',
-					]"
-					@click="item.disabled && $event.preventDefault()"
-				>
-					<i :class="item.icon" />
-					<span>{{ $t(item.label) }}</span>
-					<span v-if="item.disabled" class="ml-auto text-[10px] uppercase text-surface-400">
-						{{ $t('admin.soon') }}
-					</span>
-				</router-link>
+				<template v-for="item in navItems" :key="item.key">
+					<router-link
+						:to="item.to"
+						:class="[
+							'flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition-all',
+							item.disabled
+								? 'cursor-not-allowed text-surface-400'
+								: isActive(item)
+									? 'bg-primary/10 text-primary shadow-sm'
+									: 'text-surface-600 hover:translate-x-1 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800',
+						]"
+						@click="item.disabled && $event.preventDefault()"
+					>
+						<i :class="item.icon" />
+						<span>{{ $t(item.label) }}</span>
+						<span v-if="item.disabled" class="ml-auto text-[10px] uppercase text-surface-400">
+							{{ $t('admin.soon') }}
+						</span>
+					</router-link>
+					<!-- Divisor: separa la gestión de negocios de las tareas del negocio activo. -->
+					<div
+						v-if="item.groupBreakAfter"
+						class="my-2 border-t border-surface-200/60 dark:border-surface-700/60"
+					/>
+				</template>
 			</nav>
 
-			<!-- Acción al pie: ver la vitrina pública -->
-			<div class="mt-2 border-t border-surface-200/60 pt-3 dark:border-surface-700/60">
+			<!-- Acciones al pie: setup de una-vez y ver la vitrina pública. -->
+			<div class="mt-2 flex flex-col gap-1 border-t border-surface-200/60 pt-3 dark:border-surface-700/60">
+				<router-link
+					to="/admin/configuraciones"
+					:class="[
+						'flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition-all',
+						$route.path.startsWith('/admin/configuraciones')
+							? 'bg-primary/10 text-primary shadow-sm'
+							: 'text-surface-600 hover:translate-x-1 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800',
+					]"
+				>
+					<i class="pi pi-cog" />
+					<span>{{ $t('admin.nav.config') }}</span>
+				</router-link>
 				<button
 					type="button"
 					class="flex w-full items-center gap-3 rounded-xl p-3 text-sm font-semibold text-surface-600 transition-all hover:translate-x-1 hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-surface-300 dark:hover:bg-surface-800"
@@ -105,6 +133,7 @@
 import { defineComponent } from 'vue';
 import { useUserStore } from '@/modules/auth/store/user';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { useAdminContext } from '@/modules/admin/store/context';
 import { isDark, toggleTheme } from '@/composables/useTheme';
 import { vitrinaUrl } from '@/shared/utils/site';
 import BrandLogo from '@/shared/components/BrandLogo.vue';
@@ -115,24 +144,43 @@ interface NavItem {
 	icon: string;
 	to: string;
 	disabled?: boolean;
+	/** Dibuja un divisor debajo (separa "gestión de negocios" del negocio activo). */
+	groupBreakAfter?: boolean;
 }
 
 export default defineComponent({
 	name: 'AdminLayout',
 	components: { BrandLogo },
 	setup() {
-		return { isDark, toggleTheme, catalog: useCatalogStore() };
+		return { isDark, toggleTheme, catalog: useCatalogStore(), ctx: useAdminContext() };
 	},
 	data() {
 		return {
 			navItems: [
-				{ key: 'rubros', label: 'admin.nav.rubros', icon: 'pi pi-tags', to: '/admin' },
+				// "Rubros" gestiona TODOS los negocios (CRUD); va primero y separado.
+				{ key: 'rubros', label: 'admin.nav.rubros', icon: 'pi pi-tags', to: '/admin', groupBreakAfter: true },
+				// Canales y tareas del negocio ACTIVO.
+				{ key: 'ml', label: 'admin.nav.ml', icon: 'pi pi-shopping-cart', to: '/admin/mercado-libre' },
+				{ key: 'instagram', label: 'admin.nav.instagram', icon: 'pi pi-instagram', to: '/admin/instagram' },
 				{ key: 'carga', label: 'admin.nav.carga', icon: 'pi pi-upload', to: '/admin/cargar-productos' },
 				{ key: 'nosotros', label: 'admin.nav.nosotros', icon: 'pi pi-id-card', to: '/admin/nosotros' },
 			] as NavItem[],
 		};
 	},
 	computed: {
+		/** Opciones del selector de negocio. */
+		rubroOptions(): { label: string; value: string }[] {
+			return this.catalog.rubros.map(r => ({ label: r.nombre, value: r.id }));
+		},
+		/** Negocio (rubro) activo, enganchado al contexto persistido. */
+		currentRubroId: {
+			get(): string {
+				return this.ctx.currentRubroId;
+			},
+			set(id: string) {
+				this.ctx.setRubro(id);
+			},
+		},
 		email(): string {
 			return useUserStore().profile?.email ?? '';
 		},
@@ -152,6 +200,14 @@ export default defineComponent({
 		if (!this.catalog.miEspacio) {
 			await this.catalog.fetchMiEspacio().catch(() => undefined);
 		}
+		// Cargamos los negocios (rubros) para el selector y fijamos uno por defecto.
+		if (!this.catalog.rubros.length) {
+			await this.catalog.fetchRubros().catch(() => undefined);
+		}
+		const ids = this.catalog.rubros.map(r => r.id);
+		if (!this.ctx.currentRubroId || !ids.includes(this.ctx.currentRubroId)) {
+			this.ctx.setRubro(this.catalog.rubros[0]?.id ?? '');
+		}
 	},
 	methods: {
 		/** Va a la vitrina pública en la MISMA pestaña, en su host propio (no un push
@@ -168,6 +224,8 @@ export default defineComponent({
 			const path = this.$route.path;
 			if (item.key === 'nosotros') return path.startsWith('/admin/nosotros');
 			if (item.key === 'carga') return path.startsWith('/admin/cargar-productos');
+			if (item.key === 'ml') return path.startsWith('/admin/mercado-libre');
+			if (item.key === 'instagram') return path.startsWith('/admin/instagram');
 			// "Rubros" queda activo en la lista y en la vista de productos.
 			if (item.key === 'rubros') return path === '/admin' || path.startsWith('/admin/rubros');
 			return false;

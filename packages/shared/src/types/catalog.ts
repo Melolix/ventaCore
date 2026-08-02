@@ -104,12 +104,28 @@ export enum ProductoEstado {
 /** Atributos de Mercado Libre por id de atributo (ej. { BRAND: 'Natura' }). */
 export type ProductoAtributos = Record<string, string>;
 
+/**
+ * Tipo de publicación en Mercado Libre. Cambia la comisión que cobra ML:
+ *  - `gold_special` (Clásica): comisión estándar. Es el default.
+ *  - `gold_pro` (Premium): más comisión, más exposición y cuotas sin interés.
+ */
+export type MlListingType = 'gold_special' | 'gold_pro';
+
+export const ML_LISTING_TYPES: MlListingType[] = ['gold_special', 'gold_pro'];
+
 export interface Producto {
 	id: string;
 	rubroId: string;
 	nombre: string;
 	descripcion: string | null;
+	/** Precio de venta en la tienda propia (vitrina). costo + margen. */
 	precio: number | null;
+	/** Precio de costo (del Excel/proveedor). Base para calcular el margen. */
+	precioCosto: number | null;
+	/** Precio en Mercado Libre (absorbe la comisión para dejar la ganancia intacta). */
+	precioMl: number | null;
+	/** Tipo de publicación en ML: 'gold_special' (Clásica) | 'gold_pro' (Premium). */
+	mlListingType: MlListingType;
 	/** Portada: la imagen que se muestra en la vitrina (= `imagenes[0]`). */
 	imageUrl: string | null;
 	/** Galería completa de imágenes (la primera es la portada). Todas van a ML. */
@@ -155,6 +171,9 @@ export type ProductoWrite = Partial<
 		| 'nombre'
 		| 'descripcion'
 		| 'precio'
+		| 'precioCosto'
+		| 'precioMl'
+		| 'mlListingType'
 		| 'imageUrl'
 		| 'imagenes'
 		| 'seccion'

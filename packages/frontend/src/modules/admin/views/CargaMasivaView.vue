@@ -21,71 +21,45 @@
 			</div>
 		</div>
 
-		<!-- Paso 1: elegir rubro -->
-		<div v-else-if="!selectedRubroId">
-			<p class="mb-1 text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.carga.pickStep') }}</p>
-			<h2 class="mb-5 text-xl font-bold text-surface-900 dark:text-surface-0">{{ $t('admin.carga.pickTitle') }}</h2>
-			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-				<button
-					v-for="c in rubroCards"
-					:key="c.id"
-					type="button"
-					class="glass-card rounded-2xl p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
-					@click="pickRubro(c.id)"
-				>
-					<div class="mb-2 flex items-center gap-2">
-						<i class="pi pi-box text-xl text-surface-500" />
-						<span class="font-semibold text-surface-900 dark:text-surface-0">{{ c.nombre }}</span>
-					</div>
-					<p class="mb-3 text-sm text-surface-500">
-						{{ $t('admin.carga.pickCount', { n: c.count }) }}
-						<template v-if="c.review"> · {{ $t('admin.carga.pickReview', { n: c.review }) }}</template>
-					</p>
-					<span
-						v-if="c.mlConnected"
-						class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400"
-					>
-						<i class="pi pi-check-circle" /> {{ $t('admin.carga.mlConnected') }}
-					</span>
-					<span
-						v-else
-						class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 dark:text-amber-400"
-					>
-						<i class="pi pi-plug" /> {{ $t('admin.carga.mlNotConnected') }}
-					</span>
-				</button>
-			</div>
+		<!-- Sin negocio elegido: se elige arriba, en el selector del panel -->
+		<div v-else-if="!selectedRubroId" class="glass-card rounded-2xl p-8 text-center text-surface-500">
+			<i class="pi pi-arrow-up mb-3 block text-3xl text-surface-400" />
+			{{ $t('admin.carga.pickAbove') }}
 		</div>
 
-		<!-- Paso 2: grilla del rubro elegido -->
+		<!-- Grilla del negocio activo -->
 		<template v-else>
 			<!-- Contexto: rubro + estado de ML -->
 			<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-				<div class="flex items-center gap-2">
-					<span class="text-sm text-surface-400">{{ $t('admin.carga.loadingIn') }}</span>
-					<button
-						type="button"
-						class="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-surface-0/60 px-3 py-1 text-sm font-semibold text-surface-800 transition-colors hover:bg-surface-100 dark:border-surface-700 dark:bg-surface-900/60 dark:text-surface-100 dark:hover:bg-surface-800"
-						@click="backToPicker"
-					>
+				<div class="flex items-center gap-2 text-sm">
+					<span class="text-surface-400">{{ $t('admin.carga.loadingIn') }}</span>
+					<span class="inline-flex items-center gap-1.5 font-semibold text-surface-800 dark:text-surface-100">
 						<i class="pi pi-box text-surface-500" /> {{ selectedRubro?.nombre }}
-						<i class="pi pi-chevron-down text-xs text-surface-400" />
+					</span>
+				</div>
+				<div class="flex items-center gap-3">
+					<template v-if="mlStateByRubro[selectedRubroId]">
+						<span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+							<i class="pi pi-check-circle" /> {{ $t('admin.carga.mlConnected') }}
+						</span>
+						<Button
+							:label="$t('admin.carga.importMl.button')"
+							icon="pi pi-cloud-download"
+							size="small"
+							outlined
+							:loading="importingMl"
+							@click="importMl"
+						/>
+					</template>
+					<button
+						v-else
+						type="button"
+						class="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:underline dark:text-amber-400"
+						@click="$router.push('/admin')"
+					>
+						<i class="pi pi-exclamation-triangle" /> {{ $t('admin.carga.mlConnectHint') }}
 					</button>
 				</div>
-				<span
-					v-if="mlStateByRubro[selectedRubroId]"
-					class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
-				>
-					<i class="pi pi-check-circle" /> {{ $t('admin.carga.mlConnected') }}
-				</span>
-				<button
-					v-else
-					type="button"
-					class="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:underline dark:text-amber-400"
-					@click="$router.push('/admin')"
-				>
-					<i class="pi pi-exclamation-triangle" /> {{ $t('admin.carga.mlConnectHint') }}
-				</button>
 			</div>
 
 			<!-- Fuentes de entrada -->
@@ -126,6 +100,14 @@
 				</span>
 				<div class="ml-auto flex flex-wrap gap-2">
 					<Button
+						:label="$t('admin.carga.bulk.margen')"
+						icon="pi pi-percentage"
+						size="small"
+						outlined
+						:disabled="!selectedCount"
+						@click="bulkMargenVisible = true"
+					/>
+					<Button
 						:label="$t('admin.carga.bulk.precioEnLote')"
 						icon="pi pi-dollar"
 						size="small"
@@ -151,15 +133,16 @@
 
 			<!-- Grilla -->
 			<div v-else class="glass-card quiet overflow-x-auto rounded-2xl">
-				<table class="w-full min-w-[680px] table-fixed text-sm">
+				<table class="w-full min-w-[820px] table-fixed text-sm">
 					<thead>
 						<tr
 							class="border-b border-surface-200/60 text-left text-[11px] uppercase tracking-wide text-surface-400 dark:border-surface-700/60"
 						>
 							<th class="w-9 px-3 py-2.5"></th>
 							<th class="px-3 py-2.5">{{ $t('admin.carga.cols.producto') }}</th>
-							<th class="w-32 px-3 py-2.5">{{ $t('admin.carga.cols.categoriaMl') }}</th>
-							<th class="w-44 px-3 py-2.5 text-right">{{ $t('admin.carga.cols.precio') }}</th>
+							<th v-if="mlConnected" class="w-32 px-3 py-2.5">{{ $t('admin.carga.cols.categoriaMl') }}</th>
+							<th class="w-36 px-3 py-2.5 text-right">{{ $t('admin.carga.cols.costo') }}</th>
+							<th class="w-40 px-3 py-2.5 text-right">{{ $t('admin.carga.cols.precio') }}</th>
 							<th class="w-24 px-3 py-2.5 text-center">{{ $t('admin.carga.cols.stock') }}</th>
 							<th class="w-36 px-3 py-2.5">{{ $t('admin.carga.cols.estado') }}</th>
 							<th class="w-16 px-3 py-2.5"></th>
@@ -213,7 +196,7 @@
 									</div>
 								</div>
 							</td>
-							<td class="px-3 py-2 align-middle">
+							<td v-if="mlConnected" class="px-3 py-2 align-middle">
 								<button
 									v-if="row.mlCategoryName"
 									type="button"
@@ -231,6 +214,20 @@
 								>
 									<i class="pi pi-sparkles" /> {{ $t('admin.carga.ml.assignInline') }}
 								</button>
+							</td>
+							<td class="px-3 py-2 align-middle">
+								<InputNumber
+									v-model="row.precioCosto"
+									fluid
+									mode="currency"
+									currency="ARS"
+									locale="es-AR"
+									:min="0"
+									:max-fraction-digits="0"
+									:input-class="quietCls + ' text-right'"
+									:placeholder="'—'"
+									@update:model-value="markDirty"
+								/>
 							</td>
 							<td class="px-3 py-2 align-middle">
 								<InputNumber
@@ -263,27 +260,29 @@
 							</td>
 							<td class="px-3 py-2 align-middle">
 								<div class="flex items-center gap-1">
-									<a
-										v-if="row.mlPermalink"
-										:href="row.mlPermalink"
-										target="_blank"
-										rel="noopener"
-										class="inline-flex h-8 w-8 items-center justify-center rounded-full text-emerald-500 hover:bg-emerald-500/10"
-										:title="$t('admin.carga.pub.view')"
-										><i class="pi pi-check-circle"
-									/></a>
-									<Button
-										v-else
-										icon="pi pi-megaphone"
-										text
-										rounded
-										severity="success"
-										size="small"
-										:loading="publishingKey === row.key"
-										:disabled="!row.id"
-										:title="$t('admin.carga.pub.button')"
-										@click="publishRow(row)"
-									/>
+									<template v-if="mlConnected">
+										<a
+											v-if="row.mlPermalink"
+											:href="row.mlPermalink"
+											target="_blank"
+											rel="noopener"
+											class="inline-flex h-8 w-8 items-center justify-center rounded-full text-emerald-500 hover:bg-emerald-500/10"
+											:title="$t('admin.carga.pub.view')"
+											><i class="pi pi-check-circle"
+										/></a>
+										<Button
+											v-else
+											icon="pi pi-megaphone"
+											text
+											rounded
+											severity="success"
+											size="small"
+											:loading="publishingKey === row.key"
+											:disabled="!row.id"
+											:title="$t('admin.carga.pub.button')"
+											@click="publishRow(row)"
+										/>
+									</template>
 									<Button
 										icon="pi pi-trash"
 										text
@@ -347,6 +346,28 @@
 			<template #footer>
 				<Button :label="$t('common.cancel')" text @click="bulkPrecioVisible = false" />
 				<Button :label="$t('common.apply')" :disabled="bulkPrecio == null" @click="applyBulkPrecio" />
+			</template>
+		</Dialog>
+
+		<!-- Dialog: margen en lote ("quiero ganar X%") -->
+		<Dialog v-model:visible="bulkMargenVisible" modal :header="$t('admin.carga.bulk.margen')" class="w-full max-w-sm">
+			<div class="space-y-4 pt-1">
+				<p class="text-sm text-surface-500">{{ $t('admin.carga.bulk.margenHint') }}</p>
+				<div class="flex items-center gap-3">
+					<Slider
+					:model-value="bulkMargen ?? 0"
+					class="flex-1"
+					:min="0"
+					:max="300"
+					@update:model-value="v => (bulkMargen = Array.isArray(v) ? v[0] : v)"
+				/>
+					<InputNumber v-model="bulkMargen" suffix=" %" :min="0" :max="900" class="w-28" />
+				</div>
+				<p class="text-xs text-surface-400">{{ $t('admin.carga.bulk.margenApplies', { n: selectedCount }) }}</p>
+			</div>
+			<template #footer>
+				<Button :label="$t('common.cancel')" text @click="bulkMargenVisible = false" />
+				<Button :label="$t('common.apply')" :disabled="bulkMargen == null" @click="applyBulkMargen" />
 			</template>
 		</Dialog>
 
@@ -543,6 +564,7 @@ import {
 	type MlCatalogSearchResult,
 } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
 import {
 	parseTableFile,
@@ -560,6 +582,7 @@ interface Row {
 	nombre: string;
 	descripcion: string;
 	precio: number | null;
+	precioCosto: number | null;
 	stock: number | null;
 	gtin: string;
 	sku: string;
@@ -576,17 +599,8 @@ interface Row {
 	selected: boolean;
 }
 
-/** Tarjeta del selector de rubro (paso 1). */
-interface RubroCard {
-	id: string;
-	nombre: string;
-	count: number;
-	review: number;
-	mlConnected: boolean;
-}
-
 /** Campos de producto a los que puede mapear una columna del archivo. */
-const IMPORT_FIELDS = ['nombre', 'descripcion', 'precio', 'stock', 'gtin', 'sku', 'imageUrl'] as const;
+const IMPORT_FIELDS = ['nombre', 'descripcion', 'precioCosto', 'precio', 'stock', 'gtin', 'sku', 'imageUrl'] as const;
 type ImportField = (typeof IMPORT_FIELDS)[number] | 'ignore';
 
 export default defineComponent({
@@ -595,17 +609,19 @@ export default defineComponent({
 	data() {
 		return {
 			catalog: useCatalogStore(),
+			ctx: useAdminContext(),
 			loading: false,
 			saving: false,
 			rows: [] as Row[],
 			seq: 0,
-			// Rubro elegido (paso 1). '' = mostrar el selector.
-			selectedRubroId: '',
-			// ¿Cada rubro tiene ML conectado? (para el selector y el contexto)
+			// ¿Cada rubro tiene ML conectado? (para el contexto)
 			mlStateByRubro: {} as Record<string, boolean>,
 			// Precio en lote
 			bulkPrecioVisible: false,
 			bulkPrecio: null as number | null,
+			// Margen en lote ("quiero ganar X%")
+			bulkMargenVisible: false,
+			bulkMargen: 40 as number | null,
 			// Importar
 			importVisible: false,
 			parsed: null as ParsedTable | null,
@@ -627,6 +643,7 @@ export default defineComponent({
 			// Cache de atributos obligatorios por categoría (para el "Faltan N").
 			attrsByCategory: {} as Record<string, MlAttribute[]>,
 			publishingKey: null as string | null,
+			importingMl: false,
 			// Gestor de imágenes por fila
 			imgVisible: false,
 			imgRow: null as Row | null,
@@ -681,6 +698,14 @@ export default defineComponent({
 				},
 			];
 		},
+		/** Negocio activo, tomado del contexto persistido (selector del panel). */
+		selectedRubroId(): string {
+			return this.ctx.currentRubroId;
+		},
+		/** ¿El negocio activo tiene Mercado Libre conectado? Gatea los campos de ML. */
+		mlConnected(): boolean {
+			return !!this.mlStateByRubro[this.selectedRubroId];
+		},
 		/** Rubro actualmente elegido. */
 		selectedRubro(): { id: string; nombre: string } | undefined {
 			return this.catalog.rubros.find(r => r.id === this.selectedRubroId);
@@ -688,18 +713,6 @@ export default defineComponent({
 		/** Filas del rubro elegido (lo que muestra la grilla). */
 		visibleRows(): Row[] {
 			return this.rows.filter(r => r.rubroId === this.selectedRubroId);
-		},
-		/** Tarjetas del selector: conteo + a revisar + estado de ML por rubro. */
-		rubroCards(): RubroCard[] {
-			return this.catalog.rubros.map(r => {
-				const rrows = this.rows.filter(x => x.rubroId === r.id);
-				let review = 0;
-				for (const row of rrows) {
-					const e = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row)).estado;
-					if (e === ProductoEstado.REVIEW || e === ProductoEstado.MISSING) review++;
-				}
-				return { id: r.id, nombre: r.nombre, count: rrows.length, review, mlConnected: !!this.mlStateByRubro[r.id] };
-			});
 		},
 		fieldOptions(): { label: string; value: ImportField }[] {
 			const opts: { label: string; value: ImportField }[] = IMPORT_FIELDS.map(f => ({
@@ -733,8 +746,6 @@ export default defineComponent({
 			if (!this.catalog.rubros.length) await this.catalog.fetchRubros();
 			await this.catalog.fetchAllProductos();
 			this.rows = this.catalog.allProductos.map(p => this.fromProducto(p));
-			// Si hay un solo rubro, saltamos el selector.
-			if (this.catalog.rubros.length === 1) this.selectedRubroId = this.catalog.rubros[0].id;
 		} catch {
 			this.$toast.add({ severity: 'error', summary: this.$t('admin.carga.saveError'), life: 4000 });
 		} finally {
@@ -766,12 +777,6 @@ export default defineComponent({
 				}),
 			);
 		},
-		pickRubro(id: string) {
-			this.selectedRubroId = id;
-		},
-		backToPicker() {
-			this.selectedRubroId = '';
-		},
 		nextKey(): string {
 			this.seq += 1;
 			return `row-${this.seq}`;
@@ -793,6 +798,7 @@ export default defineComponent({
 				nombre: p.nombre,
 				descripcion: p.descripcion ?? '',
 				precio: p.precio,
+				precioCosto: p.precioCosto,
 				stock: p.stock,
 				gtin: p.gtin ?? '',
 				sku: p.sku ?? '',
@@ -816,6 +822,7 @@ export default defineComponent({
 				nombre: '',
 				descripcion: '',
 				precio: null,
+				precioCosto: null,
 				stock: null,
 				gtin: '',
 				sku: '',
@@ -896,6 +903,26 @@ export default defineComponent({
 			this.bulkPrecio = null;
 		},
 
+		// ── Margen en lote: precio = costo * (1 + margen%) sobre las seleccionadas ──
+		applyBulkMargen() {
+			if (this.bulkMargen == null) return;
+			const factor = 1 + this.bulkMargen / 100;
+			let sinCosto = 0;
+			for (const row of this.visibleRows) {
+				if (!row.selected) continue;
+				if (row.precioCosto == null) {
+					sinCosto++;
+					continue;
+				}
+				row.precio = Math.round(row.precioCosto * factor);
+			}
+			this.dirty = true;
+			this.bulkMargenVisible = false;
+			if (sinCosto) {
+				this.$toast.add({ severity: 'info', summary: this.$t('admin.carga.bulk.margenNoCost', { n: sinCosto }), life: 4000 });
+			}
+		},
+
 		// ── Guardar ──
 		/** Arma el payload de guardado de una fila. */
 		rowToBatchItem(r: Row): BatchProductoItem {
@@ -905,6 +932,7 @@ export default defineComponent({
 				nombre: r.nombre.trim(),
 				descripcion: r.descripcion.trim() || undefined,
 				precio: r.precio ?? undefined,
+				precioCosto: r.precioCosto ?? undefined,
 				stock: r.stock ?? undefined,
 				gtin: r.gtin.trim() || undefined,
 				sku: r.sku.trim() || undefined,
@@ -980,6 +1008,7 @@ export default defineComponent({
 			const map: Record<string, string> = {
 				nombre: this.$t('admin.carga.placeholders.nombre'),
 				descripcion: this.$t('admin.productos.fields.description'),
+				precioCosto: this.$t('admin.carga.cols.costo'),
 				precio: this.$t('admin.carga.cols.precio'),
 				stock: this.$t('admin.carga.cols.stock'),
 				gtin: this.$t('admin.carga.placeholders.ean'),
@@ -1021,7 +1050,8 @@ export default defineComponent({
 			const h = header.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 			if (/(nombre|titulo|producto|name|title)/.test(h)) return 'nombre';
 			if (/(descrip|detalle|description)/.test(h)) return 'descripcion';
-			if (/(precio|price|importe)/.test(h)) return 'precio';
+			if (/(costo|compra|proveedor|cost)/.test(h)) return 'precioCosto';
+			if (/(precio|price|importe|venta)/.test(h)) return 'precio';
 			if (/(stock|cantidad|qty|existencia)/.test(h)) return 'stock';
 			if (/(ean|gtin|codigo de barra|barcode)/.test(h)) return 'gtin';
 			if (/(sku|codigo|cod\.?|code)/.test(h)) return 'sku';
@@ -1042,6 +1072,7 @@ export default defineComponent({
 					const value = (cells[i] ?? '').trim();
 					if (!value || field === 'ignore') return;
 					if (field === 'precio') row.precio = parseNumber(value);
+					else if (field === 'precioCosto') row.precioCosto = parseNumber(value);
 					else if (field === 'stock') row.stock = parseNumber(value);
 					else if (field === 'nombre') row.nombre = value;
 					else if (field === 'descripcion') row.descripcion = value;
@@ -1242,6 +1273,25 @@ export default defineComponent({
 			const [img] = this.imgRow.imagenes.splice(i, 1);
 			this.imgRow.imagenes.unshift(img);
 			this.syncCover();
+		},
+		async importMl() {
+			if (!this.selectedRubroId) return;
+			this.importingMl = true;
+			try {
+				const res = await this.catalog.importMlListings(this.selectedRubroId);
+				await this.catalog.fetchAllProductos();
+				this.rows = this.catalog.allProductos.map(p => this.fromProducto(p));
+				this.dirty = false;
+				if (!res.total) {
+					this.$toast.add({ severity: 'info', summary: this.$t('admin.carga.importMl.none'), life: 4000 });
+				} else {
+					this.$toast.add({ severity: 'success', summary: this.$t('admin.carga.importMl.done', { imported: res.imported, updated: res.updated }), life: 5000 });
+				}
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.carga.importMl.error')), life: 6000 });
+			} finally {
+				this.importingMl = false;
+			}
 		},
 		attrHasOptions(attr: MlAttribute): boolean {
 			return attr.values.length > 0;
