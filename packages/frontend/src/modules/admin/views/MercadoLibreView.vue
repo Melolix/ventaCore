@@ -104,11 +104,70 @@
 			<div v-if="edit" class="flex flex-col gap-5 pt-1">
 				<p class="text-sm font-semibold text-surface-800 dark:text-surface-100">{{ edit.nombre }}</p>
 
-				<!-- Categoría (informativa; se asigna en Cargar productos) -->
-				<div class="flex items-center justify-between rounded-lg bg-surface-50 px-3 py-2 text-sm dark:bg-surface-800/50">
-					<span class="text-surface-500">{{ $t('admin.ml.categoryLabel') }}</span>
-					<span v-if="edit.mlCategoryName" class="font-medium">{{ edit.mlCategoryName }}</span>
-					<span v-else class="text-amber-600 dark:text-amber-400">{{ $t('admin.ml.noCategoryShort') }}</span>
+				<!-- Buscar en el catálogo de ML (autocompleta categoría + atributos) -->
+				<div class="space-y-2 rounded-xl bg-primary/5 p-3">
+					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.carga.ml.catalogTitle') }}</label>
+					<div class="flex gap-2">
+						<InputText v-model="mlCatalogQuery" class="w-full" :placeholder="$t('admin.carga.ml.catalogPlaceholder')" @keyup.enter="searchCatalog" />
+						<Button icon="pi pi-search" :loading="mlCatalogSearching" size="small" @click="searchCatalog" />
+					</div>
+					<div v-if="mlFillingCatalog" class="py-2 text-center text-xs text-surface-500"><i class="pi pi-spin pi-spinner" /> {{ $t('admin.carga.ml.catalogFilling') }}</div>
+					<div v-else-if="mlCatalogResults.length" class="max-h-56 space-y-1 overflow-y-auto">
+						<button v-for="r in mlCatalogResults" :key="r.id" type="button" class="flex w-full items-center gap-3 rounded-lg border border-surface-200 p-2 text-left transition-colors hover:bg-surface-50 dark:border-surface-700 dark:hover:bg-surface-800" @click="pickCatalogProduct(r)">
+							<img v-if="r.thumbnail" :src="r.thumbnail" class="h-10 w-10 shrink-0 rounded object-contain" :alt="r.name" />
+							<div v-else class="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-surface-100 text-surface-400 dark:bg-surface-800"><i class="pi pi-image" /></div>
+							<span class="line-clamp-2 text-sm">{{ r.name }}</span>
+						</button>
+					</div>
+					<p class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.catalogHint') }}</p>
+				</div>
+
+				<!-- Categoría -->
+				<div class="space-y-2">
+					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.carga.ml.categoryTitle') }}</label>
+					<div class="flex items-center gap-2">
+						<span class="flex-1 text-sm" :class="edit.mlCategoryName ? 'text-surface-800 dark:text-surface-100' : 'text-surface-400'">{{ edit.mlCategoryName || $t('admin.carga.ml.noCategory') }}</span>
+						<Button :label="$t('admin.carga.ml.suggest')" icon="pi pi-sparkles" size="small" outlined :loading="mlPredicting" @click="suggestCategories" />
+					</div>
+					<div v-if="mlPredictions.length" class="space-y-1">
+						<button
+							v-for="p in mlPredictions"
+							:key="p.categoryId"
+							type="button"
+							class="flex w-full items-center justify-between rounded-lg border p-2 text-left text-sm transition-colors"
+							:class="p.categoryId === edit.mlCategoryId ? 'border-primary bg-primary/5' : 'border-surface-200 hover:bg-surface-50 dark:border-surface-700 dark:hover:bg-surface-800'"
+							@click="pickCategory(p)"
+						>
+							<span>{{ p.categoryName }}</span>
+							<i v-if="p.categoryId === edit.mlCategoryId" class="pi pi-check text-primary" />
+						</button>
+					</div>
+				</div>
+
+				<!-- Atributos obligatorios -->
+				<div v-if="edit.mlCategoryId" class="space-y-3 border-t border-surface-200 pt-4 dark:border-surface-700">
+					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.carga.ml.attrsTitle') }}</label>
+					<div v-if="mlLoadingAttrs" class="py-4 text-center text-surface-500"><i class="pi pi-spin pi-spinner" /></div>
+					<p v-else-if="!mlAttrs.length" class="text-xs text-surface-400">{{ $t('admin.carga.ml.noAttrs') }}</p>
+					<div v-else class="space-y-3">
+						<div v-for="attr in mlAttrs" :key="attr.id" class="space-y-1">
+							<label class="flex items-center gap-1.5 text-sm font-medium">
+								<i class="pi text-xs" :class="attrFilled(attr) ? 'pi-check-circle text-green-500' : 'pi-exclamation-circle text-amber-500'" />
+								{{ attr.name }}
+							</label>
+							<Select
+								v-if="attrHasOptions(attr)"
+								v-model="mlAttrValues[attr.id]"
+								:options="attrValueOptions(attr)"
+								option-label="label"
+								option-value="value"
+								filter
+								:placeholder="$t('admin.carga.ml.attrPick')"
+								class="w-full"
+							/>
+							<InputText v-else v-model="mlAttrValues[attr.id]" class="w-full" :placeholder="$t('admin.carga.ml.attrValue')" />
+						</div>
+					</div>
 				</div>
 
 				<!-- Tipo de publicación -->
@@ -201,7 +260,16 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { Producto, Rubro, MlFeeBreakdown, MlListingType, BatchProductoItem } from '@base-template/shared';
+import type {
+	Producto,
+	Rubro,
+	MlFeeBreakdown,
+	MlListingType,
+	BatchProductoItem,
+	MlCategoryPrediction,
+	MlAttribute,
+	MlCatalogSearchResult,
+} from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
@@ -219,6 +287,8 @@ interface EditState {
 	mlListingType: MlListingType;
 	mlCategoryId: string;
 	mlCategoryName: string;
+	atributos: Record<string, string>;
+	mlCatalogProductId: string;
 	mlItemId: string;
 }
 
@@ -249,6 +319,17 @@ export default defineComponent({
 			feeLoading: false,
 			calculating: false,
 			feeTimer: null as ReturnType<typeof setTimeout> | null,
+			// Categoría + atributos de ML (misma función que en Cargar productos)
+			mlPredicting: false,
+			mlPredictions: [] as MlCategoryPrediction[],
+			mlLoadingAttrs: false,
+			mlAttrs: [] as MlAttribute[],
+			mlAttrValues: {} as Record<string, string>,
+			attrsByCategory: {} as Record<string, MlAttribute[]>,
+			mlCatalogQuery: '',
+			mlCatalogSearching: false,
+			mlCatalogResults: [] as MlCatalogSearchResult[],
+			mlFillingCatalog: false,
 		};
 	},
 	computed: {
@@ -368,13 +449,109 @@ export default defineComponent({
 				mlListingType: p.mlListingType || 'gold_special',
 				mlCategoryId: p.mlCategoryId ?? '',
 				mlCategoryName: p.mlCategoryName ?? '',
+				atributos: { ...(p.atributos ?? {}) },
+				mlCatalogProductId: p.mlCatalogProductId ?? '',
 				mlItemId: p.mlItemId ?? '',
 			};
+			// Categoría + atributos.
+			this.mlPredictions = [];
+			this.mlAttrValues = { ...(p.atributos ?? {}) };
+			this.mlAttrs = p.mlCategoryId ? (this.attrsByCategory[p.mlCategoryId] ?? []) : [];
+			this.mlCatalogQuery = '';
+			this.mlCatalogResults = [];
 			// Margen implícito a partir de costo + precio de tienda.
 			this.margenPct = this.deriveMargin();
 			this.fee = null;
 			this.editorVisible = true;
 			if (this.edit.precioMl) this.refreshFee();
+			if (p.mlCategoryId && !this.attrsByCategory[p.mlCategoryId]) void this.loadAttrs(p.mlCategoryId);
+		},
+		// ── Categoría + atributos de ML ──
+		async suggestCategories() {
+			const e = this.edit;
+			if (!e || !this.rubro) return;
+			if (!e.nombre.trim()) {
+				this.$toast.add({ severity: 'warn', summary: this.$t('admin.carga.ml.needName'), life: 4000 });
+				return;
+			}
+			this.mlPredicting = true;
+			try {
+				this.mlPredictions = await this.catalog.predictMlCategory(this.rubro.id, e.nombre.trim());
+				if (!this.mlPredictions.length)
+					this.$toast.add({ severity: 'info', summary: this.$t('admin.carga.ml.noSuggestions'), life: 4000 });
+			} catch (err) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(err, this.$t('admin.carga.ml.predictError')), life: 5000 });
+			} finally {
+				this.mlPredicting = false;
+			}
+		},
+		async pickCategory(pred: MlCategoryPrediction) {
+			if (!this.edit) return;
+			this.edit.mlCategoryId = pred.categoryId;
+			this.edit.mlCategoryName = pred.categoryName;
+			this.mlAttrValues = {};
+			await this.loadAttrs(pred.categoryId);
+			// La comisión depende de la categoría: recalculamos el desglose.
+			this.refreshFee();
+		},
+		async loadAttrs(categoryId: string) {
+			if (!this.rubro) return;
+			this.mlLoadingAttrs = true;
+			try {
+				const attrs = await this.catalog.fetchMlAttributes(this.rubro.id, categoryId);
+				this.attrsByCategory[categoryId] = attrs;
+				this.mlAttrs = attrs;
+			} catch (err) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(err, this.$t('admin.carga.ml.attrsError')), life: 5000 });
+			} finally {
+				this.mlLoadingAttrs = false;
+			}
+		},
+		async searchCatalog() {
+			const q = this.mlCatalogQuery.trim();
+			if (!q || !this.rubro) return;
+			this.mlCatalogSearching = true;
+			try {
+				this.mlCatalogResults = await this.catalog.searchMlCatalog(this.rubro.id, q);
+				if (!this.mlCatalogResults.length)
+					this.$toast.add({ severity: 'info', summary: this.$t('admin.carga.ml.catalogNone'), life: 4000 });
+			} catch (err) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(err, this.$t('admin.carga.ml.catalogError')), life: 5000 });
+			} finally {
+				this.mlCatalogSearching = false;
+			}
+		},
+		async pickCatalogProduct(result: MlCatalogSearchResult) {
+			const e = this.edit;
+			if (!e || !this.rubro) return;
+			this.mlFillingCatalog = true;
+			try {
+				const p = await this.catalog.fetchMlCatalogProduct(this.rubro.id, result.id);
+				e.mlCatalogProductId = p.catalogProductId;
+				this.mlAttrValues = { ...p.atributos };
+				this.mlCatalogResults = [];
+				if (p.categoryId) {
+					e.mlCategoryId = p.categoryId;
+					e.mlCategoryName = p.categoryName;
+					await this.loadAttrs(p.categoryId);
+					this.refreshFee();
+				}
+				this.$toast.add({ severity: 'success', summary: this.$t('admin.carga.ml.catalogFilled'), life: 4000 });
+			} catch (err) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(err, this.$t('admin.carga.ml.catalogError')), life: 5000 });
+			} finally {
+				this.mlFillingCatalog = false;
+			}
+		},
+		attrHasOptions(attr: MlAttribute): boolean {
+			return attr.values.length > 0;
+		},
+		attrValueOptions(attr: MlAttribute): { label: string; value: string }[] {
+			return attr.values.map(v => ({ label: v.name, value: v.name }));
+		},
+		attrFilled(attr: MlAttribute): boolean {
+			const v = this.mlAttrValues[attr.id];
+			return !!v && v.trim().length > 0;
 		},
 		deriveMargin(): number | null {
 			const c = this.edit?.precioCosto;
@@ -440,6 +617,9 @@ export default defineComponent({
 			if (!e || this.loss || !this.rubro) return;
 			this.saving = true;
 			try {
+				// Atributos: descartamos los vacíos.
+				const atributos: Record<string, string> = {};
+				for (const [k, v] of Object.entries(this.mlAttrValues)) if (v && v.trim()) atributos[k] = v.trim();
 				const item: BatchProductoItem = {
 					id: e.id,
 					rubroId: this.rubro.id,
@@ -448,6 +628,10 @@ export default defineComponent({
 					precioCosto: e.precioCosto ?? undefined,
 					precioMl: e.precioMl ?? undefined,
 					mlListingType: e.mlListingType,
+					mlCategoryId: e.mlCategoryId || undefined,
+					mlCategoryName: e.mlCategoryName || undefined,
+					mlCatalogProductId: e.mlCatalogProductId || undefined,
+					atributos: Object.keys(atributos).length ? atributos : undefined,
 				};
 				const [saved] = await this.catalog.batchUpsert([item]);
 				if (!saved?.ok || !saved.id) throw new Error(saved?.error || this.$t('admin.carga.saveError'));
