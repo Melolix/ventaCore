@@ -216,7 +216,10 @@
 			"pickAbove": "Elegí un negocio arriba para configurar sus conexiones.",
 			"configuring": "Configurando",
 			"mlHint": "Vendé en Mercado Libre con la cuenta de este negocio.",
-			"metaHint": "Publicá en el Instagram/Facebook de este negocio."
+			"metaHint": "Publicá en el Instagram/Facebook de este negocio.",
+			"cobrosHint": "Conectá tu cuenta de cobros y gestioná los planes de suscripción del negocio.",
+			"cobrosSetup": "Configurar cobros",
+			"cobrosPlans": "Gestionar planes"
 		},
 		"instagram": {
 			"eyebrow": "Redes",

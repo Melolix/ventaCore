@@ -216,7 +216,10 @@
 			"pickAbove": "Pick a business above to set up its connections.",
 			"configuring": "Configuring",
 			"mlHint": "Sell on Mercado Libre with this business account.",
-			"metaHint": "Post to this business's Instagram/Facebook."
+			"metaHint": "Post to this business's Instagram/Facebook.",
+			"cobrosHint": "Connect your billing account and manage the business's subscription plans.",
+			"cobrosSetup": "Set up billing",
+			"cobrosPlans": "Manage plans"
 		},
 		"instagram": {
 			"eyebrow": "Social",

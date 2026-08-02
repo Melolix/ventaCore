@@ -121,6 +121,37 @@
 					</div>
 				</div>
 			</section>
+
+			<!-- ── Cobros y suscripciones ── -->
+			<section class="glass-card rounded-2xl p-6">
+				<div class="mb-4 flex items-center gap-3">
+					<div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+						<i class="pi pi-credit-card text-xl" />
+					</div>
+					<div>
+						<h3 class="font-semibold text-surface-900 dark:text-surface-0">{{ $t('admin.cobros.title') }}</h3>
+						<p class="text-xs text-surface-500">{{ $t('admin.config.cobrosHint') }}</p>
+					</div>
+				</div>
+
+				<div v-if="payLoading" class="py-6 text-center text-surface-500"><i class="pi pi-spin pi-spinner text-2xl" /></div>
+				<div v-else class="flex flex-col gap-4">
+					<!-- Conexión de Lemon Squeezy (una por cuenta, común a todos los negocios). -->
+					<div class="flex flex-wrap items-center gap-2 text-sm">
+						<i :class="payConfigured ? 'pi pi-check-circle text-green-500' : 'pi pi-circle text-surface-400'" />
+						<span class="text-surface-600 dark:text-surface-300">Lemon Squeezy</span>
+						<Tag
+							:value="payConfigured ? $t('admin.cobros.configured') : $t('admin.cobros.pending')"
+							:severity="payConfigured ? 'success' : 'warn'"
+							class="uppercase"
+						/>
+					</div>
+					<div class="flex flex-wrap gap-2">
+						<Button :label="$t('admin.config.cobrosSetup')" icon="pi pi-cog" size="small" outlined @click="goToCobros" />
+						<Button :label="$t('admin.config.cobrosPlans')" icon="pi pi-credit-card" size="small" severity="help" @click="goToPlanes" />
+					</div>
+				</div>
+			</section>
 		</div>
 	</div>
 </template>
@@ -155,6 +186,9 @@ export default defineComponent({
 			appSecret: '',
 			editingApp: false,
 			metaSavingApp: false,
+			// Cobros (Lemon Squeezy): estado de la conexión (por espacio).
+			payLoading: false,
+			payConfigured: false,
 		};
 	},
 	computed: {
@@ -196,7 +230,29 @@ export default defineComponent({
 		async reload() {
 			this.mlEditingApp = false;
 			this.editingApp = false;
-			await Promise.all([this.loadMl(), this.loadMeta()]);
+			await Promise.all([this.loadMl(), this.loadMeta(), this.loadPay()]);
+		},
+
+		// ── Cobros / Suscripciones ──
+		/** Estado de la conexión de cobros (Lemon Squeezy), común a todo el espacio. */
+		async loadPay() {
+			this.payLoading = true;
+			try {
+				const config = await this.catalog.fetchPaymentConfig();
+				this.payConfigured = !!config?.hasApiKey;
+			} catch {
+				this.payConfigured = false;
+			} finally {
+				this.payLoading = false;
+			}
+		},
+		/** Va a la pantalla de conexión de cobros (Lemon Squeezy). */
+		goToCobros() {
+			this.$router.push({ name: 'admin-cobros' });
+		},
+		/** Va a los planes de suscripción del negocio activo. */
+		goToPlanes() {
+			if (this.rubro) this.$router.push({ name: 'admin-rubro-planes', params: { id: this.rubro.id } });
 		},
 
 		// ── Mercado Libre ──
