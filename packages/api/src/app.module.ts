@@ -17,6 +17,11 @@ import { MetaAppConfigEntity } from './modules/social/entities/meta-app-config.e
 import { MercadoLibreModule } from './modules/mercadolibre/mercadolibre.module';
 import { MlConnectionEntity } from './modules/mercadolibre/entities/ml-connection.entity';
 import { MlAppConfigEntity } from './modules/mercadolibre/entities/ml-app-config.entity';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { PaymentProviderConfigEntity } from './modules/payments/entities/payment-provider-config.entity';
+import { SubscriptionPlanEntity } from './modules/payments/entities/subscription-plan.entity';
+import { SubscriptionEntity } from './modules/payments/entities/subscription.entity';
+import { SubscriptionEventEntity } from './modules/payments/entities/subscription-event.entity';
 
 @Module({
 	imports: [
@@ -40,6 +45,10 @@ import { MlAppConfigEntity } from './modules/mercadolibre/entities/ml-app-config
 				MetaAppConfigEntity,
 				MlConnectionEntity,
 				MlAppConfigEntity,
+				PaymentProviderConfigEntity,
+				SubscriptionPlanEntity,
+				SubscriptionEntity,
+				SubscriptionEventEntity,
 			],
 			synchronize: process.env.DB_SYNCHRONIZE === 'true',
 		}),
@@ -50,6 +59,7 @@ import { MlAppConfigEntity } from './modules/mercadolibre/entities/ml-app-config
 		CatalogModule,
 		SocialModule,
 		MercadoLibreModule,
+		PaymentsModule,
 	],
 })
 export class AppModule {}

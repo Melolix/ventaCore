@@ -65,6 +65,10 @@ export class RubroEntity {
 	@Column({ type: 'enum', enum: RubroStatus, default: RubroStatus.DRAFT })
 	status!: RubroStatus;
 
+	/** Si el rubro ofrece suscripción (habilita el tab de suscripciones en la vitrina). */
+	@Column({ default: false })
+	subscriptionsEnabled!: boolean;
+
 	@OneToMany(() => ProductoEntity, producto => producto.rubro)
 	productos!: ProductoEntity[];
 

@@ -23,6 +23,16 @@ const appRoutes: RouteRecordRaw[] = [
 				name: 'app-nosotros',
 				component: () => import('./views/AboutView.vue'),
 			},
+			{
+				path: 'suscripciones',
+				name: 'app-suscripciones',
+				component: () => import('./views/SuscripcionesView.vue'),
+			},
+			{
+				path: 'suscripciones/gracias',
+				name: 'app-suscripciones-gracias',
+				component: () => import('./views/SuscripcionesGraciasView.vue'),
+			},
 		],
 	},
 ];

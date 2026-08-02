@@ -34,6 +34,12 @@
 						exact-active-class="!border-primary !text-primary"
 					>{{ $t('public.nav.home') }}</router-link>
 					<router-link
+						v-if="hasSubscriptions"
+						to="/suscripciones"
+						class="border-b-2 border-transparent pb-1 text-sm font-medium text-surface-600 transition-colors hover:text-primary dark:text-surface-300"
+						active-class="!border-primary !text-primary"
+					>{{ $t('public.nav.subscriptions') }}</router-link>
+					<router-link
 						to="/nosotros"
 						class="border-b-2 border-transparent pb-1 text-sm font-medium text-surface-600 transition-colors hover:text-primary dark:text-surface-300"
 						active-class="!border-primary !text-primary"
@@ -120,6 +126,10 @@ export default defineComponent({
 		},
 		espacio(): Espacio | null {
 			return this.catalog.currentEspacio;
+		},
+		/** El tab de suscripciones aparece solo si algún rubro las tiene habilitadas. */
+		hasSubscriptions(): boolean {
+			return this.catalog.publicRubros.some(r => r.subscriptionsEnabled);
 		},
 	},
 	async created() {

@@ -203,6 +203,14 @@
 								class="flex-1 md:flex-none"
 								@click="goToConfig(rubro.id)"
 							/>
+							<Button
+								:label="$t('admin.plans.button')"
+								icon="pi pi-credit-card"
+								severity="help"
+								size="small"
+								class="flex-1 md:flex-none"
+								@click="goToPlanes(rubro.id)"
+							/>
 							<div class="flex gap-2">
 								<Button icon="pi pi-pencil" severity="secondary" outlined size="small" @click="openEdit(rubro)" />
 								<Button icon="pi pi-trash" severity="danger" outlined size="small" @click="confirmDelete(rubro)" />
@@ -454,6 +462,9 @@ export default defineComponent({
 		},
 		goToProductos(id: string) {
 			this.$router.push({ name: 'admin-rubro-productos', params: { id } });
+		},
+		goToPlanes(id: string) {
+			this.$router.push({ name: 'admin-rubro-planes', params: { id } });
 		},
 		/** Va a Configuraciones con ese negocio como contexto activo. */
 		goToConfig(id: string) {

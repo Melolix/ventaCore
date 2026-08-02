@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 import { AppPlatform, RubroStatus } from '@base-template/shared';
 
 export class UpdateRubroDto {
@@ -54,4 +54,9 @@ export class UpdateRubroDto {
 	@IsOptional()
 	@IsEnum(RubroStatus)
 	status?: RubroStatus;
+
+	@ApiProperty({ required: false, description: 'Habilita el tab de suscripciones del rubro en la vitrina.' })
+	@IsOptional()
+	@IsBoolean()
+	subscriptionsEnabled?: boolean;
 }
