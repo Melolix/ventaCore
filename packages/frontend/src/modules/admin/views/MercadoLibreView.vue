@@ -547,7 +547,12 @@ export default defineComponent({
 			return attr.values.length > 0;
 		},
 		attrValueOptions(attr: MlAttribute): { label: string; value: string }[] {
-			return attr.values.map(v => ({ label: v.name, value: v.name }));
+			const opts = attr.values.map(v => ({ label: v.name, value: v.name }));
+			// Si el valor ya guardado no está entre las opciones (ej. una marca que ML
+			// no lista), lo agregamos para que el Select pueda mostrarlo.
+			const current = this.mlAttrValues[attr.id];
+			if (current && !opts.some(o => o.value === current)) opts.unshift({ label: current, value: current });
+			return opts;
 		},
 		attrFilled(attr: MlAttribute): boolean {
 			const v = this.mlAttrValues[attr.id];
