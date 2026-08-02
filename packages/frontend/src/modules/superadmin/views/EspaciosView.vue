@@ -62,6 +62,14 @@
 				</div>
 
 				<div class="mt-auto flex flex-wrap gap-2 border-t border-surface-200/50 pt-4 dark:border-surface-700/50">
+					<Button
+						:label="$t('superadmin.espacios.enter')"
+						icon="pi pi-sign-in"
+						size="small"
+						:disabled="!espacio.active"
+						:title="espacio.active ? '' : $t('superadmin.espacios.enterSuspended')"
+						@click="enter(espacio)"
+					/>
 					<Button :label="$t('common.edit')" icon="pi pi-pencil" severity="secondary" outlined size="small" @click="openEdit(espacio)" />
 					<Button
 						:label="$t(espacio.active ? 'superadmin.espacios.suspend' : 'superadmin.espacios.activate')"
@@ -164,6 +172,9 @@
 import { defineComponent } from 'vue';
 import { ALL_ESPACIO_TYPES, EspacioType, type Espacio } from '@base-template/shared';
 import { useSpacesStore } from '@/modules/superadmin/store/spaces';
+import { useImpersonation } from '@/modules/superadmin/store/impersonation';
+import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { useAdminContext } from '@/modules/admin/store/context';
 import { vitrinaHost, vitrinaUrl } from '@/shared/utils/site';
 import { apiErrorMessage } from '@/shared/utils/apiError';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
@@ -209,6 +220,16 @@ export default defineComponent({
 		}
 	},
 	methods: {
+		/** "Ver como": entra al panel del cliente sin usar su cuenta. */
+		enter(espacio: Espacio): void {
+			if (!espacio.active) return;
+			// Arrancamos limpios: el panel debe cargar los datos del cliente, no los
+			// de un espacio visto antes.
+			useCatalogStore().$reset();
+			useAdminContext().$reset();
+			useImpersonation().enter(espacio.id, espacio.nombre);
+			this.$router.push('/admin');
+		},
 		/** Host visible del negocio: su dominio propio o {slug}.<base>. */
 		previewHost(espacio: Espacio): string {
 			return vitrinaHost(espacio);

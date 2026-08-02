@@ -1,4 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { IMPERSONATE_HEADER, Role } from '@base-template/shared';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UsersService } from '../../modules/users/users.service';
 
@@ -35,12 +36,37 @@ export class FirebaseAuthGuard implements CanActivate {
 			throw new UnauthorizedException('Usuario no habilitado');
 		}
 
-		request.user = {
+		const base = {
 			uid: profile.uid,
 			email: profile.email,
 			role: profile.role,
 			espacioId: profile.espacioId,
 		};
+
+		// Impersonación: si un SUPERADMIN manda el header, cambiamos el scope de la
+		// request a ese espacio con rol efectivo ADMIN. Así los endpoints del admin
+		// (que filtran por espacioId y exigen rol ADMIN) trabajan sobre el cliente
+		// elegido, sin tocar cada controller. Nunca aplica a rutas /auth/ (para no
+		// perder la identidad real) ni a usuarios que no sean SUPERADMIN.
+		const impersonateId = request.headers?.[IMPERSONATE_HEADER];
+		const path: string = request.path || request.url || '';
+		if (
+			profile.role === Role.SUPERADMIN &&
+			typeof impersonateId === 'string' &&
+			impersonateId.trim() &&
+			!path.includes('/auth/')
+		) {
+			request.user = {
+				...base,
+				role: Role.ADMIN,
+				espacioId: impersonateId.trim(),
+				impersonating: true,
+				realUid: profile.uid,
+				realRole: Role.SUPERADMIN,
+			};
+		} else {
+			request.user = base;
+		}
 
 		return true;
 	}

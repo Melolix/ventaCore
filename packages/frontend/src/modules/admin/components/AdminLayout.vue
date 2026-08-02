@@ -6,7 +6,23 @@
 		>
 			<BrandLogo :size="30" />
 
-			<div class="flex items-center gap-3">
+			<!-- "Viendo como": un superadmin está impersonando a un cliente. -->
+			<div
+				v-if="imp.active"
+				class="mx-3 flex min-w-0 items-center gap-2 rounded-full bg-amber-500/15 px-3 py-1 text-sm text-amber-700 dark:text-amber-300"
+			>
+				<i class="pi pi-eye shrink-0" />
+				<span class="truncate">{{ $t('admin.impersonating', { nombre: imp.espacioNombre }) }}</span>
+				<button
+					type="button"
+					class="shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold hover:bg-amber-500/30"
+					@click="exitImpersonation"
+				>
+					{{ $t('admin.impersonatingExit') }}
+				</button>
+			</div>
+
+			<div class="ml-auto flex items-center gap-3">
 				<Button
 					:icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
 					severity="secondary"
@@ -134,8 +150,9 @@ import { defineComponent } from 'vue';
 import { useUserStore } from '@/modules/auth/store/user';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
+import { useImpersonation } from '@/modules/superadmin/store/impersonation';
 import { isDark, toggleTheme } from '@/composables/useTheme';
-import { vitrinaUrl } from '@/shared/utils/site';
+import { vitrinaUrlWithReturn } from '@/shared/utils/site';
 import BrandLogo from '@/shared/components/BrandLogo.vue';
 
 interface NavItem {
@@ -152,7 +169,7 @@ export default defineComponent({
 	name: 'AdminLayout',
 	components: { BrandLogo },
 	setup() {
-		return { isDark, toggleTheme, catalog: useCatalogStore(), ctx: useAdminContext() };
+		return { isDark, toggleTheme, catalog: useCatalogStore(), ctx: useAdminContext(), imp: useImpersonation() };
 	},
 	data() {
 		return {
@@ -215,7 +232,9 @@ export default defineComponent({
 		 *  host, no solo de path). */
 		openSite() {
 			if (!this.catalog.miEspacio) return;
-			window.location.href = vitrinaUrl(this.catalog.miEspacio);
+			// Vamos a la vitrina (otro origen) llevando el origen del panel, para poder
+			// volver: la sesión sigue viva acá, no en el host de la vitrina.
+			window.location.href = vitrinaUrlWithReturn(this.catalog.miEspacio);
 		},
 		toggleUserMenu(event: Event) {
 			(this.$refs.userMenu as { toggle: (e: Event) => void }).toggle(event);
@@ -230,7 +249,16 @@ export default defineComponent({
 			if (item.key === 'rubros') return path === '/admin' || path.startsWith('/admin/rubros');
 			return false;
 		},
+		/** Sale del modo "ver como" y vuelve al panel de superadmin. */
+		exitImpersonation() {
+			this.imp.exit();
+			this.catalog.$reset();
+			this.ctx.$reset();
+			this.$router.push('/superadmin');
+		},
 		async onLogout() {
+			// Si estaba "viendo como" un cliente, cortamos la impersonación.
+			this.imp.exit();
 			await useUserStore().logout();
 			// Al cerrar sesión volvemos a la página pública como visitante.
 			this.$router.replace('/');

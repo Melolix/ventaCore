@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
-import { AREAS, areaForRole, type AreaKey } from '@base-template/shared';
+import { AREAS, areaForRole, Role, type AreaKey } from '@base-template/shared';
 import { useUserStore } from '@/modules/auth/store/user';
+import { useImpersonation } from '@/modules/superadmin/store/impersonation';
 import LoginForm from '@/modules/auth/components/LoginForm.vue';
 
 import superadminRoutes from '@/modules/superadmin/routes';
@@ -46,7 +47,12 @@ const router = createRouter({
 
 router.beforeEach(async to => {
 	const userStore = useUserStore();
+	const impersonation = useImpersonation();
 	const area = to.meta.area ? AREAS[to.meta.area] : null;
+
+	// Al entrar al área de superadmin dejamos de "ver como" un cliente: el header
+	// de impersonación rompería los endpoints de superadmin (piden rol SUPERADMIN).
+	if (area?.key === 'superadmin') impersonation.exit();
 
 	// Pantallas de login: si ya hay sesión, mandar a su área correspondiente.
 	if (to.meta.guestOnly) {
@@ -66,9 +72,13 @@ router.beforeEach(async to => {
 			return { path: '/login', query: { redirect: to.fullPath } };
 		}
 
-		// Rol distinto al del área → a SU propia área.
+		// Rol distinto al del área → a SU propia área. Excepción: un SUPERADMIN
+		// "viendo como" un cliente puede entrar al área admin.
 		if (user.role !== area.role) {
-			return { path: areaForRole(user.role).homePath };
+			const enteringAsClient = area.key === 'admin' && user.role === Role.SUPERADMIN && impersonation.active;
+			if (!enteringAsClient) {
+				return { path: areaForRole(user.role).homePath };
+			}
 		}
 	}
 

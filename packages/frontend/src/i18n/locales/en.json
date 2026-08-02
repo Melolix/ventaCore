@@ -22,7 +22,8 @@
 		"brand": "VentaCore"
 	},
 	"nav": {
-		"goToPanel": "Go to panel"
+		"goToPanel": "Go to panel",
+		"backToPanel": "Back to panel"
 	},
 	"auth": {
 		"signIn": "Sign in",
@@ -135,6 +136,8 @@
 			"title": "Space Management",
 			"subtitle": "Create and manage the platform's businesses. Each space has its own admin and public storefront.",
 			"new": "New Space",
+			"enter": "Enter",
+			"enterSuspended": "Reactivate the business to enter",
 			"empty": "No spaces created yet.",
 			"active": "Active",
 			"suspended": "Suspended",
@@ -178,6 +181,8 @@
 		"panelSubtitle": "VentaCore management",
 		"soon": "Coming soon",
 		"viewSite": "View site",
+		"impersonating": "Viewing as {nombre}",
+		"impersonatingExit": "Exit",
 		"business": "Business",
 		"businessPlaceholder": "Pick a business",
 		"businessNone": "Create a business first",

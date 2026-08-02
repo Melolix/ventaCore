@@ -36,3 +36,15 @@ export function vitrinaUrl(espacio: EspacioLike): string {
 	const port = window.location.port ? `:${window.location.port}` : '';
 	return `${window.location.protocol}//${espacio.slug}.${subdomainBase(espacio.slug)}${port}`;
 }
+
+/**
+ * Igual que `vitrinaUrl` pero agrega el origen del panel (`?panel=`). La vitrina
+ * corre en OTRO origen (subdominio/dominio propio), donde la sesión de Firebase
+ * no existe; con este dato el sitio puede ofrecer "Volver al panel", que lleva
+ * de vuelta al origen donde la sesión (y la impersonación) siguen vivas.
+ */
+export function vitrinaUrlWithReturn(espacio: EspacioLike): string {
+	const base = vitrinaUrl(espacio);
+	const sep = base.includes('?') ? '&' : '?';
+	return `${base}${sep}panel=${encodeURIComponent(window.location.origin)}`;
+}

@@ -22,7 +22,8 @@
 		"brand": "VentaCore"
 	},
 	"nav": {
-		"goToPanel": "Ir al panel"
+		"goToPanel": "Ir al panel",
+		"backToPanel": "Volver al panel"
 	},
 	"auth": {
 		"signIn": "Iniciar sesión",
@@ -135,6 +136,8 @@
 			"title": "Gestión de Espacios",
 			"subtitle": "Creá y administrá los negocios de la plataforma. Cada espacio tiene su admin y su vitrina pública.",
 			"new": "Nuevo Espacio",
+			"enter": "Entrar",
+			"enterSuspended": "Reactivá el negocio para poder entrar",
 			"empty": "Todavía no hay espacios creados.",
 			"active": "Activo",
 			"suspended": "Suspendido",
@@ -178,6 +181,8 @@
 		"panelSubtitle": "Gestión VentaCore",
 		"soon": "Próximamente",
 		"viewSite": "Ver el sitio",
+		"impersonating": "Viendo como {nombre}",
+		"impersonatingExit": "Salir",
 		"business": "Negocio",
 		"businessPlaceholder": "Elegí un negocio",
 		"businessNone": "Creá un negocio primero",

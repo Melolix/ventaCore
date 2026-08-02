@@ -42,6 +42,17 @@
 
 				<!-- Acciones -->
 				<div class="flex items-center gap-3 justify-self-end">
+					<!-- Volver al panel: aparece si llegamos desde el panel (otro origen).
+					     La sesión vive en ese origen, así que volvemos allá. -->
+					<Button
+						v-if="panelReturn"
+						:label="$t('nav.backToPanel')"
+						icon="pi pi-arrow-left"
+						rounded
+						size="small"
+						class="border-0 bg-amber-500 px-4 font-semibold text-white shadow-md hover:bg-amber-600"
+						@click="backToPanel"
+					/>
 					<Button
 						:icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
 						severity="secondary"
@@ -99,6 +110,8 @@ export default defineComponent({
 			catalog: useCatalogStore(),
 			ready: false,
 			unavailable: false,
+			/** Origen del panel del que venimos (para "Volver al panel"). '' = no aplica. */
+			panelReturn: '',
 		};
 	},
 	computed: {
@@ -110,6 +123,8 @@ export default defineComponent({
 		},
 	},
 	async created() {
+		// Si venimos del panel (?panel=<origen>), habilitamos "Volver al panel".
+		this.readPanelReturn();
 		// Sesión no bloqueante (para decidir "Iniciar sesión" vs "Ir al panel").
 		void useUserStore().currentUser();
 		// Resuelve el negocio por el dominio.
@@ -127,6 +142,38 @@ export default defineComponent({
 		this.ready = true;
 	},
 	methods: {
+		/**
+		 * Habilita "Volver al panel" si llegamos con `?panel=<origen>`. Guarda el
+		 * origen en sessionStorage para que sobreviva a la navegación dentro del
+		 * sitio, y limpia el query de la URL. Solo acepta el dato si el referrer
+		 * coincide con ese origen (evita links armados con un panel falso).
+		 */
+		readPanelReturn() {
+			const KEY = 'vc_panel_return';
+			const q = this.$route.query.panel;
+			if (typeof q === 'string' && q) {
+				try {
+					const origin = new URL(q).origin;
+					const refOk = !document.referrer || new URL(document.referrer).origin === origin;
+					if (refOk) {
+						this.panelReturn = origin;
+						sessionStorage.setItem(KEY, origin);
+					}
+				} catch {
+					/* query inválido: lo ignoramos */
+				}
+				// Sacamos el ?panel de la URL para que quede limpia.
+				const query = { ...this.$route.query };
+				delete query.panel;
+				void this.$router.replace({ query });
+			} else {
+				this.panelReturn = sessionStorage.getItem(KEY) ?? '';
+			}
+		},
+		/** Vuelve al panel (su origen), donde la sesión y la impersonación siguen vivas. */
+		backToPanel() {
+			if (this.panelReturn) window.location.href = `${this.panelReturn}/admin`;
+		},
 		onSignIn() {
 			this.$router.push('/login');
 		},
