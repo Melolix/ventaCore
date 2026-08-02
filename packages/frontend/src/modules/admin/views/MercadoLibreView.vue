@@ -81,7 +81,12 @@
 					</div>
 					<div class="text-right">
 						<p class="text-[11px] uppercase tracking-wide text-surface-400">{{ $t('admin.ml.colMl') }}</p>
-						<p class="font-semibold text-surface-800 dark:text-surface-100">{{ p.precioMl != null ? money(p.precioMl) : '—' }}</p>
+						<p class="font-semibold text-surface-800 dark:text-surface-100">{{ mlPriceLabel(p) }}</p>
+						<!-- Beneficio real (tras comisión) sobre el costo. Deja ver de un vistazo si el precio está mal. -->
+						<p v-if="benefit[p.id]" class="text-[11px] font-semibold" :class="benefitClass(benefit[p.id])">
+							{{ benefitLabel(benefit[p.id]) }}
+						</p>
+						<p v-else-if="p.precioCosto == null" class="text-[11px] text-surface-300 dark:text-surface-600">{{ $t('admin.ml.noCostHint') }}</p>
 					</div>
 					<Tag :value="$t('admin.ml.state.' + stateOf(p))" :severity="stateSeverity(stateOf(p))" />
 					<div class="flex items-center gap-1">
@@ -230,7 +235,10 @@
 							</div>
 							<div>
 								<p class="text-surface-400">{{ $t('admin.ml.gain') }}</p>
-								<p class="font-semibold" :class="loss ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'">{{ gainPart != null ? money(gainPart) : '—' }}</p>
+								<p class="font-semibold" :class="loss ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'">
+									{{ gainPart != null ? money(gainPart) : '—' }}
+									<span v-if="gainPct != null" class="text-[11px]">({{ gainPct >= 0 ? '+' : '' }}{{ gainPct }}%)</span>
+								</p>
 							</div>
 							<div>
 								<p class="text-surface-400">{{ $t('admin.ml.commission') }} ({{ fee.percentageFee }}%)</p>
@@ -319,6 +327,8 @@ export default defineComponent({
 			feeLoading: false,
 			calculating: false,
 			feeTimer: null as ReturnType<typeof setTimeout> | null,
+			// Beneficio real por producto (para la lista): { pct, loss }
+			benefit: {} as Record<string, { pct: number; loss: boolean }>,
 			// Categoría + atributos de ML (misma función que en Cargar productos)
 			mlPredicting: false,
 			mlPredictions: [] as MlCategoryPrediction[],
@@ -382,6 +392,11 @@ export default defineComponent({
 			if (this.neto == null || this.edit?.precioCosto == null) return false;
 			return this.neto < this.edit.precioCosto;
 		},
+		/** % de beneficio real (ganancia sobre el costo) al precio de ML actual. */
+		gainPct(): number | null {
+			if (this.gainPart == null || !this.edit?.precioCosto) return null;
+			return Math.round((this.gainPart / this.edit.precioCosto) * 100);
+		},
 	},
 	async created() {
 		await this.reload();
@@ -409,6 +424,47 @@ export default defineComponent({
 		stateSeverity(s: ProductState): string {
 			return { published: 'success', ready: 'info', missing: 'warn' }[s] ?? 'secondary';
 		},
+		/** Precio de ML del producto: el calculado, o el publicado (importado en `precio`). */
+		mlPrice(p: Producto): number | null {
+			return p.precioMl ?? p.precio;
+		},
+		mlPriceLabel(p: Producto): string {
+			const v = this.mlPrice(p);
+			return v != null ? this.money(v) : '—';
+		},
+		benefitClass(b: { pct: number; loss: boolean }): string {
+			if (b.loss) return 'text-red-500';
+			if (b.pct < 15) return 'text-amber-600 dark:text-amber-400';
+			return 'text-emerald-600 dark:text-emerald-400';
+		},
+		benefitLabel(b: { pct: number; loss: boolean }): string {
+			return `${b.pct >= 0 ? '+' : ''}${b.pct}%`;
+		},
+		/**
+		 * Calcula, en segundo plano, el beneficio real (tras comisión) de cada
+		 * producto que tenga costo + categoría + precio. Consulta la comisión a ML
+		 * con concurrencia limitada. Los que no tienen costo quedan sin dato.
+		 */
+		async computeBenefits() {
+			if (!this.rubro) return;
+			const queue = this.productos.filter(p => p.precioCosto != null && this.mlPrice(p) != null && p.mlCategoryId);
+			const rubroId = this.rubro.id;
+			const worker = async () => {
+				for (;;) {
+					const p = queue.shift();
+					if (!p) return;
+					try {
+						const price = this.mlPrice(p) as number;
+						const fee = await this.catalog.fetchMlFee(rubroId, price, p.mlCategoryId as string, p.mlListingType || 'gold_special');
+						const ganancia = price - fee.saleFeeAmount - (p.precioCosto as number);
+						this.benefit[p.id] = { pct: Math.round((ganancia / (p.precioCosto as number)) * 100), loss: ganancia < 0 };
+					} catch {
+						/* si falla la comisión de uno, seguimos con el resto */
+					}
+				}
+			};
+			await Promise.all([worker(), worker(), worker()]);
+		},
 		async reload() {
 			if (!this.rubro) return;
 			this.loading = true;
@@ -422,6 +478,8 @@ export default defineComponent({
 			} finally {
 				this.loading = false;
 			}
+			// Beneficio real por producto (en segundo plano, no bloquea la lista).
+			if (this.mlConnected) void this.computeBenefits();
 		},
 		async importListings() {
 			if (!this.rubro) return;
@@ -445,7 +503,8 @@ export default defineComponent({
 				nombre: p.nombre,
 				precio: p.precio,
 				precioCosto: p.precioCosto,
-				precioMl: p.precioMl,
+				// Las importadas guardan el precio publicado en `precio`; lo usamos como precio de ML.
+				precioMl: p.precioMl ?? p.precio,
 				mlListingType: p.mlListingType || 'gold_special',
 				mlCategoryId: p.mlCategoryId ?? '',
 				mlCategoryName: p.mlCategoryName ?? '',
