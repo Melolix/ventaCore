@@ -92,36 +92,47 @@
 				</button>
 			</div>
 
-			<!-- Barra de acciones -->
-			<div class="glass-card mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3">
+			<!-- Barra de acciones: sticky para que "Agregar" y "Guardar" viajen con el scroll -->
+			<div
+				class="glass-card sticky top-20 z-20 mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3 shadow-sm"
+			>
+				<Button :label="$t('admin.carga.addRow')" icon="pi pi-plus" size="small" @click="addRow()" />
+				<span class="hidden h-6 w-px bg-surface-200 dark:bg-surface-700 sm:block" />
 				<Checkbox :model-value="allSelected" binary @update:model-value="toggleAll" />
 				<span class="text-sm font-semibold text-surface-700 dark:text-surface-200">
 					{{ $t('admin.carga.selectedOf', { sel: selectedCount, total: visibleRows.length }) }}
 				</span>
-				<div class="ml-auto flex flex-wrap gap-2">
+				<Button
+					:label="$t('admin.carga.bulk.margen')"
+					icon="pi pi-percentage"
+					size="small"
+					outlined
+					:disabled="!selectedCount"
+					@click="bulkMargenVisible = true"
+				/>
+				<Button
+					:label="$t('admin.carga.bulk.precioEnLote')"
+					icon="pi pi-dollar"
+					size="small"
+					outlined
+					:disabled="!selectedCount"
+					@click="bulkPrecioVisible = true"
+				/>
+				<div class="ml-auto flex items-center gap-2">
+					<span
+						v-if="dirtyCount"
+						class="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+					>
+						<i class="pi pi-circle-fill text-[7px]" /> {{ $t('admin.carga.unsavedN', { n: dirtyCount }) }}
+					</span>
 					<Button
-						:label="$t('admin.carga.bulk.margen')"
-						icon="pi pi-percentage"
+						:label="selectedCount ? $t('admin.carga.saveSelected', { n: selectedCount }) : $t('admin.carga.saveAll')"
+						icon="pi pi-save"
 						size="small"
-						outlined
-						:disabled="!selectedCount"
-						@click="bulkMargenVisible = true"
-					/>
-					<Button
-						:label="$t('admin.carga.bulk.precioEnLote')"
-						icon="pi pi-dollar"
-						size="small"
-						outlined
-						:disabled="!selectedCount"
-						@click="bulkPrecioVisible = true"
-					/>
-					<Button
-						:label="$t('admin.carga.bulk.completarIa')"
-						icon="pi pi-sparkles"
-						size="small"
-						outlined
-						disabled
-						:title="$t('admin.carga.sources.soon')"
+						:loading="saving"
+						:disabled="!visibleRows.length"
+						class="primary-gradient border-0 font-semibold text-white"
+						@click="saveSelected"
 					/>
 				</div>
 			</div>
@@ -153,6 +164,7 @@
 							v-for="row in visibleRows"
 							:key="row.key"
 							class="border-b border-surface-100 transition-colors last:border-0 hover:bg-surface-50/60 dark:border-surface-800/60 dark:hover:bg-surface-800/30"
+							:class="row.dirty ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''"
 						>
 							<td class="px-3 py-2 align-middle">
 								<Checkbox v-model="row.selected" binary />
@@ -179,7 +191,7 @@
 											class="w-full font-medium"
 											:class="quietCls"
 											:placeholder="$t('admin.carga.placeholders.nombre')"
-											@update:model-value="markDirty"
+											@update:model-value="markDirty(row)"
 										/>
 										<div class="mt-0.5 flex items-center gap-1.5 pl-2 text-[11px] text-surface-400">
 											<i :class="sourceMeta(row.source).icon" />
@@ -190,7 +202,7 @@
 												:class="quietCls"
 												class="!h-5 max-w-[130px] !py-0 !text-[11px]"
 												:placeholder="$t('admin.carga.placeholders.ean')"
-												@update:model-value="markDirty"
+												@update:model-value="markDirty(row)"
 											/>
 										</div>
 									</div>
@@ -226,7 +238,7 @@
 									:max-fraction-digits="0"
 									:input-class="quietCls + ' text-right'"
 									:placeholder="'—'"
-									@update:model-value="markDirty"
+									@update:model-value="markDirty(row)"
 								/>
 							</td>
 							<td class="px-3 py-2 align-middle">
@@ -239,7 +251,7 @@
 									:min="0"
 									:max-fraction-digits="0"
 									:input-class="quietCls + ' text-right font-medium'"
-									@update:model-value="markDirty"
+									@update:model-value="markDirty(row)"
 								/>
 							</td>
 							<td class="px-3 py-2 align-middle">
@@ -249,7 +261,7 @@
 									:min="0"
 									:input-class="quietCls + ' text-center'"
 									:placeholder="'—'"
-									@update:model-value="markDirty"
+									@update:model-value="markDirty(row)"
 								/>
 							</td>
 							<td class="px-3 py-2 align-middle">
@@ -260,6 +272,18 @@
 							</td>
 							<td class="px-3 py-2 align-middle">
 								<div class="flex items-center gap-1">
+									<!-- Guardar esta fila: aparece solo si tiene cambios sin guardar. -->
+									<Button
+										v-if="row.dirty"
+										icon="pi pi-save"
+										text
+										rounded
+										severity="warn"
+										size="small"
+										:loading="savingKey === row.key"
+										:title="$t('admin.carga.saveRow')"
+										@click="saveRow(row)"
+									/>
 									<template v-if="mlConnected">
 										<a
 											v-if="row.mlPermalink"
@@ -298,36 +322,20 @@
 				</table>
 			</div>
 
-			<!-- Pie: leyenda + guardar -->
-			<div class="mt-4 flex flex-wrap items-center gap-4">
-				<div class="flex flex-wrap items-center gap-4 text-xs">
-					<span class="flex items-center gap-1.5"
-						><span class="h-2 w-2 rounded-full bg-emerald-500" />
-						{{ $t('admin.carga.legend.ready', tally.ready) }}</span
-					>
-					<span class="flex items-center gap-1.5"
-						><span class="h-2 w-2 rounded-full bg-amber-500" />
-						{{ $t('admin.carga.legend.review', { n: tally.review }) }}</span
-					>
-					<span class="flex items-center gap-1.5"
-						><span class="h-2 w-2 rounded-full bg-red-500" />
-						{{ $t('admin.carga.legend.missing', { n: tally.missing }) }}</span
-					>
-				</div>
-				<div class="ml-auto flex items-center gap-2">
-					<span v-if="dirty" class="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-						<i class="pi pi-circle-fill text-[7px]" /> {{ $t('admin.carga.unsaved') }}
-					</span>
-					<Button :label="$t('admin.carga.addRow')" icon="pi pi-plus" outlined @click="addRow()" />
-					<Button
-						:label="selectedCount ? $t('admin.carga.publish') : $t('admin.carga.saveAll')"
-						icon="pi pi-save"
-						:loading="saving"
-						:disabled="!visibleRows.length"
-						class="primary-gradient border-0 font-semibold text-white"
-						@click="saveSelected"
-					/>
-				</div>
+			<!-- Pie: leyenda de estados -->
+			<div class="mt-4 flex flex-wrap items-center gap-4 text-xs">
+				<span class="flex items-center gap-1.5"
+					><span class="h-2 w-2 rounded-full bg-emerald-500" />
+					{{ $t('admin.carga.legend.ready', tally.ready) }}</span
+				>
+				<span class="flex items-center gap-1.5"
+					><span class="h-2 w-2 rounded-full bg-amber-500" />
+					{{ $t('admin.carga.legend.review', { n: tally.review }) }}</span
+				>
+				<span class="flex items-center gap-1.5"
+					><span class="h-2 w-2 rounded-full bg-red-500" />
+					{{ $t('admin.carga.legend.missing', { n: tally.missing }) }}</span
+				>
 			</div>
 
 			<p class="mt-4 flex items-start gap-2 text-xs text-surface-400">
@@ -597,6 +605,8 @@ interface Row {
 	source: ProductoSource;
 	isDraft: boolean;
 	selected: boolean;
+	/** La fila tiene cambios sin guardar (muestra el ✔ de guardar en la fila). */
+	dirty?: boolean;
 }
 
 /** Campos de producto a los que puede mapear una columna del archivo. */
@@ -643,6 +653,7 @@ export default defineComponent({
 			// Cache de atributos obligatorios por categoría (para el "Faltan N").
 			attrsByCategory: {} as Record<string, MlAttribute[]>,
 			publishingKey: null as string | null,
+			savingKey: null as string | null,
 			importingMl: false,
 			// Gestor de imágenes por fila
 			imgVisible: false,
@@ -725,6 +736,10 @@ export default defineComponent({
 		selectedCount(): number {
 			return this.visibleRows.filter(r => r.selected).length;
 		},
+		/** Filas del negocio activo con cambios sin guardar. */
+		dirtyCount(): number {
+			return this.visibleRows.filter(r => r.dirty).length;
+		},
 		allSelected(): boolean {
 			return this.visibleRows.length > 0 && this.visibleRows.every(r => r.selected);
 		},
@@ -781,7 +796,8 @@ export default defineComponent({
 			this.seq += 1;
 			return `row-${this.seq}`;
 		},
-		markDirty() {
+		markDirty(row?: Row) {
+			if (row) row.dirty = true;
 			this.dirty = true;
 		},
 		onBeforeUnload(e: BeforeUnloadEvent) {
@@ -897,7 +913,11 @@ export default defineComponent({
 
 		// ── Precio en lote ──
 		applyBulkPrecio() {
-			for (const row of this.visibleRows) if (row.selected) row.precio = this.bulkPrecio;
+			for (const row of this.visibleRows)
+				if (row.selected) {
+					row.precio = this.bulkPrecio;
+					row.dirty = true;
+				}
 			this.dirty = true;
 			this.bulkPrecioVisible = false;
 			this.bulkPrecio = null;
@@ -915,6 +935,7 @@ export default defineComponent({
 					continue;
 				}
 				row.precio = Math.round(row.precioCosto * factor);
+				row.dirty = true;
 			}
 			this.dirty = true;
 			this.bulkMargenVisible = false;
@@ -945,6 +966,26 @@ export default defineComponent({
 				source: r.source,
 			};
 		},
+		/** Guarda una sola fila (el ✔ de la fila). */
+		async saveRow(row: Row) {
+			if (!row.nombre.trim()) {
+				this.$toast.add({ severity: 'warn', summary: this.$t('admin.carga.needName'), life: 4000 });
+				return;
+			}
+			this.savingKey = row.key;
+			try {
+				const [res] = await this.catalog.batchUpsert([this.rowToBatchItem(row)]);
+				if (!res?.ok || !res.id) throw new Error(res?.error || this.$t('admin.carga.saveError'));
+				row.id = res.id;
+				row.dirty = false;
+				this.dirty = this.rows.some(r => r.dirty);
+				this.$toast.add({ severity: 'success', summary: this.$t('admin.carga.saved', { n: 1 }), life: 3000 });
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.carga.saveError')), life: 5000 });
+			} finally {
+				this.savingKey = null;
+			}
+		},
 		async saveSelected() {
 			// Sin selección: guardamos TODAS las filas del rubro (editar + guardar directo).
 			const marcadas = this.visibleRows.filter(r => r.selected);
@@ -971,11 +1012,13 @@ export default defineComponent({
 						const row = seleccionadas[i];
 						row.id = res.id;
 						row.selected = false;
+						row.dirty = false;
 					}
 				});
+				// El indicador global refleja si quedó alguna fila sin guardar.
+				this.dirty = this.rows.some(r => r.dirty);
 
 				if (!fail.length) {
-					this.dirty = false;
 					this.$toast.add({
 						severity: 'success',
 						summary: this.$t('admin.carga.saved', { n: ok.length }),
@@ -1080,6 +1123,7 @@ export default defineComponent({
 					else if (field === 'sku') row.sku = value;
 					else if (field === 'imageUrl') row.imageUrl = value;
 				});
+				row.dirty = true;
 				if (nombreCol === -1 || row.nombre) nuevas.push(row);
 			}
 			this.rows = [...nuevas, ...this.rows];
@@ -1163,6 +1207,7 @@ export default defineComponent({
 				if (!row.imagenes.length) row.imagenes = [this.mlPendingImageUrl];
 			}
 			if (this.mlPendingDescription) row.descripcion = this.mlPendingDescription;
+			row.dirty = true;
 			this.dirty = true;
 			this.mlVisible = false;
 		},
@@ -1178,7 +1223,8 @@ export default defineComponent({
 				const [saved] = await this.catalog.batchUpsert([this.rowToBatchItem(row)]);
 				if (!saved?.ok || !saved.id) throw new Error(saved?.error || this.$t('admin.carga.saveError'));
 				row.id = saved.id;
-				this.dirty = false;
+				row.dirty = false;
+				this.dirty = this.rows.some(r => r.dirty);
 				const res = await this.catalog.publishToMl(row.rubroId, row.id);
 				row.mlItemId = res.itemId ?? '';
 				row.mlPermalink = res.permalink ?? '';
@@ -1255,7 +1301,10 @@ export default defineComponent({
 			this.imgVisible = true;
 		},
 		syncCover() {
-			if (this.imgRow) this.imgRow.imageUrl = this.imgRow.imagenes[0] ?? '';
+			if (this.imgRow) {
+				this.imgRow.imageUrl = this.imgRow.imagenes[0] ?? '';
+				this.imgRow.dirty = true;
+			}
 			this.dirty = true;
 		},
 		onAddImage(url: string) {

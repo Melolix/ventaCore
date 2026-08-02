@@ -404,6 +404,9 @@
 			"mlConnectHint": "Conectá ML para publicar",
 			"needName": "Poné un nombre a cada producto seleccionado.",
 			"saveAll": "Guardar todo",
+			"saveRow": "Guardar esta fila",
+			"saveSelected": "Guardar ({n})",
+			"unsavedN": "{n} sin guardar",
 			"unsaved": "sin guardar",
 			"unsavedLeave": "Tenés cambios sin guardar. ¿Salir igual?",
 			"importMl": {

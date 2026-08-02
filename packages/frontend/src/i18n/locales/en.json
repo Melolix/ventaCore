@@ -404,6 +404,9 @@
 			"mlConnectHint": "Connect ML to publish",
 			"needName": "Give every selected product a name.",
 			"saveAll": "Save all",
+			"saveRow": "Save this row",
+			"saveSelected": "Save ({n})",
+			"unsavedN": "{n} unsaved",
 			"unsaved": "unsaved",
 			"unsavedLeave": "You have unsaved changes. Leave anyway?",
 			"importMl": {
