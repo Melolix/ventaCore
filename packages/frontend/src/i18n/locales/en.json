@@ -204,6 +204,7 @@
 		"panelSubtitle": "VentaCore management",
 		"soon": "Coming soon",
 		"viewSite": "View site",
+		"sidebar": { "general": "General" },
 		"impersonating": "Viewing as {nombre}",
 		"impersonatingExit": "Exit",
 		"business": "Business",

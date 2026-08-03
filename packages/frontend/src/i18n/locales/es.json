@@ -204,6 +204,7 @@
 		"panelSubtitle": "Gestión VentaCore",
 		"soon": "Próximamente",
 		"viewSite": "Ver el sitio",
+		"sidebar": { "general": "General" },
 		"impersonating": "Viendo como {nombre}",
 		"impersonatingExit": "Salir",
 		"business": "Negocio",

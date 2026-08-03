@@ -23,6 +23,16 @@
 			</div>
 
 			<div class="ml-auto flex items-center gap-3">
+				<!-- Ver el sitio: acción global y frecuente (previsualizar la web). -->
+				<Button
+					:label="$t('admin.viewSite')"
+					icon="pi pi-external-link"
+					size="small"
+					outlined
+					:disabled="!catalog.miEspacio"
+					class="hidden sm:inline-flex"
+					@click="openSite"
+				/>
 				<Button
 					:icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
 					severity="secondary"
@@ -65,67 +75,54 @@
 		<aside
 			class="fixed top-16 left-0 z-40 flex h-[calc(100vh-64px)] w-64 flex-col border-r border-surface-200/60 bg-surface-0/60 p-4 backdrop-blur-2xl dark:border-surface-700/60 dark:bg-surface-900/60"
 		>
-			<div class="mb-6 px-1">
-				<label class="mb-1.5 block px-2 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
-					{{ $t('admin.business') }}
-				</label>
-				<Select
-					v-if="catalog.rubros.length"
-					v-model="currentRubroId"
-					:options="rubroOptions"
-					option-label="label"
-					option-value="value"
-					:placeholder="$t('admin.businessPlaceholder')"
-					class="w-full"
-				/>
-				<p v-else class="px-2 text-xs text-surface-400">{{ $t('admin.businessNone') }}</p>
-			</div>
+			<nav class="flex flex-1 flex-col gap-1 overflow-y-auto">
+				<!-- Grupo GENERAL: cosas del CM, no dependen del negocio elegido. -->
+				<p class="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+					{{ $t('admin.sidebar.general') }}
+				</p>
+				<router-link v-for="item in navGeneral" :key="item.key" :to="item.to" :class="linkClass(item)">
+					<i :class="item.icon" />
+					<span>{{ $t(item.label) }}</span>
+				</router-link>
 
-			<nav class="flex flex-1 flex-col gap-1">
-				<template v-for="item in navItems" :key="item.key">
-					<router-link
-						:to="item.to"
-						:class="[
-							'flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition-all',
-							item.disabled
-								? 'cursor-not-allowed text-surface-400'
-								: isActive(item)
-									? 'bg-primary/10 text-primary shadow-sm'
-									: 'text-surface-600 hover:translate-x-1 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800',
-						]"
-						@click="item.disabled && $event.preventDefault()"
-					>
-						<i :class="item.icon" />
-						<span>{{ $t(item.label) }}</span>
-						<span v-if="item.disabled" class="ml-auto text-[10px] uppercase text-surface-400">
-							{{ $t('admin.soon') }}
-						</span>
-					</router-link>
-					<!-- Divisor: separa la gestión de negocios de las tareas del negocio activo. -->
-					<div
-						v-if="item.groupBreakAfter"
-						class="my-2 border-t border-surface-200/60 dark:border-surface-700/60"
+				<!-- Selector de negocio: encabeza y "scopea" todo lo de abajo. -->
+				<div class="mb-2 mt-6 px-1">
+					<label class="mb-1.5 block px-2 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+						{{ $t('admin.business') }}
+					</label>
+					<Select
+						v-if="catalog.rubros.length"
+						v-model="currentRubroId"
+						:options="rubroOptions"
+						option-label="label"
+						option-value="value"
+						:placeholder="$t('admin.businessPlaceholder')"
+						class="w-full"
 					/>
-				</template>
+					<p v-else class="px-2 text-xs text-surface-400">{{ $t('admin.businessNone') }}</p>
+				</div>
+
+				<!-- Grupo del NEGOCIO ACTIVO: cambia según el selector de arriba. -->
+				<router-link
+					v-for="item in navBusiness"
+					:key="item.key"
+					:to="item.to"
+					:class="linkClass(item)"
+					@click="item.disabled && $event.preventDefault()"
+				>
+					<i :class="item.icon" />
+					<span>{{ $t(item.label) }}</span>
+					<span v-if="item.disabled" class="ml-auto text-[10px] uppercase text-surface-400">
+						{{ $t('admin.soon') }}
+					</span>
+				</router-link>
 			</nav>
 
-			<!-- Acciones al pie: setup de una-vez y ver la vitrina pública. -->
-			<div class="mt-2 flex flex-col gap-1 border-t border-surface-200/60 pt-3 dark:border-surface-700/60">
-				<router-link
-					to="/admin/configuraciones"
-					:class="[
-						'flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition-all',
-						$route.path.startsWith('/admin/configuraciones')
-							? 'bg-primary/10 text-primary shadow-sm'
-							: 'text-surface-600 hover:translate-x-1 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800',
-					]"
-				>
-					<i class="pi pi-cog" />
-					<span>{{ $t('admin.nav.config') }}</span>
-				</router-link>
+			<!-- Ver el sitio también accesible al pie (fallback en pantallas chicas). -->
+			<div class="mt-2 border-t border-surface-200/60 pt-3 sm:hidden dark:border-surface-700/60">
 				<button
 					type="button"
-					class="flex w-full items-center gap-3 rounded-xl p-3 text-sm font-semibold text-surface-600 transition-all hover:translate-x-1 hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-surface-300 dark:hover:bg-surface-800"
+					class="flex w-full items-center gap-3 rounded-xl p-3 text-sm font-semibold text-surface-600 transition-all hover:bg-surface-100 disabled:opacity-50 dark:text-surface-300 dark:hover:bg-surface-800"
 					:disabled="!catalog.miEspacio"
 					@click="openSite"
 				>
@@ -161,8 +158,6 @@ interface NavItem {
 	icon: string;
 	to: string;
 	disabled?: boolean;
-	/** Dibuja un divisor debajo (separa "gestión de negocios" del negocio activo). */
-	groupBreakAfter?: boolean;
 }
 
 export default defineComponent({
@@ -173,14 +168,17 @@ export default defineComponent({
 	},
 	data() {
 		return {
-			navItems: [
-				// "Rubros" gestiona TODOS los negocios (CRUD); va primero y separado.
-				{ key: 'rubros', label: 'admin.nav.rubros', icon: 'pi pi-tags', to: '/admin', groupBreakAfter: true },
-				// Canales y tareas del negocio ACTIVO.
+			// GENERAL: del CM / la cuenta, no dependen del negocio elegido.
+			navGeneral: [
+				{ key: 'rubros', label: 'admin.nav.rubros', icon: 'pi pi-tags', to: '/admin' },
+				{ key: 'nosotros', label: 'admin.nav.nosotros', icon: 'pi pi-id-card', to: '/admin/nosotros' },
+			] as NavItem[],
+			// DEL NEGOCIO ACTIVO: cambian según el rubro elegido en el selector.
+			navBusiness: [
 				{ key: 'ml', label: 'admin.nav.ml', icon: 'pi pi-shopping-cart', to: '/admin/mercado-libre' },
 				{ key: 'instagram', label: 'admin.nav.instagram', icon: 'pi pi-instagram', to: '/admin/instagram' },
 				{ key: 'carga', label: 'admin.nav.carga', icon: 'pi pi-upload', to: '/admin/cargar-productos' },
-				{ key: 'nosotros', label: 'admin.nav.nosotros', icon: 'pi pi-id-card', to: '/admin/nosotros' },
+				{ key: 'config', label: 'admin.nav.config', icon: 'pi pi-cog', to: '/admin/configuraciones' },
 			] as NavItem[],
 		};
 	},
@@ -245,9 +243,21 @@ export default defineComponent({
 			if (item.key === 'carga') return path.startsWith('/admin/cargar-productos');
 			if (item.key === 'ml') return path.startsWith('/admin/mercado-libre');
 			if (item.key === 'instagram') return path.startsWith('/admin/instagram');
+			if (item.key === 'config') return path.startsWith('/admin/configuraciones');
 			// "Rubros" queda activo en la lista, productos y planes de suscripción.
 			if (item.key === 'rubros') return path === '/admin' || path.startsWith('/admin/rubros');
 			return false;
+		},
+		/** Clases del link de nav según estado (activo / deshabilitado / normal). */
+		linkClass(item: NavItem): string[] {
+			return [
+				'flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition-all',
+				item.disabled
+					? 'cursor-not-allowed text-surface-400'
+					: this.isActive(item)
+						? 'bg-primary/10 text-primary shadow-sm'
+						: 'text-surface-600 hover:translate-x-1 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800',
+			];
 		},
 		/** Sale del modo "ver como" y vuelve al panel de superadmin. */
 		exitImpersonation() {
