@@ -591,10 +591,13 @@ export default defineComponent({
 			await Promise.all([worker(), worker(), worker()]);
 		},
 		async reload() {
+			// Al recargar la página parados acá, los rubros todavía no están cargados;
+			// hay que traerlos ANTES de resolver el rubro activo, si no sale temprano
+			// y la pantalla queda como si el rubro no tuviera ML configurado.
+			if (!this.catalog.rubros.length) await this.catalog.fetchRubros().catch(() => undefined);
 			if (!this.rubro) return;
 			this.loading = true;
 			try {
-				if (!this.catalog.rubros.length) await this.catalog.fetchRubros().catch(() => undefined);
 				const state = await this.catalog.fetchMlState(this.rubro.id);
 				this.mlConnected = !!state.connection;
 				if (this.mlConnected) await this.catalog.fetchAllProductos();
