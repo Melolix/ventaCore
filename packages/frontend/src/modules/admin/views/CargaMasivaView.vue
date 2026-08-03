@@ -144,7 +144,7 @@
 
 			<!-- Grilla -->
 			<div v-else class="glass-card quiet overflow-x-auto rounded-2xl">
-				<table class="w-full min-w-[680px] table-fixed text-sm">
+				<table class="w-full min-w-[820px] table-fixed text-sm">
 					<thead>
 						<tr
 							class="border-b border-surface-200/60 text-left text-[11px] uppercase tracking-wide text-surface-400 dark:border-surface-700/60"
@@ -152,8 +152,8 @@
 							<th class="w-9 px-2 py-2.5"></th>
 							<th class="px-2 py-2.5">{{ $t('admin.carga.cols.producto') }}</th>
 							<th v-if="mlConnected" class="w-28 px-2 py-2.5">{{ $t('admin.carga.cols.categoriaMl') }}</th>
-							<th class="w-28 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.costo') }}</th>
-							<th class="w-28 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.precio') }}</th>
+							<th class="w-32 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.costo') }}</th>
+							<th class="w-32 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.precio') }}</th>
 							<th class="w-20 px-2 py-2.5 text-center">{{ $t('admin.carga.cols.stock') }}</th>
 							<th class="w-28 px-2 py-2.5">{{ $t('admin.carga.cols.estado') }}</th>
 							<th class="w-14 px-2 py-2.5"></th>
@@ -190,6 +190,7 @@
 											v-model="row.nombre"
 											class="w-full !min-w-0 font-medium"
 											:class="quietCls"
+											:title="row.nombre"
 											:placeholder="$t('admin.carga.placeholders.nombre')"
 											@update:model-value="markDirty(row)"
 										/>
@@ -236,7 +237,7 @@
 									locale="es-AR"
 									:min="0"
 									:max-fraction-digits="0"
-									:input-class="quietCls + ' text-right'"
+									:input-class="quietCls + ' !px-1 text-right tabular-nums'"
 									:placeholder="'—'"
 									@update:model-value="markDirty(row)"
 								/>
@@ -250,7 +251,7 @@
 									locale="es-AR"
 									:min="0"
 									:max-fraction-digits="0"
-									:input-class="quietCls + ' text-right font-medium'"
+									:input-class="quietCls + ' !px-1 text-right font-medium tabular-nums'"
 									@update:model-value="markDirty(row)"
 								/>
 							</td>
@@ -259,7 +260,7 @@
 									v-model="row.stock"
 									fluid
 									:min="0"
-									:input-class="quietCls + ' text-center'"
+									:input-class="quietCls + ' !px-1 text-center tabular-nums'"
 									:placeholder="'—'"
 									@update:model-value="markDirty(row)"
 								/>
