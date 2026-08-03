@@ -979,7 +979,20 @@ export default defineComponent({
 				row.id = res.id;
 				row.dirty = false;
 				this.dirty = this.rows.some(r => r.dirty);
-				this.$toast.add({ severity: 'success', summary: this.$t('admin.carga.saved', { n: 1 }), life: 3000 });
+				// Si ya está publicado en ML, empujamos el cambio (precio/stock/descripción)
+				// a la publicación: así editar acá se refleja en Mercado Libre.
+				let synced = false;
+				if (this.mlConnected && row.mlItemId && row.id) {
+					synced = await this.catalog
+						.updateMlListing(this.selectedRubroId, row.id)
+						.then(() => true)
+						.catch(() => false);
+				}
+				this.$toast.add({
+					severity: 'success',
+					summary: synced ? this.$t('admin.carga.savedSynced') : this.$t('admin.carga.saved', { n: 1 }),
+					life: 3000,
+				});
 			} catch (e: unknown) {
 				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.carga.saveError')), life: 5000 });
 			} finally {
@@ -1018,10 +1031,22 @@ export default defineComponent({
 				// El indicador global refleja si quedó alguna fila sin guardar.
 				this.dirty = this.rows.some(r => r.dirty);
 
+				// Los que ya están publicados: empujamos el cambio a Mercado Libre.
+				let synced = 0;
+				if (this.mlConnected) {
+					const publicadas = seleccionadas.filter(r => r.mlItemId && r.id);
+					const res = await Promise.all(
+						publicadas.map(r => this.catalog.updateMlListing(this.selectedRubroId, r.id as string).then(() => true).catch(() => false)),
+					);
+					synced = res.filter(Boolean).length;
+				}
+
 				if (!fail.length) {
 					this.$toast.add({
 						severity: 'success',
-						summary: this.$t('admin.carga.saved', { n: ok.length }),
+						summary: synced
+							? this.$t('admin.carga.savedSyncedN', { n: ok.length, synced })
+							: this.$t('admin.carga.saved', { n: ok.length }),
 						life: 4000,
 					});
 				} else {

@@ -235,12 +235,39 @@
 				</section>
 
 				<!-- ── Datos ── -->
-				<section class="space-y-3 border-t border-surface-200 pt-5 dark:border-surface-700">
+				<section class="space-y-4 border-t border-surface-200 pt-5 dark:border-surface-700">
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secData') }}</h4>
-					<div class="max-w-[12rem] space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.stock') }}</label>
-						<InputNumber v-model="edit.stock" fluid :min="0" :placeholder="'—'" />
-						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.stockHint') }}</p>
+
+					<!-- Título -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.fieldTitle') }}</label>
+						<InputText v-model="edit.nombre" class="w-full" />
+					</div>
+
+					<!-- Descripción -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.fieldDescription') }}</label>
+						<Textarea v-model="edit.descripcion" class="w-full" rows="4" auto-resize />
+						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.descSyncHint') }}</p>
+					</div>
+
+					<!-- Stock + EAN -->
+					<div class="grid grid-cols-2 gap-3">
+						<div class="space-y-1.5">
+							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.stock') }}</label>
+							<InputNumber v-model="edit.stock" fluid :min="0" :placeholder="'—'" />
+							<p class="text-[11px] text-surface-400">{{ $t('admin.ml.stockHint') }}</p>
+						</div>
+						<div class="space-y-1.5">
+							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.placeholders.ean') }}</label>
+							<InputText v-model="edit.gtin" class="w-full" />
+						</div>
+					</div>
+
+					<!-- SKU -->
+					<div class="max-w-[14rem] space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">SKU</label>
+						<InputText v-model="edit.sku" class="w-full" />
 					</div>
 				</section>
 
@@ -365,6 +392,9 @@ interface EditState {
 	mlCatalogProductId: string;
 	mlItemId: string;
 	stock: number | null;
+	descripcion: string;
+	gtin: string;
+	sku: string;
 	mlStatus: string | null;
 	mlPermalink: string | null;
 }
@@ -582,6 +612,9 @@ export default defineComponent({
 				mlCatalogProductId: p.mlCatalogProductId ?? '',
 				mlItemId: p.mlItemId ?? '',
 				stock: p.stock,
+				descripcion: p.descripcion ?? '',
+				gtin: p.gtin ?? '',
+				sku: p.sku ?? '',
 				mlStatus: p.mlStatus,
 				mlPermalink: p.mlPermalink,
 			};
@@ -785,6 +818,9 @@ export default defineComponent({
 					precioCosto: e.precioCosto ?? undefined,
 					precioMl: e.precioMl ?? undefined,
 					stock: e.stock ?? undefined,
+					descripcion: e.descripcion.trim() || undefined,
+					gtin: e.gtin.trim() || undefined,
+					sku: e.sku.trim() || undefined,
 					mlListingType: e.mlListingType,
 					mlCategoryId: e.mlCategoryId || undefined,
 					mlCategoryName: e.mlCategoryName || undefined,

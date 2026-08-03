@@ -168,6 +168,16 @@ export class MlPublishService {
 			payload,
 		);
 
+		// La descripción va por un endpoint aparte. Upsert best-effort: PUT actualiza
+		// la existente; si el item todavía no tenía descripción, el PUT falla y la
+		// creamos con POST. No fallamos la sync de precio/stock por la descripción.
+		if (producto.descripcion?.trim()) {
+			const body = { plain_text: producto.descripcion.trim() };
+			await this.mlPut(`/items/${producto.mlItemId}/description`, accessToken, body).catch(() =>
+				this.mlPost(`/items/${producto.mlItemId}/description`, accessToken, body).catch(() => undefined),
+			);
+		}
+
 		if (updated.permalink && updated.permalink !== producto.mlPermalink) {
 			producto.mlPermalink = updated.permalink;
 			await this.productos.save(producto);

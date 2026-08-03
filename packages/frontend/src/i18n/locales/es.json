@@ -259,6 +259,8 @@
 			"pending": "Falta configurar",
 			"save": "Guardar",
 			"saved": "Configuración guardada",
+			"savedSynced": "Guardado y sincronizado con Mercado Libre",
+			"savedSyncedN": "Se guardaron {n} ({synced} sincronizados con ML)",
 			"errorLoad": "No se pudo cargar la configuración",
 			"errorSave": "No se pudo guardar la configuración",
 			"guideTitle": "Cómo conectar Lemon Squeezy",
@@ -622,6 +624,9 @@
 			"activatedToast": "Publicación activada",
 			"statusError": "No se pudo cambiar el estado en Mercado Libre",
 			"stockHint": "Al guardar, el stock se sincroniza con la publicación de ML.",
+			"fieldTitle": "Título",
+			"fieldDescription": "Descripción",
+			"descSyncHint": "La descripción se sincroniza con la publicación de ML al guardar.",
 			"stockN": "Stock: {n}",
 			"mlState": {
 				"active": "Activa",

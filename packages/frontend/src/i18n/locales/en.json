@@ -259,6 +259,8 @@
 			"pending": "Not configured",
 			"save": "Save",
 			"saved": "Configuration saved",
+			"savedSynced": "Saved and synced to Mercado Libre",
+			"savedSyncedN": "Saved {n} ({synced} synced to ML)",
 			"errorLoad": "Could not load the configuration",
 			"errorSave": "Could not save the configuration",
 			"guideTitle": "How to connect Lemon Squeezy",
@@ -622,6 +624,9 @@
 			"activatedToast": "Listing activated",
 			"statusError": "Could not change the status on Mercado Libre",
 			"stockHint": "On save, stock syncs to the ML listing.",
+			"fieldTitle": "Title",
+			"fieldDescription": "Description",
+			"descSyncHint": "The description syncs to the ML listing on save.",
 			"stockN": "Stock: {n}",
 			"mlState": {
 				"active": "Active",
