@@ -13,6 +13,7 @@ interface RawMlItem {
 	available_quantity?: number;
 	category_id?: string;
 	permalink?: string;
+	status?: string;
 	catalog_product_id?: string | null;
 	pictures?: Array<{ url?: string; secure_url?: string }>;
 	attributes?: Array<{ id?: string; value_name?: string | null }>;
@@ -71,6 +72,7 @@ export class MlImportService {
 				imagenes: pics,
 				mlItemId: item.id,
 				mlPermalink: item.permalink ?? null,
+				mlStatus: item.status ?? null,
 				mlCatalogProductId: item.catalog_product_id ?? null,
 				source: ProductoSource.ML,
 			};
@@ -107,7 +109,7 @@ export class MlImportService {
 
 	/** Trae el detalle de los ítems en tandas de 20 (multiget). */
 	private async fetchItems(ids: string[], token: string): Promise<RawMlItem[]> {
-		const attrs = 'id,title,price,available_quantity,category_id,permalink,catalog_product_id,pictures,attributes';
+		const attrs = 'id,title,price,available_quantity,category_id,permalink,status,catalog_product_id,pictures,attributes';
 		const out: RawMlItem[] = [];
 		for (let i = 0; i < ids.length; i += 20) {
 			const chunk = ids.slice(i, i + 20);

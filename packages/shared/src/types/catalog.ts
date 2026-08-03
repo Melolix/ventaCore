@@ -160,6 +160,8 @@ export interface Producto {
 	mlItemId: string | null;
 	/** Link público del aviso en Mercado Libre, o null. */
 	mlPermalink: string | null;
+	/** Estado real en ML: 'active' | 'paused' | 'closed' | ... (null si no se publicó). */
+	mlStatus: string | null;
 	/** Id del producto de catálogo de ML al que se enlaza al publicar, o null. */
 	mlCatalogProductId: string | null;
 	createdAt: string;

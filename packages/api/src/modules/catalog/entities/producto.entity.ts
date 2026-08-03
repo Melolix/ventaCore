@@ -103,6 +103,10 @@ export class ProductoEntity {
 	@Column({ type: 'varchar', nullable: true })
 	mlPermalink!: string | null;
 
+	/** Estado real en Mercado Libre: 'active' | 'paused' | 'closed' | ... (null si no se publicó). */
+	@Column({ type: 'varchar', nullable: true })
+	mlStatus!: string | null;
+
 	/** Id del producto de catálogo de ML al que se enlaza al publicar, o null. */
 	@Column({ type: 'varchar', nullable: true })
 	mlCatalogProductId!: string | null;

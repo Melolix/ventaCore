@@ -77,6 +77,8 @@
 							<span v-else class="text-amber-600 dark:text-amber-400">{{ $t('admin.ml.noCategoryShort') }}</span>
 							<span>·</span>
 							<span>{{ $t('admin.ml.listingType.' + (p.mlListingType || 'gold_special')) }}</span>
+							<span>·</span>
+							<span :class="p.stock === 0 ? 'font-semibold text-red-500' : ''">{{ $t('admin.ml.stockN', { n: p.stock ?? '—' }) }}</span>
 						</div>
 					</div>
 					<div class="text-right">
@@ -88,7 +90,13 @@
 						</p>
 						<p v-else-if="p.precioCosto == null" class="text-[11px] text-surface-300 dark:text-surface-600">{{ $t('admin.ml.noCostHint') }}</p>
 					</div>
-					<Tag :value="$t('admin.ml.state.' + stateOf(p))" :severity="stateSeverity(stateOf(p))" />
+					<!-- Estado real en ML si está publicada; si no, el estado de la app. -->
+					<Tag
+						v-if="p.mlItemId && p.mlStatus"
+						:value="$t('admin.ml.mlState.' + p.mlStatus)"
+						:severity="statusSeverity(p.mlStatus)"
+					/>
+					<Tag v-else :value="$t('admin.ml.state.' + stateOf(p))" :severity="stateSeverity(stateOf(p))" />
 					<div class="flex items-center gap-1">
 						<a
 							v-if="p.mlPermalink"
@@ -105,11 +113,142 @@
 		</template>
 
 		<!-- Editor + calculadora -->
-		<Dialog v-model:visible="editorVisible" modal :header="$t('admin.ml.editorTitle')" class="w-full max-w-lg">
-			<div v-if="edit" class="flex flex-col gap-5 pt-1">
-				<p class="text-sm font-semibold text-surface-800 dark:text-surface-100">{{ edit.nombre }}</p>
+		<Drawer v-model:visible="editorVisible" position="right" :style="{ width: 'min(44rem, 100vw)' }" :header="$t('admin.ml.editorTitle')">
+			<div v-if="edit" class="flex flex-col gap-6">
+				<!-- Cabecera: nombre + estado real en ML -->
+				<div class="flex flex-wrap items-center gap-2">
+					<p class="min-w-0 flex-1 truncate text-base font-semibold text-surface-900 dark:text-surface-0">{{ edit.nombre }}</p>
+					<Tag v-if="edit.mlStatus" :value="$t('admin.ml.mlState.' + edit.mlStatus)" :severity="statusSeverity(edit.mlStatus)" />
+				</div>
 
-				<!-- Buscar en el catálogo de ML (autocompleta categoría + atributos) -->
+				<!-- Acciones sobre la publicación (solo si ya está publicada) -->
+				<div v-if="edit.mlItemId" class="flex flex-wrap items-center gap-2">
+					<a
+						v-if="edit.mlPermalink"
+						:href="edit.mlPermalink"
+						target="_blank"
+						rel="noopener"
+						class="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 px-3 py-1.5 text-xs font-medium text-surface-600 hover:bg-surface-50 dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-800"
+					>
+						<i class="pi pi-external-link" /> {{ $t('admin.carga.pub.view') }}
+					</a>
+					<Button
+						v-if="edit.mlStatus === 'active'"
+						:label="$t('admin.ml.pause')"
+						icon="pi pi-pause"
+						size="small"
+						severity="warn"
+						outlined
+						:loading="statusChanging"
+						@click="toggleStatus('paused')"
+					/>
+					<Button
+						v-else-if="edit.mlStatus === 'paused'"
+						:label="$t('admin.ml.activate')"
+						icon="pi pi-play"
+						size="small"
+						severity="success"
+						outlined
+						:loading="statusChanging"
+						@click="toggleStatus('active')"
+					/>
+				</div>
+
+				<!-- ── Precio y rentabilidad ── -->
+				<section class="space-y-4">
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secPricing') }}</h4>
+
+					<!-- Tipo de publicación -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.listingTypeLabel') }}</label>
+						<SelectButton
+							v-model="edit.mlListingType"
+							:options="listingTypeOptions"
+							option-label="label"
+							option-value="value"
+							:allow-empty="false"
+							@update:model-value="refreshFee"
+						/>
+					</div>
+
+					<!-- Costo + margen -->
+					<div class="grid grid-cols-2 gap-3">
+						<div class="space-y-1.5">
+							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.cost') }}</label>
+							<InputNumber v-model="edit.precioCosto" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onCostChange" />
+						</div>
+						<div class="space-y-1.5">
+							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.margin') }}</label>
+							<InputNumber v-model="margenPct" fluid suffix=" %" :min="0" :max="900" @update:model-value="applyMargin" />
+						</div>
+					</div>
+
+					<!-- Precio tienda (neto objetivo) -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.storePrice') }}</label>
+						<InputNumber v-model="edit.precio" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="syncMargin" />
+						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.storePriceHint') }}</p>
+					</div>
+
+					<!-- Precio ML + calcular -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.mlPrice') }}</label>
+						<div class="flex gap-2">
+							<InputNumber v-model="edit.precioMl" class="flex-1" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onMlPriceChange" />
+							<Button :label="$t('admin.ml.calcBtn')" icon="pi pi-calculator" :loading="calculating" :disabled="!canCalc" @click="calcMlPrice" />
+						</div>
+					</div>
+
+					<!-- Desglose en vivo -->
+					<div class="rounded-xl border border-surface-200 p-4 dark:border-surface-700">
+						<div v-if="feeLoading" class="py-2 text-center text-surface-500"><i class="pi pi-spin pi-spinner" /></div>
+						<div v-else-if="!edit.mlCategoryId" class="text-center text-xs text-surface-400">{{ $t('admin.ml.needCategory') }}</div>
+						<div v-else-if="!edit.precioMl" class="text-center text-xs text-surface-400">{{ $t('admin.ml.needMlPrice') }}</div>
+						<div v-else-if="fee" class="space-y-3">
+							<div class="flex h-3 overflow-hidden rounded-full">
+								<div class="bg-surface-400" :style="{ width: pct(costPart) + '%' }" :title="$t('admin.ml.cost')" />
+								<div class="bg-emerald-500" :style="{ width: pct(gainPart) + '%' }" :title="$t('admin.ml.gain')" />
+								<div class="bg-amber-500" :style="{ width: pct(fee.saleFeeAmount) + '%' }" :title="$t('admin.ml.commission')" />
+							</div>
+							<div class="grid grid-cols-3 gap-2 text-center text-xs">
+								<div>
+									<p class="text-surface-400">{{ $t('admin.ml.cost') }}</p>
+									<p class="font-semibold text-surface-600 dark:text-surface-300">{{ costPart != null ? money(costPart) : '—' }}</p>
+								</div>
+								<div>
+									<p class="text-surface-400">{{ $t('admin.ml.gain') }}</p>
+									<p class="font-semibold" :class="loss ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'">
+										{{ gainPart != null ? money(gainPart) : '—' }}
+										<span v-if="gainPct != null" class="text-[11px]">({{ gainPct >= 0 ? '+' : '' }}{{ gainPct }}%)</span>
+									</p>
+								</div>
+								<div>
+									<p class="text-surface-400">{{ $t('admin.ml.commission') }} ({{ fee.percentageFee }}%)</p>
+									<p class="font-semibold text-amber-600 dark:text-amber-400">{{ money(fee.saleFeeAmount) }}</p>
+								</div>
+							</div>
+							<p v-if="loss" class="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400">
+								<i class="pi pi-exclamation-triangle" /> {{ $t('admin.ml.lossWarn') }}
+							</p>
+						</div>
+					</div>
+				</section>
+
+				<!-- ── Datos ── -->
+				<section class="space-y-3 border-t border-surface-200 pt-5 dark:border-surface-700">
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secData') }}</h4>
+					<div class="max-w-[12rem] space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.stock') }}</label>
+						<InputNumber v-model="edit.stock" fluid :min="0" :placeholder="'—'" />
+						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.stockHint') }}</p>
+					</div>
+				</section>
+
+				<!-- ── Ficha de Mercado Libre (categoría + atributos) ── -->
+				<section class="space-y-4 border-t border-surface-200 pt-5 dark:border-surface-700">
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secFicha') }}</h4>
+
+					<!-- Buscar en el catálogo de ML (autocompleta categoría + atributos) -->
 				<div class="space-y-2 rounded-xl bg-primary/5 p-3">
 					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.carga.ml.catalogTitle') }}</label>
 					<div class="flex gap-2">
@@ -175,94 +314,21 @@
 					</div>
 				</div>
 
-				<!-- Tipo de publicación -->
-				<div class="space-y-1.5">
-					<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.listingTypeLabel') }}</label>
-					<SelectButton
-						v-model="edit.mlListingType"
-						:options="listingTypeOptions"
-						option-label="label"
-						option-value="value"
-						:allow-empty="false"
-						@update:model-value="refreshFee"
-					/>
-				</div>
-
-				<!-- Costo + margen -->
-				<div class="grid grid-cols-2 gap-3">
-					<div class="space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.cost') }}</label>
-						<InputNumber v-model="edit.precioCosto" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onCostChange" />
-					</div>
-					<div class="space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.margin') }}</label>
-						<InputNumber v-model="margenPct" fluid suffix=" %" :min="0" :max="900" @update:model-value="applyMargin" />
-					</div>
-				</div>
-
-				<!-- Precio tienda (neto objetivo) -->
-				<div class="space-y-1.5">
-					<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.storePrice') }}</label>
-					<InputNumber v-model="edit.precio" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="syncMargin" />
-					<p class="text-[11px] text-surface-400">{{ $t('admin.ml.storePriceHint') }}</p>
-				</div>
-
-				<!-- Precio ML + calcular -->
-				<div class="space-y-1.5">
-					<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.mlPrice') }}</label>
-					<div class="flex gap-2">
-						<InputNumber v-model="edit.precioMl" class="flex-1" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onMlPriceChange" />
-						<Button :label="$t('admin.ml.calcBtn')" icon="pi pi-calculator" :loading="calculating" :disabled="!canCalc" @click="calcMlPrice" />
-					</div>
-				</div>
-
-				<!-- Desglose en vivo -->
-				<div class="rounded-xl border border-surface-200 p-4 dark:border-surface-700">
-					<div v-if="feeLoading" class="py-2 text-center text-surface-500"><i class="pi pi-spin pi-spinner" /></div>
-					<div v-else-if="!edit.mlCategoryId" class="text-center text-xs text-surface-400">{{ $t('admin.ml.needCategory') }}</div>
-					<div v-else-if="!edit.precioMl" class="text-center text-xs text-surface-400">{{ $t('admin.ml.needMlPrice') }}</div>
-					<div v-else-if="fee" class="space-y-3">
-						<!-- Barrita -->
-						<div class="flex h-3 overflow-hidden rounded-full">
-							<div class="bg-surface-400" :style="{ width: pct(costPart) + '%' }" :title="$t('admin.ml.cost')" />
-							<div class="bg-emerald-500" :style="{ width: pct(gainPart) + '%' }" :title="$t('admin.ml.gain')" />
-							<div class="bg-amber-500" :style="{ width: pct(fee.saleFeeAmount) + '%' }" :title="$t('admin.ml.commission')" />
-						</div>
-						<div class="grid grid-cols-3 gap-2 text-center text-xs">
-							<div>
-								<p class="text-surface-400">{{ $t('admin.ml.cost') }}</p>
-								<p class="font-semibold text-surface-600 dark:text-surface-300">{{ costPart != null ? money(costPart) : '—' }}</p>
-							</div>
-							<div>
-								<p class="text-surface-400">{{ $t('admin.ml.gain') }}</p>
-								<p class="font-semibold" :class="loss ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'">
-									{{ gainPart != null ? money(gainPart) : '—' }}
-									<span v-if="gainPct != null" class="text-[11px]">({{ gainPct >= 0 ? '+' : '' }}{{ gainPct }}%)</span>
-								</p>
-							</div>
-							<div>
-								<p class="text-surface-400">{{ $t('admin.ml.commission') }} ({{ fee.percentageFee }}%)</p>
-								<p class="font-semibold text-amber-600 dark:text-amber-400">{{ money(fee.saleFeeAmount) }}</p>
-							</div>
-						</div>
-						<p v-if="loss" class="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400">
-							<i class="pi pi-exclamation-triangle" /> {{ $t('admin.ml.lossWarn') }}
-						</p>
-					</div>
-				</div>
+				</section>
 			</div>
 
-			<template #footer>
+			<!-- Footer fijo del drawer -->
+			<div v-if="edit" class="sticky bottom-0 z-10 flex items-center justify-end gap-2 border-t border-surface-200 bg-surface-0/95 py-3 backdrop-blur dark:border-surface-700 dark:bg-surface-900/95">
 				<Button :label="$t('common.cancel')" text @click="editorVisible = false" />
 				<Button
-					:label="edit && edit.mlItemId ? $t('admin.ml.saveBtn') : $t('admin.ml.savePublishBtn')"
+					:label="edit.mlItemId ? $t('admin.ml.saveBtn') : $t('admin.ml.savePublishBtn')"
 					icon="pi pi-check"
 					:loading="saving"
-					:disabled="loss || !edit"
+					:disabled="loss"
 					@click="saveEditor"
 				/>
-			</template>
-		</Dialog>
+			</div>
+		</Drawer>
 	</div>
 </template>
 
@@ -298,6 +364,9 @@ interface EditState {
 	atributos: Record<string, string>;
 	mlCatalogProductId: string;
 	mlItemId: string;
+	stock: number | null;
+	mlStatus: string | null;
+	mlPermalink: string | null;
 }
 
 export default defineComponent({
@@ -322,6 +391,7 @@ export default defineComponent({
 			edit: null as EditState | null,
 			margenPct: null as number | null,
 			saving: false,
+			statusChanging: false,
 			// Calculadora
 			fee: null as MlFeeBreakdown | null,
 			feeLoading: false,
@@ -511,6 +581,9 @@ export default defineComponent({
 				atributos: { ...(p.atributos ?? {}) },
 				mlCatalogProductId: p.mlCatalogProductId ?? '',
 				mlItemId: p.mlItemId ?? '',
+				stock: p.stock,
+				mlStatus: p.mlStatus,
+				mlPermalink: p.mlPermalink,
 			};
 			// Categoría + atributos.
 			this.mlPredictions = [];
@@ -524,6 +597,26 @@ export default defineComponent({
 			this.editorVisible = true;
 			if (this.edit.precioMl) this.refreshFee();
 			if (p.mlCategoryId && !this.attrsByCategory[p.mlCategoryId]) void this.loadAttrs(p.mlCategoryId);
+		},
+		/** Color del tag de estado real en ML. */
+		statusSeverity(status: string): string {
+			return { active: 'success', paused: 'warn', closed: 'secondary', under_review: 'info', inactive: 'secondary' }[status] ?? 'secondary';
+		},
+		/** Pausa o reactiva la publicación en ML. */
+		async toggleStatus(status: 'active' | 'paused') {
+			const e = this.edit;
+			if (!e || !e.mlItemId || !this.rubro) return;
+			this.statusChanging = true;
+			try {
+				await this.catalog.setMlStatus(this.rubro.id, e.id, status);
+				e.mlStatus = status;
+				await this.catalog.fetchAllProductos();
+				this.$toast.add({ severity: 'success', summary: this.$t(status === 'paused' ? 'admin.ml.pausedToast' : 'admin.ml.activatedToast'), life: 4000 });
+			} catch (err: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(err, this.$t('admin.ml.statusError')), life: 5000 });
+			} finally {
+				this.statusChanging = false;
+			}
 		},
 		// ── Categoría + atributos de ML ──
 		async suggestCategories() {
@@ -691,6 +784,7 @@ export default defineComponent({
 					precio: e.precio ?? undefined,
 					precioCosto: e.precioCosto ?? undefined,
 					precioMl: e.precioMl ?? undefined,
+					stock: e.stock ?? undefined,
 					mlListingType: e.mlListingType,
 					mlCategoryId: e.mlCategoryId || undefined,
 					mlCategoryName: e.mlCategoryName || undefined,

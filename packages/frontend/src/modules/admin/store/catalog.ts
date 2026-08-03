@@ -299,6 +299,12 @@ export const useCatalogStore = defineStore('catalog', {
 			return data;
 		},
 
+		/** Pausa o reactiva la publicación en Mercado Libre. */
+		async setMlStatus(rubroId: string, productoId: string, status: 'active' | 'paused'): Promise<MlPublishResult> {
+			const { data } = await api.post<MlPublishResult>(`/rubros/${rubroId}/ml/productos/${productoId}/status`, { status });
+			return data;
+		},
+
 		/** Comisión de ML para un precio (desglose en vivo de la calculadora). */
 		async fetchMlFee(
 			rubroId: string,

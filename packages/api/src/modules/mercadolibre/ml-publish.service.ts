@@ -104,7 +104,7 @@ export class MlPublishService {
 		}
 
 		// 1) Crear el ítem.
-		const created = await this.mlPost<{ id?: string; permalink?: string }>('/items', accessToken, payload);
+		const created = await this.mlPost<{ id?: string; permalink?: string; status?: string }>('/items', accessToken, payload);
 		const itemId = created.id;
 		if (!itemId) throw new BadRequestException('Mercado Libre no devolvió el id de la publicación');
 
@@ -118,9 +118,28 @@ export class MlPublishService {
 		// 3) Guardar el resultado en el producto.
 		producto.mlItemId = itemId;
 		producto.mlPermalink = created.permalink ?? null;
+		producto.mlStatus = created.status ?? 'active';
 		await this.productos.save(producto);
 
 		return { ok: true, itemId, permalink: created.permalink };
+	}
+
+	/**
+	 * Pausa o reactiva una publicación en Mercado Libre (PUT status) y guarda el
+	 * nuevo estado en el producto.
+	 */
+	async setStatus(rubroId: string, espacioId: string, productoId: string, status: 'active' | 'paused'): Promise<MlPublishResult> {
+		const rubro = await this.rubros.findOne({ where: { id: rubroId, espacioId } });
+		if (!rubro) throw new NotFoundException('Rubro no encontrado');
+		const producto = await this.productos.findOne({ where: { id: productoId, rubroId } });
+		if (!producto) throw new NotFoundException('Producto no encontrado en el rubro');
+		if (!producto.mlItemId) throw new BadRequestException('El producto no está publicado en Mercado Libre');
+
+		const { accessToken } = await this.connections.getValidAccessToken(rubroId, espacioId);
+		const updated = await this.mlPut<{ id?: string; status?: string }>(`/items/${producto.mlItemId}`, accessToken, { status });
+		producto.mlStatus = updated.status ?? status;
+		await this.productos.save(producto);
+		return { ok: true, itemId: producto.mlItemId, permalink: producto.mlPermalink ?? undefined };
 	}
 
 	/**
