@@ -435,10 +435,12 @@ export default defineComponent({
 			importing: false,
 			activeFilter: 'all' as FilterKey,
 			search: '',
+			// "Listas" (completo pero sin publicar) se sacó: desde acá al guardar se
+			// publica, así que casi nunca hay algo en ese estado. La fila igual muestra
+			// su tag. Quedan: Todas · Publicadas · Faltan datos.
 			filters: [
 				{ key: 'all', label: 'admin.ml.filter.all' },
 				{ key: 'published', label: 'admin.ml.filter.published' },
-				{ key: 'ready', label: 'admin.ml.filter.ready' },
 				{ key: 'missing', label: 'admin.ml.filter.missing' },
 			] as { key: FilterKey; label: string }[],
 			// Editor
