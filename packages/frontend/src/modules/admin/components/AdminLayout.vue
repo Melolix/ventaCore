@@ -22,7 +22,7 @@
 				</button>
 			</div>
 
-			<div class="ml-auto flex items-center gap-3">
+			<div class="ml-auto flex items-center gap-2">
 				<!-- Ver el sitio: acción global y frecuente (previsualizar la web). -->
 				<Button
 					:label="$t('admin.viewSite')"
@@ -33,6 +33,8 @@
 					class="hidden sm:inline-flex"
 					@click="openSite"
 				/>
+				<!-- Divisor: separa la acción de la app de los controles de la cuenta. -->
+				<span class="mx-1 hidden h-6 w-px bg-surface-200 dark:bg-surface-700 sm:block" />
 				<Button
 					:icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
 					severity="secondary"
