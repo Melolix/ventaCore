@@ -342,6 +342,27 @@
 				</div>
 
 				</section>
+
+				<!-- ── Imágenes ── -->
+				<section class="space-y-3 border-t border-surface-200 pt-5 dark:border-surface-700">
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secImages') }}</h4>
+					<div class="grid grid-cols-3 gap-3 sm:grid-cols-4">
+						<div
+							v-for="(img, i) in edit.imagenes"
+							:key="img"
+							class="group relative aspect-square overflow-hidden rounded-xl border border-surface-200 dark:border-surface-700"
+						>
+							<img :src="img" class="h-full w-full object-cover" alt="" />
+							<span v-if="i === 0" class="absolute left-1 top-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white">{{ $t('admin.carga.images.cover') }}</span>
+							<div class="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+								<Button v-if="i !== 0" icon="pi pi-star" rounded size="small" :title="$t('admin.carga.images.makeCover')" @click="makeCover(i)" />
+								<Button icon="pi pi-trash" rounded severity="danger" size="small" :title="$t('common.delete')" @click="removeImg(i)" />
+							</div>
+						</div>
+						<ImageUpload :model-value="''" folder="productos" :aspect-ratio="1" :min-width="500" format="jpeg" @update:model-value="onAddImage" />
+					</div>
+					<p class="text-[11px] text-surface-400">{{ $t('admin.ml.imagesHint') }}</p>
+				</section>
 			</div>
 
 			<!-- Footer fijo del drawer -->
@@ -374,6 +395,7 @@ import type {
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
+import ImageUpload from '@/shared/components/ImageUpload.vue';
 
 type FilterKey = 'all' | 'published' | 'ready' | 'missing';
 type ProductState = 'published' | 'ready' | 'missing';
@@ -395,12 +417,15 @@ interface EditState {
 	descripcion: string;
 	gtin: string;
 	sku: string;
+	imageUrl: string;
+	imagenes: string[];
 	mlStatus: string | null;
 	mlPermalink: string | null;
 }
 
 export default defineComponent({
 	name: 'MercadoLibreView',
+	components: { ImageUpload },
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -615,6 +640,8 @@ export default defineComponent({
 				descripcion: p.descripcion ?? '',
 				gtin: p.gtin ?? '',
 				sku: p.sku ?? '',
+				imageUrl: p.imageUrl ?? '',
+				imagenes: p.imagenes?.length ? [...p.imagenes] : p.imageUrl ? [p.imageUrl] : [],
 				mlStatus: p.mlStatus,
 				mlPermalink: p.mlPermalink,
 			};
@@ -650,6 +677,24 @@ export default defineComponent({
 			} finally {
 				this.statusChanging = false;
 			}
+		},
+		// ── Imágenes (portada + galería) ──
+		onAddImage(url: string) {
+			if (url && this.edit) {
+				this.edit.imagenes.push(url);
+				this.edit.imageUrl = this.edit.imagenes[0] ?? '';
+			}
+		},
+		makeCover(i: number) {
+			if (!this.edit) return;
+			const [img] = this.edit.imagenes.splice(i, 1);
+			this.edit.imagenes.unshift(img);
+			this.edit.imageUrl = this.edit.imagenes[0] ?? '';
+		},
+		removeImg(i: number) {
+			if (!this.edit) return;
+			this.edit.imagenes.splice(i, 1);
+			this.edit.imageUrl = this.edit.imagenes[0] ?? '';
 		},
 		// ── Categoría + atributos de ML ──
 		async suggestCategories() {
@@ -821,6 +866,8 @@ export default defineComponent({
 					descripcion: e.descripcion.trim() || undefined,
 					gtin: e.gtin.trim() || undefined,
 					sku: e.sku.trim() || undefined,
+					imageUrl: e.imageUrl || undefined,
+					imagenes: e.imagenes.length ? e.imagenes : undefined,
 					mlListingType: e.mlListingType,
 					mlCategoryId: e.mlCategoryId || undefined,
 					mlCategoryName: e.mlCategoryName || undefined,

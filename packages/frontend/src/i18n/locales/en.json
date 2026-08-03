@@ -627,6 +627,8 @@
 			"fieldTitle": "Title",
 			"fieldDescription": "Description",
 			"descSyncHint": "The description syncs to the ML listing on save.",
+			"secImages": "Images",
+			"imagesHint": "The first one is the cover. On save, images sync to the ML listing.",
 			"stockN": "Stock: {n}",
 			"mlState": {
 				"active": "Active",

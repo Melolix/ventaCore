@@ -627,6 +627,8 @@
 			"fieldTitle": "Título",
 			"fieldDescription": "Descripción",
 			"descSyncHint": "La descripción se sincroniza con la publicación de ML al guardar.",
+			"secImages": "Imágenes",
+			"imagesHint": "La primera es la portada. Al guardar, se sincronizan con la publicación de ML.",
 			"stockN": "Stock: {n}",
 			"mlState": {
 				"active": "Activa",

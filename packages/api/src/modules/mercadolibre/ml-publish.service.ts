@@ -168,6 +168,15 @@ export class MlPublishService {
 			payload,
 		);
 
+		// Imágenes: PUT aparte y best-effort (una foto que ML no pueda bajar no debe
+		// romper la sincronización de precio/stock). La primera es la portada.
+		const urls = producto.imagenes?.length ? producto.imagenes : producto.imageUrl ? [producto.imageUrl] : [];
+		if (urls.length) {
+			await this.mlPut(`/items/${producto.mlItemId}`, accessToken, {
+				pictures: urls.map(source => ({ source })),
+			}).catch(() => undefined);
+		}
+
 		// La descripción va por un endpoint aparte. Upsert best-effort: PUT actualiza
 		// la existente; si el item todavía no tenía descripción, el PUT falla y la
 		// creamos con POST. No fallamos la sync de precio/stock por la descripción.
