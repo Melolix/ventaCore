@@ -144,19 +144,19 @@
 
 			<!-- Grilla -->
 			<div v-else class="glass-card quiet overflow-x-auto rounded-2xl">
-				<table class="w-full min-w-[820px] table-fixed text-sm">
+				<table class="w-full min-w-[680px] table-fixed text-sm">
 					<thead>
 						<tr
 							class="border-b border-surface-200/60 text-left text-[11px] uppercase tracking-wide text-surface-400 dark:border-surface-700/60"
 						>
-							<th class="w-9 px-3 py-2.5"></th>
-							<th class="px-3 py-2.5">{{ $t('admin.carga.cols.producto') }}</th>
-							<th v-if="mlConnected" class="w-32 px-3 py-2.5">{{ $t('admin.carga.cols.categoriaMl') }}</th>
-							<th class="w-36 px-3 py-2.5 text-right">{{ $t('admin.carga.cols.costo') }}</th>
-							<th class="w-40 px-3 py-2.5 text-right">{{ $t('admin.carga.cols.precio') }}</th>
-							<th class="w-24 px-3 py-2.5 text-center">{{ $t('admin.carga.cols.stock') }}</th>
-							<th class="w-36 px-3 py-2.5">{{ $t('admin.carga.cols.estado') }}</th>
-							<th class="w-16 px-3 py-2.5"></th>
+							<th class="w-9 px-2 py-2.5"></th>
+							<th class="px-2 py-2.5">{{ $t('admin.carga.cols.producto') }}</th>
+							<th v-if="mlConnected" class="w-28 px-2 py-2.5">{{ $t('admin.carga.cols.categoriaMl') }}</th>
+							<th class="w-28 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.costo') }}</th>
+							<th class="w-28 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.precio') }}</th>
+							<th class="w-20 px-2 py-2.5 text-center">{{ $t('admin.carga.cols.stock') }}</th>
+							<th class="w-28 px-2 py-2.5">{{ $t('admin.carga.cols.estado') }}</th>
+							<th class="w-14 px-2 py-2.5"></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -166,11 +166,11 @@
 							class="border-b border-surface-100 transition-colors last:border-0 hover:bg-surface-50/60 dark:border-surface-800/60 dark:hover:bg-surface-800/30"
 							:class="row.dirty ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''"
 						>
-							<td class="px-3 py-2 align-middle">
+							<td class="px-2 py-2 align-middle">
 								<Checkbox v-model="row.selected" binary />
 							</td>
-							<td class="px-3 py-2 align-middle">
-								<div class="flex items-center gap-3">
+							<td class="px-2 py-2 align-middle">
+								<div class="flex min-w-0 items-center gap-3">
 									<button
 										type="button"
 										class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-100 text-surface-400 transition-colors hover:text-primary dark:bg-surface-800"
@@ -188,19 +188,19 @@
 									<div class="min-w-0 flex-1">
 										<InputText
 											v-model="row.nombre"
-											class="w-full font-medium"
+											class="w-full !min-w-0 font-medium"
 											:class="quietCls"
 											:placeholder="$t('admin.carga.placeholders.nombre')"
 											@update:model-value="markDirty(row)"
 										/>
-										<div class="mt-0.5 flex items-center gap-1.5 pl-2 text-[11px] text-surface-400">
-											<i :class="sourceMeta(row.source).icon" />
-											<span>{{ $t('admin.carga.source.' + row.source) }}</span>
-											<span>·</span>
+										<div class="mt-0.5 flex min-w-0 items-center gap-1.5 pl-2 text-[11px] text-surface-400">
+											<i :class="sourceMeta(row.source).icon" class="shrink-0" />
+											<span class="truncate">{{ $t('admin.carga.source.' + row.source) }}</span>
+											<span class="shrink-0">·</span>
 											<InputText
 												v-model="row.gtin"
 												:class="quietCls"
-												class="!h-5 max-w-[130px] !py-0 !text-[11px]"
+												class="!h-5 !min-w-0 max-w-[130px] flex-1 !py-0 !text-[11px]"
 												:placeholder="$t('admin.carga.placeholders.ean')"
 												@update:model-value="markDirty(row)"
 											/>
@@ -208,7 +208,7 @@
 									</div>
 								</div>
 							</td>
-							<td v-if="mlConnected" class="px-3 py-2 align-middle">
+							<td v-if="mlConnected" class="px-2 py-2 align-middle">
 								<button
 									v-if="row.mlCategoryName"
 									type="button"
@@ -227,7 +227,7 @@
 									<i class="pi pi-sparkles" /> {{ $t('admin.carga.ml.assignInline') }}
 								</button>
 							</td>
-							<td class="px-3 py-2 align-middle">
+							<td class="px-2 py-2 align-middle">
 								<InputNumber
 									v-model="row.precioCosto"
 									fluid
@@ -241,7 +241,7 @@
 									@update:model-value="markDirty(row)"
 								/>
 							</td>
-							<td class="px-3 py-2 align-middle">
+							<td class="px-2 py-2 align-middle">
 								<InputNumber
 									v-model="row.precio"
 									fluid
@@ -254,7 +254,7 @@
 									@update:model-value="markDirty(row)"
 								/>
 							</td>
-							<td class="px-3 py-2 align-middle">
+							<td class="px-2 py-2 align-middle">
 								<InputNumber
 									v-model="row.stock"
 									fluid
@@ -264,13 +264,13 @@
 									@update:model-value="markDirty(row)"
 								/>
 							</td>
-							<td class="px-3 py-2 align-middle">
+							<td class="px-2 py-2 align-middle">
 								<Tag :value="estadoLabel(row)" :severity="estadoSeverity(row)" />
 								<p v-if="faltantesDe(row).length" class="mt-1 text-[11px] text-surface-400">
 									{{ faltantesDe(row).join(' · ') }}
 								</p>
 							</td>
-							<td class="px-3 py-2 align-middle">
+							<td class="px-2 py-2 align-middle">
 								<div class="flex items-center gap-1">
 									<!-- Guardar esta fila: aparece solo si tiene cambios sin guardar. -->
 									<Button
@@ -369,7 +369,7 @@
 					:max="300"
 					@update:model-value="v => (bulkMargen = Array.isArray(v) ? v[0] : v)"
 				/>
-					<InputNumber v-model="bulkMargen" suffix=" %" :min="0" :max="900" class="w-28" />
+					<InputNumber v-model="bulkMargen" fluid suffix=" %" :min="0" :max="900" class="w-24 shrink-0" />
 				</div>
 				<p class="text-xs text-surface-400">{{ $t('admin.carga.bulk.margenApplies', { n: selectedCount }) }}</p>
 			</div>

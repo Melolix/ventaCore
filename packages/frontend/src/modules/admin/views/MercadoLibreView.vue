@@ -113,8 +113,17 @@
 		</template>
 
 		<!-- Editor + calculadora -->
-		<Drawer v-model:visible="editorVisible" position="right" :style="{ width: 'min(44rem, 100vw)' }" :header="$t('admin.ml.editorTitle')">
-			<div v-if="edit" class="flex flex-col gap-6">
+		<Drawer v-model:visible="editorVisible" position="right" :style="{ width: 'min(44rem, 100vw)' }">
+			<template #container="{ closeCallback }">
+				<div class="flex h-full flex-col">
+					<!-- Cabecera del drawer -->
+					<div class="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-700">
+						<h3 class="text-lg font-semibold text-surface-900 dark:text-surface-0">{{ $t('admin.ml.editorTitle') }}</h3>
+						<Button icon="pi pi-times" text rounded severity="secondary" aria-label="Cerrar" @click="closeCallback" />
+					</div>
+
+					<!-- Contenido scrolleable -->
+					<div v-if="edit" class="flex flex-1 flex-col gap-6 overflow-y-auto px-5 py-5">
 				<!-- Cabecera: nombre + estado real en ML -->
 				<div class="flex flex-wrap items-center gap-2">
 					<p class="min-w-0 flex-1 truncate text-base font-semibold text-surface-900 dark:text-surface-0">{{ edit.nombre }}</p>
@@ -362,20 +371,22 @@
 						<ImageUpload :model-value="''" folder="productos" :aspect-ratio="1" :min-width="500" format="jpeg" @update:model-value="onAddImage" />
 					</div>
 					<p class="text-[11px] text-surface-400">{{ $t('admin.ml.imagesHint') }}</p>
-				</section>
-			</div>
+					</section>
+					</div>
 
-			<!-- Footer fijo del drawer -->
-			<div v-if="edit" class="sticky bottom-0 z-10 flex items-center justify-end gap-2 border-t border-surface-200 bg-surface-0/95 py-3 backdrop-blur dark:border-surface-700 dark:bg-surface-900/95">
-				<Button :label="$t('common.cancel')" text @click="editorVisible = false" />
-				<Button
-					:label="edit.mlItemId ? $t('admin.ml.saveBtn') : $t('admin.ml.savePublishBtn')"
-					icon="pi pi-check"
-					:loading="saving"
-					:disabled="loss"
-					@click="saveEditor"
-				/>
-			</div>
+					<!-- Footer pegado abajo -->
+					<div v-if="edit" class="flex items-center justify-end gap-2 border-t border-surface-200 bg-surface-0 px-5 py-3 dark:border-surface-700 dark:bg-surface-900">
+						<Button :label="$t('common.cancel')" text @click="editorVisible = false" />
+						<Button
+							:label="edit.mlItemId ? $t('admin.ml.saveBtn') : $t('admin.ml.savePublishBtn')"
+							icon="pi pi-check"
+							:loading="saving"
+							:disabled="loss"
+							@click="saveEditor"
+						/>
+					</div>
+				</div>
+			</template>
 		</Drawer>
 	</div>
 </template>
