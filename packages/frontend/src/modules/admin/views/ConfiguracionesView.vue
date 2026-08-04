@@ -68,43 +68,29 @@
 				</div>
 
 				<div v-if="metaLoading" class="py-6 text-center text-surface-500"><i class="pi pi-spin pi-spinner text-2xl" /></div>
-				<div v-else class="flex flex-col gap-5">
-					<!-- Paso 1: app propia del rubro (BYO) -->
-					<div class="space-y-3">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.meta.appTitle') }}</label>
-						<template v-if="!metaState?.appConfigured || editingApp">
-							<InputText v-model="appId" :placeholder="$t('admin.meta.appIdLabel')" class="w-full" />
-							<InputText v-model="appSecret" type="password" :placeholder="$t('admin.meta.appSecretLabel')" class="w-full" />
-							<p class="text-xs text-surface-400">{{ $t('admin.meta.appHint') }}</p>
-							<Button :label="$t('admin.meta.saveApp')" size="small" :loading="metaSavingApp" :disabled="!appId || !appSecret" @click="saveApp" />
-						</template>
-						<div v-else class="flex items-center justify-between text-sm text-surface-500">
-							<span class="flex items-center gap-1.5"><i class="pi pi-check-circle text-green-500" /> App ID: {{ metaState.appId }}</span>
-							<Button :label="$t('admin.meta.changeApp')" text size="small" @click="editingApp = true" />
+				<!-- La app de Meta es de plataforma; el negocio solo conecta su cuenta. -->
+				<div v-else-if="!metaState?.appConfigured" class="text-sm text-surface-500">
+					{{ $t('admin.meta.platformNotConfigured') }}
+				</div>
+				<div v-else class="flex flex-col gap-4">
+					<template v-if="!metaState.connection">
+						<p class="text-sm text-surface-500">{{ $t('admin.meta.notConnected') }}</p>
+						<Button :label="$t('admin.meta.connect')" icon="pi pi-facebook" :loading="metaConnecting" class="self-start" @click="startMetaConnect" />
+					</template>
+					<template v-else>
+						<div class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
+							<i class="pi pi-check-circle text-green-500" />
+							<span>{{ $t('admin.meta.connectedAs', { name: metaState.connection.metaUserName || '—' }) }}</span>
 						</div>
-					</div>
-
-					<!-- Paso 2: OAuth + destino -->
-					<div v-if="metaState?.appConfigured && !editingApp" class="flex flex-col gap-4 border-t border-surface-200 pt-4 dark:border-surface-700">
-						<template v-if="!metaState.connection">
-							<p class="text-sm text-surface-500">{{ $t('admin.meta.notConnected') }}</p>
-							<Button :label="$t('admin.meta.connect')" icon="pi pi-facebook" :loading="metaConnecting" class="self-start" @click="startMetaConnect" />
-						</template>
-						<template v-else>
-							<div class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
-								<i class="pi pi-check-circle text-green-500" />
-								<span>{{ $t('admin.meta.connectedAs', { name: metaState.connection.metaUserName || '—' }) }}</span>
-							</div>
-							<div v-if="metaState.connection.targets.length" class="space-y-2">
-								<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.meta.chooseTarget') }}</label>
-								<Select v-model="metaTargetId" :options="targetOptions" option-label="label" option-value="value" class="w-full" />
-								<p class="text-xs text-surface-400">{{ $t('admin.meta.targetHint') }}</p>
-								<Button :label="$t('admin.meta.saveTarget')" size="small" :loading="metaSavingTarget" :disabled="!metaTargetId" @click="saveMetaTarget" />
-							</div>
-							<p v-else class="rounded-lg bg-amber-50 p-3 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">{{ $t('admin.meta.noTargets') }}</p>
-							<Button :label="$t('admin.meta.disconnect')" icon="pi pi-times" severity="danger" text size="small" class="self-start" @click="disconnectMeta" />
-						</template>
-					</div>
+						<div v-if="metaState.connection.targets.length" class="space-y-2">
+							<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.meta.chooseTarget') }}</label>
+							<Select v-model="metaTargetId" :options="targetOptions" option-label="label" option-value="value" class="w-full" />
+							<p class="text-xs text-surface-400">{{ $t('admin.meta.targetHint') }}</p>
+							<Button :label="$t('admin.meta.saveTarget')" size="small" :loading="metaSavingTarget" :disabled="!metaTargetId" @click="saveMetaTarget" />
+						</div>
+						<p v-else class="rounded-lg bg-amber-50 p-3 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">{{ $t('admin.meta.noTargets') }}</p>
+						<Button :label="$t('admin.meta.disconnect')" icon="pi pi-times" severity="danger" text size="small" class="self-start" @click="disconnectMeta" />
+					</template>
 				</div>
 			</section>
 
@@ -164,10 +150,6 @@ export default defineComponent({
 			metaConnecting: false,
 			metaSavingTarget: false,
 			metaTargetId: '',
-			appId: '',
-			appSecret: '',
-			editingApp: false,
-			metaSavingApp: false,
 			// Cobros (Lemon Squeezy): estado de la conexión (por espacio).
 			payLoading: false,
 			payConfigured: false,
@@ -218,7 +200,6 @@ export default defineComponent({
 			}
 		},
 		async reload() {
-			this.editingApp = false;
 			await Promise.all([this.loadMl(), this.loadMeta(), this.loadPay()]);
 		},
 
@@ -310,26 +291,11 @@ export default defineComponent({
 			this.metaLoading = true;
 			try {
 				this.metaState = await this.catalog.fetchMetaState(this.rubro.id);
-				this.appId = this.metaState.appId ?? '';
 				this.metaTargetId = this.rubro.metaTargetId ?? this.metaState.connection?.targets[0]?.id ?? '';
 			} catch {
 				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.load'), life: 4000 });
 			} finally {
 				this.metaLoading = false;
-			}
-		},
-		async saveApp() {
-			if (!this.rubro || !this.appId || !this.appSecret) return;
-			this.metaSavingApp = true;
-			try {
-				this.metaState = await this.catalog.saveMetaApp(this.rubro.id, this.appId.trim(), this.appSecret.trim());
-				this.appSecret = '';
-				this.editingApp = false;
-				this.$toast.add({ severity: 'success', summary: this.$t('admin.meta.appSaved'), life: 3000 });
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
-			} finally {
-				this.metaSavingApp = false;
 			}
 		},
 		async startMetaConnect() {

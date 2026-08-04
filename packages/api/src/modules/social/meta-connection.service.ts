@@ -6,7 +6,6 @@ import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { TokenCryptoService } from '../../common/crypto/token-crypto.service';
 import { MetaConnectionEntity } from './entities/meta-connection.entity';
 import { MetaTargetEntity } from './entities/meta-target.entity';
-import { MetaAppConfigEntity } from './entities/meta-app-config.entity';
 import type { MetaOAuthResult, MetaOAuthState } from './meta-oauth.service';
 
 /** Destino resuelto para publicar (con el token de Página ya descifrado). */
@@ -27,8 +26,6 @@ export class MetaConnectionService {
 		private readonly targets: Repository<MetaTargetEntity>,
 		@InjectRepository(RubroEntity)
 		private readonly rubros: Repository<RubroEntity>,
-		@InjectRepository(MetaAppConfigEntity)
-		private readonly appConfigs: Repository<MetaAppConfigEntity>,
 		private readonly crypto: TokenCryptoService,
 	) {}
 
@@ -40,41 +37,36 @@ export class MetaConnectionService {
 		return entity ? MetaConnectionService.toPublic(entity) : null;
 	}
 
-	/** Estado completo de Meta del rubro (app configurada + conexión). Valida el espacio. */
+	/** Estado completo de Meta del rubro (app de plataforma lista + conexión). Valida el espacio. */
 	async stateForRubro(rubroId: string, espacioId: string): Promise<MetaRubroState> {
 		await this.assertRubro(rubroId, espacioId);
-		const appConfig = await this.appConfigs.findOne({ where: { rubroId } });
 		const connection = await this.findByRubro(rubroId);
+		const appId = process.env.META_APP_ID?.trim() || null;
+		// La app (App ID + Secret) es de plataforma: alcanza con que estén en el
+		// entorno para que cualquier negocio pueda conectar su cuenta.
+		const appConfigured = !!(appId && process.env.META_APP_SECRET?.trim());
 		return {
-			appConfigured: !!appConfig,
-			appId: appConfig?.appId ?? null,
+			appConfigured,
+			appId: appConfigured ? appId : null,
 			connection,
 		};
 	}
 
-	// ── Credenciales de la app propia del rubro (modelo BYO) ──
+	// ── Credenciales de la app de PLATAFORMA (una sola para todos los negocios) ──
 
-	/** Guarda (upsert) el App ID + App Secret de la app de Meta del rubro. */
-	async saveAppConfig(rubroId: string, espacioId: string, appId: string, appSecret: string): Promise<MetaRubroState> {
-		await this.assertRubro(rubroId, espacioId);
-		let config = await this.appConfigs.findOne({ where: { rubroId } });
-		if (!config) {
-			config = this.appConfigs.create({ rubroId, espacioId });
+	/**
+	 * Credenciales de la app de Meta de la plataforma (App ID + Secret), las mismas
+	 * para todos los negocios. Se cargan una vez por entorno (META_APP_ID /
+	 * META_APP_SECRET); cada negocio solo autoriza su Página/IG vía OAuth. Lanza si
+	 * la plataforma no las configuró.
+	 */
+	getAppCredentials(): { appId: string; appSecret: string } {
+		const appId = process.env.META_APP_ID?.trim();
+		const appSecret = process.env.META_APP_SECRET?.trim();
+		if (!appId || !appSecret) {
+			throw new BadRequestException('Meta no está configurado en la plataforma (falta META_APP_ID / META_APP_SECRET)');
 		}
-		config.appId = appId.trim();
-		config.appSecret = this.crypto.encrypt(appSecret.trim());
-		await this.appConfigs.save(config);
-		return this.stateForRubro(rubroId, espacioId);
-	}
-
-	/** Devuelve las credenciales (secret descifrado) de la app del rubro. */
-	async getAppCredentials(rubroId: string, espacioId: string): Promise<{ appId: string; appSecret: string }> {
-		await this.assertRubro(rubroId, espacioId);
-		const config = await this.appConfigs.findOne({ where: { rubroId } });
-		if (!config) {
-			throw new BadRequestException('Primero cargá el App ID y App Secret de la app de Meta del rubro');
-		}
-		return { appId: config.appId, appSecret: this.crypto.decrypt(config.appSecret) };
+		return { appId, appSecret };
 	}
 
 	/** Todas las conexiones (vista pública) de los rubros de un espacio. */

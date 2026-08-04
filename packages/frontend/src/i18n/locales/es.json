@@ -562,6 +562,7 @@
 			"saveApp": "Guardar credenciales",
 			"appSaved": "Credenciales guardadas",
 			"changeApp": "Cambiar",
+			"platformNotConfigured": "La plataforma todavía no configuró Meta. Escribinos para activarlo.",
 			"notConnected": "Este rubro todavía no conectó una cuenta de Meta.",
 			"connect": "Conectar con Meta",
 			"connectedAs": "Conectado como {name}",

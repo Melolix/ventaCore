@@ -189,12 +189,6 @@ export const useCatalogStore = defineStore('catalog', {
 			return data;
 		},
 
-		/** Carga/actualiza el App ID + App Secret de la app de Meta del rubro. */
-		async saveMetaApp(rubroId: string, appId: string, appSecret: string): Promise<MetaRubroState> {
-			const { data } = await api.put<MetaRubroState>(`/rubros/${rubroId}/meta/app`, { appId, appSecret });
-			return data;
-		},
-
 		/** Arranca el OAuth: devuelve la URL de consentimiento para redirigir. */
 		async connectMeta(rubroId: string): Promise<string> {
 			const { data } = await api.post<{ url: string }>(`/rubros/${rubroId}/meta/connect`, {});

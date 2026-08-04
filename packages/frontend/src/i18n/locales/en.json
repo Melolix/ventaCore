@@ -562,6 +562,7 @@
 			"saveApp": "Save credentials",
 			"appSaved": "Credentials saved",
 			"changeApp": "Change",
+			"platformNotConfigured": "The platform hasn't set up Meta yet. Contact us to enable it.",
 			"notConnected": "This rubro hasn't connected a Meta account yet.",
 			"connect": "Connect with Meta",
 			"connectedAs": "Connected as {name}",

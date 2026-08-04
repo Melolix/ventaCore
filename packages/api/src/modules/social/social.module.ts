@@ -8,7 +8,6 @@ import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
 import { MetaConnectionEntity } from './entities/meta-connection.entity';
 import { MetaTargetEntity } from './entities/meta-target.entity';
-import { MetaAppConfigEntity } from './entities/meta-app-config.entity';
 import { MetaConnectionService } from './meta-connection.service';
 import { MetaOauthService } from './meta-oauth.service';
 import { MetaPublishService } from './meta-publish.service';
@@ -19,18 +18,13 @@ import { MetaPublishController } from './meta-publish.controller';
 /**
  * Integración con redes sociales (Meta: Facebook + Instagram).
  *
- * La conexión OAuth es por rubro: cada rubro conecta su propia cuenta. Guarda
- * los tokens cifrados y publica productos en la Página/IG elegida por el rubro.
+ * La app de Meta (App ID + Secret) es ÚNICA de plataforma (META_APP_ID /
+ * META_APP_SECRET en el entorno). Cada rubro solo conecta su propia Página/IG
+ * vía OAuth; guarda los tokens cifrados y publica en el destino elegido.
  */
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([
-			MetaConnectionEntity,
-			MetaTargetEntity,
-			MetaAppConfigEntity,
-			RubroEntity,
-			ProductoEntity,
-		]),
+		TypeOrmModule.forFeature([MetaConnectionEntity, MetaTargetEntity, RubroEntity, ProductoEntity]),
 		UsersModule,
 	],
 	controllers: [MetaController, MetaConnectionsController, MetaPublishController],

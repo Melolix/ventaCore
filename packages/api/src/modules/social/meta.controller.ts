@@ -33,7 +33,7 @@ export class MetaController {
 
 		try {
 			const parsed = this.oauth.verifyState(state);
-			const creds = await this.connections.getAppCredentials(parsed.rubroId, parsed.espacioId);
+			const creds = this.connections.getAppCredentials();
 			const { token, expiresAt } = await this.oauth.exchangeCode(creds.appId, creds.appSecret, code);
 			const me = await this.oauth.getMe(token);
 			const targets = await this.oauth.discoverTargets(token);

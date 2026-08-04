@@ -13,7 +13,6 @@ import { EspacioEntity } from './modules/spaces/entities/espacio.entity';
 import { SocialModule } from './modules/social/social.module';
 import { MetaConnectionEntity } from './modules/social/entities/meta-connection.entity';
 import { MetaTargetEntity } from './modules/social/entities/meta-target.entity';
-import { MetaAppConfigEntity } from './modules/social/entities/meta-app-config.entity';
 import { MercadoLibreModule } from './modules/mercadolibre/mercadolibre.module';
 import { MlConnectionEntity } from './modules/mercadolibre/entities/ml-connection.entity';
 import { PaymentsModule } from './modules/payments/payments.module';
@@ -41,7 +40,6 @@ import { SubscriptionEventEntity } from './modules/payments/entities/subscriptio
 				EspacioEntity,
 				MetaConnectionEntity,
 				MetaTargetEntity,
-				MetaAppConfigEntity,
 				MlConnectionEntity,
 				PaymentProviderConfigEntity,
 				SubscriptionPlanEntity,
