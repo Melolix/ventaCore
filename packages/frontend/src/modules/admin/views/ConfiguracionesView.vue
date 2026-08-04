@@ -22,8 +22,8 @@
 				</span>
 			</div>
 
-			<!-- ── Mercado Libre ── -->
-			<section class="glass-card rounded-2xl p-6">
+			<!-- ── Mercado Libre (solo si el espacio tiene el canal habilitado) ── -->
+			<section v-if="mlEnabled" class="glass-card rounded-2xl p-6">
 				<div class="mb-4 flex items-center gap-3">
 					<div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
 						<i class="pi pi-shopping-cart text-xl" />
@@ -55,8 +55,8 @@
 				</div>
 			</section>
 
-			<!-- ── Redes (Meta) ── -->
-			<section class="glass-card rounded-2xl p-6">
+			<!-- ── Redes (Meta) — solo si el espacio tiene Instagram habilitado ── -->
+			<section v-if="igEnabled" class="glass-card rounded-2xl p-6">
 				<div class="mb-4 flex items-center gap-3">
 					<div class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
 						<i class="pi pi-share-alt text-xl" />
@@ -144,7 +144,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { Rubro, MetaRubroState, MlRubroState } from '@base-template/shared';
+import { channelEnabled, type Rubro, type MetaRubroState, type MlRubroState } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 
@@ -177,6 +177,14 @@ export default defineComponent({
 		/** Negocio activo, tomado del contexto persistido. */
 		rubro(): Rubro | undefined {
 			return this.catalog.rubros.find(r => r.id === this.ctx.currentRubroId);
+		},
+		/** ¿El espacio tiene habilitado Mercado Libre? (canal del superadmin). */
+		mlEnabled(): boolean {
+			return channelEnabled(this.catalog.miEspacio, 'mercadolibre');
+		},
+		/** ¿El espacio tiene habilitado Instagram/Meta? */
+		igEnabled(): boolean {
+			return channelEnabled(this.catalog.miEspacio, 'instagram');
 		},
 		/** Opciones del selector de destino: Página (+ IG si tiene). */
 		targetOptions(): { label: string; value: string }[] {

@@ -159,6 +159,20 @@
 					<label class="text-sm font-medium">{{ $t('superadmin.espacios.fields.domain') }}</label>
 					<InputText v-model="edit.domain" class="w-full" placeholder="mitienda.com" />
 				</div>
+					<!-- Canales habilitados: dentro del panel solo se ve lo que esté prendido. -->
+					<div class="space-y-2">
+						<label class="text-sm font-medium">{{ $t('superadmin.espacios.fields.channels') }}</label>
+						<div class="flex flex-col gap-2">
+							<div
+								v-for="ch in channelOptions"
+								:key="ch.key"
+								class="flex items-center justify-between rounded-lg border border-surface-200 px-3 py-2 dark:border-surface-700"
+							>
+								<span class="text-sm">{{ ch.label }}</span>
+								<ToggleSwitch v-model="edit.channels[ch.key]" />
+							</div>
+						</div>
+					</div>
 			</div>
 			<template #footer>
 				<Button :label="$t('common.cancel')" text @click="editVisible = false" />
@@ -170,7 +184,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { ALL_ESPACIO_TYPES, EspacioType, type Espacio } from '@base-template/shared';
+import { ALL_ESPACIO_TYPES, ESPACIO_CHANNELS, EspacioType, channelEnabled, type Espacio } from '@base-template/shared';
 import { useSpacesStore } from '@/modules/superadmin/store/spaces';
 import { useImpersonation } from '@/modules/superadmin/store/impersonation';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
@@ -201,12 +215,23 @@ export default defineComponent({
 			},
 			editVisible: false,
 			editId: '',
-			edit: { nombre: '', type: EspacioType.CATALOG as EspacioType, descripcion: '', logoUrl: '', domain: '' },
+			edit: {
+				nombre: '',
+				type: EspacioType.CATALOG as EspacioType,
+				descripcion: '',
+				logoUrl: '',
+				domain: '',
+				channels: {} as Record<string, boolean>,
+			},
 		};
 	},
 	computed: {
 		typeOptions(): { label: string; value: EspacioType }[] {
 			return ALL_ESPACIO_TYPES.map(value => ({ label: this.$t(`superadmin.espacios.types.${value}`), value }));
+		},
+		/** Canales integrables (para dibujar un toggle por cada uno). */
+		channelOptions(): { key: string; label: string }[] {
+			return ESPACIO_CHANNELS.map(c => ({ key: c.key, label: c.label }));
 		},
 	},
 	async created() {
@@ -284,6 +309,8 @@ export default defineComponent({
 				descripcion: espacio.descripcion ?? '',
 				logoUrl: espacio.logoUrl ?? '',
 				domain: espacio.domain ?? '',
+				// Normalizamos a booleanos explícitos por canal (ausente = habilitado).
+				channels: Object.fromEntries(ESPACIO_CHANNELS.map(c => [c.key, channelEnabled(espacio, c.key)])),
 			};
 			this.editVisible = true;
 		},
@@ -296,6 +323,7 @@ export default defineComponent({
 					descripcion: this.edit.descripcion.trim() || undefined,
 					logoUrl: this.edit.logoUrl.trim() || undefined,
 					domain: this.edit.domain.trim() || undefined,
+					channels: { ...this.edit.channels },
 				});
 				this.$toast.add({ severity: 'success', summary: this.$t('superadmin.espacios.updated'), life: 3000 });
 				this.editVisible = false;

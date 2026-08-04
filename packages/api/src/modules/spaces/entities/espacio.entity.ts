@@ -48,6 +48,14 @@ export class EspacioEntity {
 	@Column({ default: true })
 	active!: boolean;
 
+	/**
+	 * Habilitación de canales por el superadmin: { [canal]: boolean }. Una clave
+	 * ausente se considera habilitada (default on), así los espacios existentes
+	 * quedan con todos los canales activos sin migrar datos.
+	 */
+	@Column({ type: 'jsonb', default: () => "'{}'" })
+	channels!: Record<string, boolean>;
+
 	@CreateDateColumn()
 	createdAt!: Date;
 

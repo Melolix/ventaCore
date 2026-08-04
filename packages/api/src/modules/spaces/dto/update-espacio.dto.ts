@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsObject, IsOptional, IsString, MinLength } from 'class-validator';
 import { EspacioType } from '@base-template/shared';
 
 export class UpdateEspacioDto {
@@ -33,4 +33,10 @@ export class UpdateEspacioDto {
 	@IsOptional()
 	@IsBoolean()
 	active?: boolean;
+
+	/** Habilitación de canales por el superadmin: { [canal]: boolean }. */
+	@ApiProperty({ required: false, additionalProperties: { type: 'boolean' } })
+	@IsOptional()
+	@IsObject()
+	channels?: Record<string, boolean>;
 }

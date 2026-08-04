@@ -195,6 +195,7 @@
 				"type": "Space type",
 				"description": "Description",
 				"logoUrl": "Logo (optional)",
+				"channels": "Enabled channels",
 				"domain": "Domain (optional)"
 			}
 		}

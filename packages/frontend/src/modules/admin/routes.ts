@@ -1,5 +1,17 @@
-import type { RouteRecordRaw } from 'vue-router';
+import type { NavigationGuard, RouteRecordRaw } from 'vue-router';
+import { channelEnabled, type EspacioChannel } from '@base-template/shared';
+import { useCatalogStore } from '@/modules/admin/store/catalog';
 import AdminLayout from '@/modules/admin/components/AdminLayout.vue';
+
+/** Bloquea la ruta si el espacio no tiene ese canal habilitado (redirige a Rubros). */
+function requireChannel(channel: EspacioChannel): NavigationGuard {
+	return async (_to, _from, next) => {
+		const catalog = useCatalogStore();
+		if (!catalog.miEspacio) await catalog.fetchMiEspacio().catch(() => undefined);
+		if (channelEnabled(catalog.miEspacio, channel)) next();
+		else next({ name: 'admin-rubros' });
+	};
+}
 
 const adminRoutes: RouteRecordRaw[] = [
 	{
@@ -21,11 +33,13 @@ const adminRoutes: RouteRecordRaw[] = [
 				path: 'mercado-libre',
 				name: 'admin-mercado-libre',
 				component: () => import('./views/MercadoLibreView.vue'),
+				beforeEnter: requireChannel('mercadolibre'),
 			},
 			{
 				path: 'instagram',
 				name: 'admin-instagram',
 				component: () => import('./views/InstagramView.vue'),
+				beforeEnter: requireChannel('instagram'),
 			},
 			{
 				path: 'configuraciones',

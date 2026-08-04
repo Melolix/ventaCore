@@ -37,7 +37,7 @@
 						<i class="pi pi-box text-surface-500" /> {{ selectedRubro?.nombre }}
 					</span>
 				</div>
-				<div class="flex items-center gap-3">
+				<div v-if="mlEnabled" class="flex items-center gap-3">
 					<template v-if="mlStateByRubro[selectedRubroId]">
 						<span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
 							<i class="pi pi-check-circle" /> {{ $t('admin.carga.mlConnected') }}
@@ -563,6 +563,7 @@ import {
 	ProductoSource,
 	ProductoEstado,
 	evaluarProducto,
+	channelEnabled,
 	type Producto,
 	type ProductoLike,
 	type BatchProductoItem,
@@ -713,8 +714,14 @@ export default defineComponent({
 		selectedRubroId(): string {
 			return this.ctx.currentRubroId;
 		},
-		/** ¿El negocio activo tiene Mercado Libre conectado? Gatea los campos de ML. */
+		/** ¿El espacio tiene habilitado el canal Mercado Libre? (lo decide el superadmin). */
+		mlEnabled(): boolean {
+			return channelEnabled(this.catalog.miEspacio, 'mercadolibre');
+		},
+		/** ¿El negocio activo tiene Mercado Libre conectado? Gatea los campos de ML.
+		 *  Si el espacio no tiene el canal habilitado, no se muestra nada de ML. */
 		mlConnected(): boolean {
+			if (!this.mlEnabled) return false;
 			return !!this.mlStateByRubro[this.selectedRubroId];
 		},
 		/** Rubro actualmente elegido. */

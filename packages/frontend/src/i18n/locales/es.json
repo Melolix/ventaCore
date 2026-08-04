@@ -195,6 +195,7 @@
 				"type": "Tipo de espacio",
 				"description": "Descripción",
 				"logoUrl": "Logo (opcional)",
+				"channels": "Canales habilitados",
 				"domain": "Dominio (opcional)"
 			}
 		}

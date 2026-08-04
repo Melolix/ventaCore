@@ -54,6 +54,7 @@ export class EspaciosService {
 			descripcion: espacio.descripcion,
 			logoUrl: espacio.logoUrl,
 			active: espacio.active,
+			channels: espacio.channels ?? {},
 			whatsapp: espacio.whatsapp,
 			instagramUrl: espacio.instagramUrl,
 			aboutHeadline: espacio.aboutHeadline,

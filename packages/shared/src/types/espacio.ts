@@ -17,6 +17,27 @@ export enum EspacioType {
 
 export const ALL_ESPACIO_TYPES: EspacioType[] = [EspacioType.CATALOG, EspacioType.APPS];
 
+/**
+ * Canales integrables que el superadmin habilita/deshabilita por espacio.
+ * Para sumar uno nuevo alcanza con agregarlo acá (y wirear su nav/gateo en el
+ * panel). La habilitación se guarda en `Espacio.channels` como { key: boolean };
+ * una clave AUSENTE se considera habilitada (default on).
+ */
+export const ESPACIO_CHANNELS = [
+	{ key: 'mercadolibre', label: 'Mercado Libre' },
+	{ key: 'instagram', label: 'Instagram' },
+] as const;
+
+export type EspacioChannel = (typeof ESPACIO_CHANNELS)[number]['key'];
+
+/** ¿El espacio tiene habilitado ese canal? Clave ausente = habilitado. */
+export function channelEnabled(
+	espacio: { channels?: Record<string, boolean> | null } | null | undefined,
+	key: EspacioChannel,
+): boolean {
+	return espacio?.channels?.[key] !== false;
+}
+
 export interface Espacio {
 	id: string;
 	nombre: string;
@@ -29,6 +50,8 @@ export interface Espacio {
 	descripcion: string | null;
 	logoUrl: string | null;
 	active: boolean;
+	/** Habilitación de canales por el superadmin (clave ausente = habilitado). */
+	channels: Record<string, boolean>;
 	// Contacto y página "Sobre Nosotros" (editable por el admin)
 	whatsapp: string | null;
 	instagramUrl: string | null;

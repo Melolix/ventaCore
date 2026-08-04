@@ -182,11 +182,11 @@
 								{{ rubro.descripcion || $t('admin.rubros.noDescription') }}
 							</p>
 							<div class="mt-2.5 flex flex-wrap gap-1.5">
-								<span :class="channelPillClass(!!rubro.metaTargetId)">
+								<span v-if="igEnabled" :class="channelPillClass(!!rubro.metaTargetId)">
 									<i :class="rubro.metaTargetId ? 'pi pi-check-circle' : 'pi pi-circle'" />
 									{{ $t('admin.rubros.channelMeta') }}
 								</span>
-								<span :class="channelPillClass(!!mlStateByRubro[rubro.id])">
+								<span v-if="mlEnabled" :class="channelPillClass(!!mlStateByRubro[rubro.id])">
 									<i :class="mlStateByRubro[rubro.id] ? 'pi pi-check-circle' : 'pi pi-circle'" />
 									{{ $t('admin.rubros.channelMl') }}
 								</span>
@@ -279,7 +279,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { ALL_APP_PLATFORMS, AppPlatform, EspacioType, RubroStatus, type Rubro } from '@base-template/shared';
+import { ALL_APP_PLATFORMS, AppPlatform, EspacioType, RubroStatus, channelEnabled, type Rubro } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
@@ -336,6 +336,13 @@ export default defineComponent({
 		/** Espacios tipo "apps": cada rubro es una app con links de descarga. */
 		isApps(): boolean {
 			return this.catalog.miEspacio?.type === EspacioType.APPS;
+		},
+		/** Canales habilitados en el espacio (para mostrar/ocultar los chips). */
+		mlEnabled(): boolean {
+			return channelEnabled(this.catalog.miEspacio, 'mercadolibre');
+		},
+		igEnabled(): boolean {
+			return channelEnabled(this.catalog.miEspacio, 'instagram');
 		},
 		/** Opciones del multiselect de plataformas de la app. */
 		platformOptions(): { label: string; value: string }[] {

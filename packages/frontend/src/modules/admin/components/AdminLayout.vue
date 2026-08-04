@@ -146,6 +146,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { channelEnabled, type EspacioChannel } from '@base-template/shared';
 import { useUserStore } from '@/modules/auth/store/user';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
@@ -160,6 +161,8 @@ interface NavItem {
 	icon: string;
 	to: string;
 	disabled?: boolean;
+	/** Si está seteado, el item solo aparece si el espacio tiene ese canal habilitado. */
+	channel?: EspacioChannel;
 }
 
 export default defineComponent({
@@ -176,15 +179,20 @@ export default defineComponent({
 				{ key: 'nosotros', label: 'admin.nav.nosotros', icon: 'pi pi-id-card', to: '/admin/nosotros' },
 			] as NavItem[],
 			// DEL NEGOCIO ACTIVO: cambian según el rubro elegido en el selector.
-			navBusiness: [
-				{ key: 'ml', label: 'admin.nav.ml', icon: 'pi pi-shopping-cart', to: '/admin/mercado-libre' },
-				{ key: 'instagram', label: 'admin.nav.instagram', icon: 'pi pi-instagram', to: '/admin/instagram' },
+			// Los canales (ml/instagram) se filtran por lo habilitado en el espacio.
+			navBusinessAll: [
+				{ key: 'ml', label: 'admin.nav.ml', icon: 'pi pi-shopping-cart', to: '/admin/mercado-libre', channel: 'mercadolibre' },
+				{ key: 'instagram', label: 'admin.nav.instagram', icon: 'pi pi-instagram', to: '/admin/instagram', channel: 'instagram' },
 				{ key: 'carga', label: 'admin.nav.carga', icon: 'pi pi-upload', to: '/admin/cargar-productos' },
 				{ key: 'config', label: 'admin.nav.config', icon: 'pi pi-cog', to: '/admin/configuraciones' },
 			] as NavItem[],
 		};
 	},
 	computed: {
+		/** Items del negocio visibles: se filtran los canales no habilitados en el espacio. */
+		navBusiness(): NavItem[] {
+			return this.navBusinessAll.filter(item => !item.channel || channelEnabled(this.catalog.miEspacio, item.channel));
+		},
 		/** Opciones del selector de negocio. */
 		rubroOptions(): { label: string; value: string }[] {
 			return this.catalog.rubros.map(r => ({ label: r.nombre, value: r.id }));

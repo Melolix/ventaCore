@@ -17,7 +17,9 @@ export interface CreateEspacioInput {
 	adminPassword: string;
 }
 
-export type UpdateEspacioInput = Partial<Pick<Espacio, 'nombre' | 'type' | 'descripcion' | 'logoUrl' | 'domain' | 'active'>>;
+export type UpdateEspacioInput = Partial<
+	Pick<Espacio, 'nombre' | 'type' | 'descripcion' | 'logoUrl' | 'domain' | 'active' | 'channels'>
+>;
 
 export const useSpacesStore = defineStore('spaces', {
 	state: (): SpacesState => ({
