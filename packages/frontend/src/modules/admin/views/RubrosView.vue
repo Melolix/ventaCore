@@ -159,9 +159,8 @@
 					<div
 						v-for="rubro in catalog.rubros"
 						:key="rubro.id"
-						class="glass-card group flex cursor-pointer flex-col gap-6 rounded-2xl border-l-4 p-6 transition-shadow hover:shadow-md md:flex-row md:items-center"
+						class="glass-card flex flex-col gap-6 rounded-2xl border-l-4 p-6 md:flex-row md:items-center"
 						:class="rubro.status === 'active' ? 'border-l-primary' : 'border-l-surface-300'"
-						@click="goToProductos(rubro.id)"
 					>
 						<div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-surface-100 dark:bg-surface-800">
 							<img v-if="rubro.imageUrl" :src="rubro.imageUrl" class="h-full w-full object-cover" :alt="rubro.nombre" />
@@ -194,7 +193,7 @@
 							</div>
 						</div>
 
-						<div class="flex flex-row gap-2 md:flex-col" @click.stop>
+						<div class="flex flex-row gap-2 md:flex-col">
 							<Button
 								:label="$t('admin.rubros.configure')"
 								icon="pi pi-cog"
@@ -451,9 +450,6 @@ export default defineComponent({
 					}
 				},
 			});
-		},
-		goToProductos(id: string) {
-			this.$router.push({ name: 'admin-rubro-productos', params: { id } });
 		},
 		/** Va a Configuraciones con ese negocio como contexto activo. */
 		goToConfig(id: string) {
