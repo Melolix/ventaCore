@@ -240,8 +240,9 @@ export type ProductoLike = Partial<
 export interface EvaluarProductoOptions {
 	/**
 	 * Si el negocio publica en Mercado Libre. Cuando es `false` NO se exigen los
-	 * datos propios de ML (stock, categoría y atributos): un negocio que solo tiene
-	 * su página no debería ver "faltan datos" por cosas que no usa. Default `true`.
+	 * datos propios de ML (categoría y atributos): un negocio que solo tiene su
+	 * página no debería ver "faltan datos" por cosas que no usa. Nombre, precio y
+	 * stock son del negocio y se piden siempre. Default `true`.
 	 */
 	requireMl?: boolean;
 }
@@ -259,12 +260,13 @@ export function evaluarProducto(
 	if (p.isDraft) return { estado: ProductoEstado.DRAFT, faltantes: [] };
 	const requireMl = options.requireMl !== false;
 
-	// Obligatorios (rojo si faltan). Los de ML solo si el negocio usa ML.
+	// Obligatorios (rojo si faltan). Nombre, precio y stock son del negocio (siempre);
+	// la categoría y los atributos son propios de ML (solo si el negocio usa ML).
 	const faltantes: string[] = [];
 	if (!p.nombre || !p.nombre.trim()) faltantes.push('nombre');
 	if (p.precio == null) faltantes.push('precio');
+	if (p.stock == null) faltantes.push('stock');
 	if (requireMl) {
-		if (p.stock == null) faltantes.push('stock');
 		if (!p.mlCategoryId) faltantes.push('categoría');
 		for (const attr of requiredAttrs) {
 			if (!p.atributos || !p.atributos[attr.id]) faltantes.push(attr.name);
