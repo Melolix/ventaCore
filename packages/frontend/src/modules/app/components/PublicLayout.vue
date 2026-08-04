@@ -48,7 +48,17 @@
 
 				<!-- Acciones -->
 				<div class="flex items-center gap-3 justify-self-end">
-					<!-- Volver al panel: aparece si llegamos desde el panel (otro origen).
+					<Button
+						:icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
+						severity="secondary"
+						size="small"
+						text
+						rounded
+						aria-label="Cambiar tema"
+						@click="toggleTheme"
+					/>
+					<!-- Volver al panel: si llegamos desde el panel (incluye "actuar como"),
+					     ocupa el lugar del login y reemplaza a los botones de sesión.
 					     La sesión vive en ese origen, así que volvemos allá. -->
 					<Button
 						v-if="panelReturn"
@@ -59,18 +69,7 @@
 						class="border-0 bg-amber-500 px-4 font-semibold text-white shadow-md hover:bg-amber-600"
 						@click="backToPanel"
 					/>
-					<Button
-						:icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
-						severity="secondary"
-						size="small"
-						text
-						rounded
-						aria-label="Cambiar tema"
-						@click="toggleTheme"
-					/>
-					<!-- Si venimos del panel (incluye "actuar como"), la vuelta es por
-					     "Volver al panel"; no mostramos login ni los botones de sesión. -->
-					<template v-if="!panelReturn && isAuthenticated">
+					<template v-else-if="isAuthenticated">
 						<Button
 							:label="$t('nav.goToPanel')"
 							rounded
@@ -81,7 +80,7 @@
 						<Button :label="$t('common.logout')" severity="secondary" size="small" text @click="onLogout" />
 					</template>
 					<Button
-						v-else-if="!panelReturn"
+						v-else
 						:label="$t('common.login')"
 						rounded
 						size="small"
