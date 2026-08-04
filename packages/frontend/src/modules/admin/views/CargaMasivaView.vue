@@ -753,7 +753,7 @@ export default defineComponent({
 		tally(): { ready: number; review: number; missing: number } {
 			const t = { ready: 0, review: 0, missing: 0 };
 			for (const row of this.visibleRows) {
-				const e = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row)).estado;
+				const e = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlEnabled }).estado;
 				if (e === ProductoEstado.READY) t.ready++;
 				else if (e === ProductoEstado.REVIEW) t.review++;
 				else if (e === ProductoEstado.MISSING) t.missing++;
@@ -889,15 +889,15 @@ export default defineComponent({
 			return (attrs ?? []).map(a => ({ id: a.id, name: a.name }));
 		},
 		faltantesDe(row: Row): string[] {
-			return evaluarProducto(this.toLike(row), this.requiredAttrsFor(row)).faltantes;
+			return evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlEnabled }).faltantes;
 		},
 		estadoLabel(row: Row): string {
-			const { estado, faltantes } = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row));
+			const { estado, faltantes } = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlEnabled });
 			if (estado === ProductoEstado.MISSING) return this.$t('admin.carga.estado.missing', { n: faltantes.length });
 			return this.$t('admin.carga.estado.' + estado);
 		},
 		estadoSeverity(row: Row): string {
-			const estado = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row)).estado;
+			const estado = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlEnabled }).estado;
 			return (
 				{
 					[ProductoEstado.READY]: 'success',
