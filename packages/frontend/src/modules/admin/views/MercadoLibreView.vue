@@ -192,6 +192,12 @@
 						</div>
 					</div>
 
+					<!-- Barrita de margen: arrastrá el punto para ajustar cuánto querés ganar;
+					     el precio de tienda y el desglose de abajo se recalculan en vivo. -->
+					<div class="px-1 pt-0.5">
+						<Slider :model-value="margenPct ?? 0" :min="0" :max="300" @update:model-value="onMarginSlide" />
+					</div>
+
 					<!-- Precio tienda (neto objetivo) -->
 					<div class="space-y-1.5">
 						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.storePrice') }}</label>
@@ -812,6 +818,11 @@ export default defineComponent({
 		},
 		/** Recalcula el precio de tienda cuando cambia el costo, manteniendo el margen. */
 		onCostChange() {
+			this.applyMargin();
+		},
+		/** La barrita de margen: setea el % (el Slider puede emitir array en modo rango) y reaplica. */
+		onMarginSlide(value: number | number[]) {
+			this.margenPct = Array.isArray(value) ? value[0] : value;
 			this.applyMargin();
 		},
 		/** Aplica margen% sobre el costo → precio de tienda. */
