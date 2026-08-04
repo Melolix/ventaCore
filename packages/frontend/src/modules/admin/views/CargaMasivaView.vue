@@ -362,16 +362,15 @@
 		<Dialog v-model:visible="bulkMargenVisible" modal :header="$t('admin.carga.bulk.margen')" class="w-full max-w-sm">
 			<div class="space-y-4 pt-1">
 				<p class="text-sm text-surface-500">{{ $t('admin.carga.bulk.margenHint') }}</p>
-				<div class="flex items-center gap-3">
-					<Slider
+				<InputNumber v-model="bulkMargen" fluid suffix=" %" :min="0" :max="900" class="w-full" />
+				<!-- La barra en su propia línea a lo ancho: dentro del flex, junto al input
+				     fluid, quedaba con ancho 0 y solo se veía la manija. -->
+				<Slider
 					:model-value="bulkMargen ?? 0"
-					class="flex-1"
 					:min="0"
 					:max="300"
 					@update:model-value="v => (bulkMargen = Array.isArray(v) ? v[0] : v)"
 				/>
-					<InputNumber v-model="bulkMargen" fluid suffix=" %" :min="0" :max="900" class="w-24 shrink-0" />
-				</div>
 				<p class="text-xs text-surface-400">{{ $t('admin.carga.bulk.margenApplies', { n: selectedCount }) }}</p>
 			</div>
 			<template #footer>
