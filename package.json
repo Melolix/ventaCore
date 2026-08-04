@@ -9,7 +9,7 @@
 		"predev": "node scripts/free-ports.mjs",
 		"dev": "concurrently --kill-others-on-fail -n emulator,api,web,seed -c yellow,green,cyan,magenta \"npm:emulator\" \"npm:dev:api\" \"npm:dev:frontend\" \"npm:dev:seed\"",
 		"dev:clean": "node scripts/free-ports.mjs",
-		"dev:frontend": "dotenvx run -f .env.development -- npm run dev --prefix packages/frontend",
+		"dev:frontend": "dotenvx run -f .env.development.local -f .env.development -- npm run dev --prefix packages/frontend",
 		"dev:api": "npm run start:nest:dev --prefix packages/api",
 		"dev:seed": "npm run seed:demo --prefix packages/api",
 		"emulator": "firebase emulators:start --only auth,storage --import=./.firebase-data --export-on-exit=./.firebase-data",
