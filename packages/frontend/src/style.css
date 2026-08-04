@@ -53,6 +53,24 @@ body {
 	border-color: rgba(255, 255, 255, 0.05);
 }
 
+/* ── Slider de PrimeVue ──
+   En este proyecto el riel (track) quedaba con alto 0 y fondo transparente, así
+   que solo se veía la manija flotando. Forzamos un riel visible en claro y
+   oscuro, con el relleno en el color primario. !important porque PrimeVue puede
+   inyectar sus estilos en runtime después del bundle. */
+.p-slider.p-slider-horizontal {
+	height: 6px !important;
+	background: var(--p-surface-200) !important;
+	border-radius: 9999px;
+}
+.p-dark .p-slider.p-slider-horizontal {
+	background: var(--p-surface-700) !important;
+}
+.p-slider .p-slider-range {
+	background: var(--p-primary-color) !important;
+	border-radius: 9999px;
+}
+
 /* ── Texto enriquecido de "Sobre Nosotros" ──
    Va en global (no scoped) para alcanzar el HTML de v-html y reaccionar a
    .p-dark con CSS plano, sin la gimnasia de :deep()/:global() del scoped. */
