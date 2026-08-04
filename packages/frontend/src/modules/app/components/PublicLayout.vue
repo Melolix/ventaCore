@@ -68,7 +68,9 @@
 						aria-label="Cambiar tema"
 						@click="toggleTheme"
 					/>
-					<template v-if="isAuthenticated">
+					<!-- Si venimos del panel (incluye "actuar como"), la vuelta es por
+					     "Volver al panel"; no mostramos login ni los botones de sesión. -->
+					<template v-if="!panelReturn && isAuthenticated">
 						<Button
 							:label="$t('nav.goToPanel')"
 							rounded
@@ -79,7 +81,7 @@
 						<Button :label="$t('common.logout')" severity="secondary" size="small" text @click="onLogout" />
 					</template>
 					<Button
-						v-else
+						v-else-if="!panelReturn"
 						:label="$t('common.login')"
 						rounded
 						size="small"
