@@ -33,7 +33,7 @@ export class MlCallbackController {
 
 		try {
 			const parsed = this.oauth.verifyState(state);
-			const creds = await this.connections.getAppCredentials(parsed.rubroId, parsed.espacioId);
+			const creds = this.connections.getAppCredentials();
 			const tokens = await this.oauth.exchangeCode(creds.appId, creds.appSecret, code);
 			const me = await this.oauth.getMe(tokens.accessToken);
 

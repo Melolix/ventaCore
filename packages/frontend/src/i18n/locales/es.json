@@ -587,6 +587,7 @@
 			"saveApp": "Guardar credenciales",
 			"appSaved": "Credenciales guardadas",
 			"changeApp": "Cambiar",
+			"platformNotConfigured": "La plataforma todavía no configuró Mercado Libre. Escribinos para activarlo.",
 			"notConnected": "Este rubro todavía no conectó una cuenta de Mercado Libre.",
 			"connect": "Conectar con Mercado Libre",
 			"connectedAs": "Conectado como {name}",

@@ -35,37 +35,23 @@
 				</div>
 
 				<div v-if="mlLoading" class="py-6 text-center text-surface-500"><i class="pi pi-spin pi-spinner text-2xl" /></div>
-				<div v-else class="flex flex-col gap-5">
-					<!-- Paso 1: app propia del rubro (BYO) -->
-					<div class="space-y-3">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.ml.appTitle') }}</label>
-						<template v-if="!mlState?.appConfigured || mlEditingApp">
-							<InputText v-model="mlAppId" :placeholder="$t('admin.ml.appIdLabel')" class="w-full" />
-							<InputText v-model="mlAppSecret" type="password" :placeholder="$t('admin.ml.appSecretLabel')" class="w-full" />
-							<p class="text-xs text-surface-400">{{ $t('admin.ml.appHint') }}</p>
-							<Button :label="$t('admin.ml.saveApp')" size="small" :loading="mlSavingApp" :disabled="!mlAppId || !mlAppSecret" @click="saveMlApp" />
-						</template>
-						<div v-else class="flex items-center justify-between text-sm text-surface-500">
-							<span class="flex items-center gap-1.5"><i class="pi pi-check-circle text-green-500" /> App ID: {{ mlState.appId }}</span>
-							<Button :label="$t('admin.ml.changeApp')" text size="small" @click="mlEditingApp = true" />
+				<!-- La app de ML es de plataforma; el negocio solo conecta su cuenta. -->
+				<div v-else-if="!mlState?.appConfigured" class="text-sm text-surface-500">
+					{{ $t('admin.ml.platformNotConfigured') }}
+				</div>
+				<div v-else class="flex flex-col gap-4">
+					<template v-if="!mlState.connection">
+						<p class="text-sm text-surface-500">{{ $t('admin.ml.notConnected') }}</p>
+						<Button :label="$t('admin.ml.connect')" icon="pi pi-shopping-cart" severity="warn" :loading="mlConnecting" class="self-start" @click="startMlConnect" />
+					</template>
+					<template v-else>
+						<div class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
+							<i class="pi pi-check-circle text-green-500" />
+							<span>{{ $t('admin.ml.connectedAs', { name: mlState.connection.mlNickname || '—' }) }}</span>
+							<Tag v-if="mlState.connection.siteId" :value="mlState.connection.siteId" severity="secondary" />
 						</div>
-					</div>
-
-					<!-- Paso 2: OAuth -->
-					<div v-if="mlState?.appConfigured && !mlEditingApp" class="flex flex-col gap-4 border-t border-surface-200 pt-4 dark:border-surface-700">
-						<template v-if="!mlState.connection">
-							<p class="text-sm text-surface-500">{{ $t('admin.ml.notConnected') }}</p>
-							<Button :label="$t('admin.ml.connect')" icon="pi pi-shopping-cart" severity="warn" :loading="mlConnecting" class="self-start" @click="startMlConnect" />
-						</template>
-						<template v-else>
-							<div class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
-								<i class="pi pi-check-circle text-green-500" />
-								<span>{{ $t('admin.ml.connectedAs', { name: mlState.connection.mlNickname || '—' }) }}</span>
-								<Tag v-if="mlState.connection.siteId" :value="mlState.connection.siteId" severity="secondary" />
-							</div>
-							<Button :label="$t('admin.ml.disconnect')" icon="pi pi-times" severity="danger" text size="small" class="self-start" @click="disconnectMl" />
-						</template>
-					</div>
+						<Button :label="$t('admin.ml.disconnect')" icon="pi pi-times" severity="danger" text size="small" class="self-start" @click="disconnectMl" />
+					</template>
 				</div>
 			</section>
 
@@ -172,10 +158,6 @@ export default defineComponent({
 			mlState: null as MlRubroState | null,
 			mlLoading: false,
 			mlConnecting: false,
-			mlAppId: '',
-			mlAppSecret: '',
-			mlEditingApp: false,
-			mlSavingApp: false,
 			// Redes (Meta)
 			metaState: null as MetaRubroState | null,
 			metaLoading: false,
@@ -228,7 +210,6 @@ export default defineComponent({
 			}
 		},
 		async reload() {
-			this.mlEditingApp = false;
 			this.editingApp = false;
 			await Promise.all([this.loadMl(), this.loadMeta(), this.loadPay()]);
 		},
@@ -264,25 +245,10 @@ export default defineComponent({
 			this.mlLoading = true;
 			try {
 				this.mlState = await this.catalog.fetchMlState(this.rubro.id);
-				this.mlAppId = this.mlState.appId ?? '';
 			} catch {
 				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.load'), life: 4000 });
 			} finally {
 				this.mlLoading = false;
-			}
-		},
-		async saveMlApp() {
-			if (!this.rubro || !this.mlAppId || !this.mlAppSecret) return;
-			this.mlSavingApp = true;
-			try {
-				this.mlState = await this.catalog.saveMlApp(this.rubro.id, this.mlAppId.trim(), this.mlAppSecret.trim());
-				this.mlAppSecret = '';
-				this.mlEditingApp = false;
-				this.$toast.add({ severity: 'success', summary: this.$t('admin.ml.appSaved'), life: 3000 });
-			} catch {
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.save'), life: 4000 });
-			} finally {
-				this.mlSavingApp = false;
 			}
 		},
 		async startMlConnect() {

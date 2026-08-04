@@ -7,7 +7,6 @@ import { TokenCryptoService } from '../../common/crypto/token-crypto.service';
 import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
 import { MlConnectionEntity } from './entities/ml-connection.entity';
-import { MlAppConfigEntity } from './entities/ml-app-config.entity';
 import { MlConnectionService } from './ml-connection.service';
 import { MlOauthService } from './ml-oauth.service';
 import { MlCatalogService } from './ml-catalog.service';
@@ -23,13 +22,14 @@ import { MlImportController } from './ml-import.controller';
 /**
  * Integración con Mercado Libre.
  *
- * La conexión OAuth es por rubro (modelo BYO app): cada rubro carga su App
- * ID/Secret y conecta su cuenta de vendedor. Guarda access + refresh token
- * cifrados y los refresca automáticamente al publicar.
+ * La app de Mercado Libre (client_id + secret) es ÚNICA de plataforma
+ * (ML_APP_ID / ML_APP_SECRET en el entorno). Cada rubro solo conecta su cuenta
+ * de vendedor vía OAuth; guarda access + refresh token cifrados y los refresca
+ * automáticamente al publicar.
  */
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([MlConnectionEntity, MlAppConfigEntity, RubroEntity, ProductoEntity]),
+		TypeOrmModule.forFeature([MlConnectionEntity, RubroEntity, ProductoEntity]),
 		UsersModule,
 	],
 	controllers: [

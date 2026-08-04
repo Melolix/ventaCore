@@ -236,12 +236,6 @@ export const useCatalogStore = defineStore('catalog', {
 			return data;
 		},
 
-		/** Carga/actualiza el App ID + Client Secret de la app de ML del rubro. */
-		async saveMlApp(rubroId: string, appId: string, appSecret: string): Promise<MlRubroState> {
-			const { data } = await api.put<MlRubroState>(`/rubros/${rubroId}/ml/app`, { appId, appSecret });
-			return data;
-		},
-
 		/** Arranca el OAuth: devuelve la URL de consentimiento para redirigir. */
 		async connectMl(rubroId: string): Promise<string> {
 			const { data } = await api.post<{ url: string }>(`/rubros/${rubroId}/ml/connect`, {});

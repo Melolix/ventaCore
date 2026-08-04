@@ -16,7 +16,6 @@ import { MetaTargetEntity } from './modules/social/entities/meta-target.entity';
 import { MetaAppConfigEntity } from './modules/social/entities/meta-app-config.entity';
 import { MercadoLibreModule } from './modules/mercadolibre/mercadolibre.module';
 import { MlConnectionEntity } from './modules/mercadolibre/entities/ml-connection.entity';
-import { MlAppConfigEntity } from './modules/mercadolibre/entities/ml-app-config.entity';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { PaymentProviderConfigEntity } from './modules/payments/entities/payment-provider-config.entity';
 import { SubscriptionPlanEntity } from './modules/payments/entities/subscription-plan.entity';
@@ -44,7 +43,6 @@ import { SubscriptionEventEntity } from './modules/payments/entities/subscriptio
 				MetaTargetEntity,
 				MetaAppConfigEntity,
 				MlConnectionEntity,
-				MlAppConfigEntity,
 				PaymentProviderConfigEntity,
 				SubscriptionPlanEntity,
 				SubscriptionEntity,

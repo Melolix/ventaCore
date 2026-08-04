@@ -5,7 +5,6 @@ import { MlConnectionStatus, type MlConnection, type MlRubroState } from '@base-
 import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { TokenCryptoService } from '../../common/crypto/token-crypto.service';
 import { MlConnectionEntity } from './entities/ml-connection.entity';
-import { MlAppConfigEntity } from './entities/ml-app-config.entity';
 import { MlOauthService, type MlOAuthState, type MlTokens } from './ml-oauth.service';
 
 /** Margen para refrescar el access token antes de que venza (evita 401 al borde). */
@@ -16,8 +15,6 @@ export class MlConnectionService {
 	constructor(
 		@InjectRepository(MlConnectionEntity)
 		private readonly connections: Repository<MlConnectionEntity>,
-		@InjectRepository(MlAppConfigEntity)
-		private readonly appConfigs: Repository<MlAppConfigEntity>,
 		@InjectRepository(RubroEntity)
 		private readonly rubros: Repository<RubroEntity>,
 		private readonly crypto: TokenCryptoService,
@@ -32,41 +29,36 @@ export class MlConnectionService {
 		return entity ? MlConnectionService.toPublic(entity) : null;
 	}
 
-	/** Estado completo de ML del rubro (app configurada + conexión). Valida el espacio. */
+	/** Estado completo de ML del rubro (app de plataforma lista + conexión). Valida el espacio. */
 	async stateForRubro(rubroId: string, espacioId: string): Promise<MlRubroState> {
 		await this.assertRubro(rubroId, espacioId);
-		const appConfig = await this.appConfigs.findOne({ where: { rubroId } });
 		const connection = await this.findByRubro(rubroId);
+		const appId = process.env.ML_APP_ID?.trim() || null;
+		// La app (client_id + secret) es de plataforma: alcanza con que estén seteadas
+		// en el entorno para que cualquier negocio pueda conectar su cuenta.
+		const appConfigured = !!(appId && process.env.ML_APP_SECRET?.trim());
 		return {
-			appConfigured: !!appConfig,
-			appId: appConfig?.appId ?? null,
+			appConfigured,
+			appId: appConfigured ? appId : null,
 			connection,
 		};
 	}
 
-	// ── Credenciales de la app propia del rubro (modelo BYO) ──
+	// ── Credenciales de la app de PLATAFORMA (una sola para todos los negocios) ──
 
-	/** Guarda (upsert) el App ID + Client Secret de la app de ML del rubro. */
-	async saveAppConfig(rubroId: string, espacioId: string, appId: string, appSecret: string): Promise<MlRubroState> {
-		await this.assertRubro(rubroId, espacioId);
-		let config = await this.appConfigs.findOne({ where: { rubroId } });
-		if (!config) {
-			config = this.appConfigs.create({ rubroId, espacioId });
+	/**
+	 * Credenciales de la app de Mercado Libre de la plataforma (client_id + secret),
+	 * las mismas para todos los negocios. Se cargan una vez por entorno (ML_APP_ID /
+	 * ML_APP_SECRET); cada negocio solo autoriza su cuenta vía OAuth. Lanza si la
+	 * plataforma no las configuró.
+	 */
+	getAppCredentials(): { appId: string; appSecret: string } {
+		const appId = process.env.ML_APP_ID?.trim();
+		const appSecret = process.env.ML_APP_SECRET?.trim();
+		if (!appId || !appSecret) {
+			throw new BadRequestException('Mercado Libre no está configurado en la plataforma (falta ML_APP_ID / ML_APP_SECRET)');
 		}
-		config.appId = appId.trim();
-		config.appSecret = this.crypto.encrypt(appSecret.trim());
-		await this.appConfigs.save(config);
-		return this.stateForRubro(rubroId, espacioId);
-	}
-
-	/** Devuelve las credenciales (secret descifrado) de la app del rubro. */
-	async getAppCredentials(rubroId: string, espacioId: string): Promise<{ appId: string; appSecret: string }> {
-		await this.assertRubro(rubroId, espacioId);
-		const config = await this.appConfigs.findOne({ where: { rubroId } });
-		if (!config) {
-			throw new BadRequestException('Primero cargá el App ID y Client Secret de la app de Mercado Libre del rubro');
-		}
-		return { appId: config.appId, appSecret: this.crypto.decrypt(config.appSecret) };
+		return { appId, appSecret };
 	}
 
 	// ── Escritura ──
@@ -115,7 +107,7 @@ export class MlConnectionService {
 
 		const expiring = !connection.tokenExpiresAt || connection.tokenExpiresAt.getTime() - Date.now() < REFRESH_SKEW_MS;
 		if (expiring) {
-			const creds = await this.getAppCredentials(rubroId, espacioId);
+			const creds = this.getAppCredentials();
 			try {
 				const tokens = await this.oauth.refresh(creds.appId, creds.appSecret, this.crypto.decrypt(connection.refreshToken));
 				this.applyTokens(connection, tokens);

@@ -587,6 +587,7 @@
 			"saveApp": "Save credentials",
 			"appSaved": "Credentials saved",
 			"changeApp": "Change",
+			"platformNotConfigured": "The platform hasn't set up Mercado Libre yet. Contact us to enable it.",
 			"notConnected": "This rubro hasn't connected a Mercado Libre account yet.",
 			"connect": "Connect with Mercado Libre",
 			"connectedAs": "Connected as {name}",
