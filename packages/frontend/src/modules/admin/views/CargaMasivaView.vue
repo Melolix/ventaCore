@@ -626,6 +626,7 @@ import {
 	type BatchProductoItem,
 	type MlCategoryPrediction,
 	type MlAttribute,
+	type MlListingType,
 	type MlRequiredAttribute,
 	type MlCatalogSearchResult,
 } from '@base-template/shared';
@@ -653,6 +654,8 @@ interface Row {
 	margen: number | null;
 	/** Precio en Mercado Libre (para propagar en actualizaciones masivas). */
 	precioMl: number | null;
+	/** Tipo de publicación de ML (para calcular la comisión). */
+	mlListingType: MlListingType;
 	stock: number | null;
 	gtin: string;
 	sku: string;
@@ -914,6 +917,7 @@ export default defineComponent({
 				precioCosto: p.precioCosto,
 				margen: p.margen,
 				precioMl: p.precioMl,
+				mlListingType: p.mlListingType ?? 'gold_special',
 				stock: p.stock,
 				gtin: p.gtin ?? '',
 				sku: p.sku ?? '',
@@ -940,6 +944,7 @@ export default defineComponent({
 				precioCosto: null,
 				margen: null,
 				precioMl: null,
+				mlListingType: 'gold_special',
 				stock: null,
 				gtin: '',
 				sku: '',
@@ -1077,6 +1082,20 @@ export default defineComponent({
 		},
 
 		// ── Guardar ──
+		/**
+		 * Recalcula el precio de Mercado Libre (= precio de página + comisión) con la
+		 * calculadora de ML, para una fila CON categoría (la comisión depende de ella).
+		 * Sin categoría no se puede calcular: se deja el precioMl como estaba.
+		 */
+		async recomputeMlPrice(row: Row): Promise<void> {
+			if (!this.mlConnected || !row.mlCategoryId || row.precio == null) return;
+			try {
+				const fee = await this.catalog.suggestMlPrice(this.selectedRubroId, row.precio, row.mlCategoryId, row.mlListingType);
+				if (fee?.price != null) row.precioMl = fee.price;
+			} catch {
+				/* si la calculadora falla (categoría rara, sin conexión), dejamos precioMl */
+			}
+		},
 		/** Arma el payload de guardado de una fila. */
 		rowToBatchItem(r: Row): BatchProductoItem {
 			return {
@@ -1108,6 +1127,8 @@ export default defineComponent({
 			}
 			this.savingKey = row.key;
 			try {
+				// Antes de guardar: si tiene categoría, calculamos el precio de ML (con comisión).
+				await this.recomputeMlPrice(row);
 				const [res] = await this.catalog.batchUpsert([this.rowToBatchItem(row)]);
 				if (!res?.ok || !res.id) throw new Error(res?.error || this.$t('admin.carga.saveError'));
 				row.id = res.id;
@@ -1148,6 +1169,8 @@ export default defineComponent({
 
 			this.saving = true;
 			try {
+				// Recalculamos el precio de ML (con comisión) de las que tienen categoría.
+				await Promise.all(seleccionadas.map(r => this.recomputeMlPrice(r)));
 				const items: BatchProductoItem[] = seleccionadas.map(r => this.rowToBatchItem(r));
 
 				const results = await this.catalog.batchUpsert(items);
