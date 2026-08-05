@@ -32,13 +32,14 @@ export class MlImportService {
 	) {}
 
 	/**
-	 * Baja todas las publicaciones ACTIVAS de la cuenta de ML del rubro y las
-	 * crea/actualiza como productos (dedup por `mlItemId`).
+	 * Baja las publicaciones de la cuenta de ML del rubro (activas Y pausadas: son
+	 * publicaciones vigentes; las cerradas/finalizadas se ignoran) y las crea/
+	 * actualiza como productos (dedup por `mlItemId`).
 	 */
 	async importActiveListings(rubroId: string, espacioId: string): Promise<MlImportResult> {
 		const { accessToken, mlUserId } = await this.connections.getValidAccessToken(rubroId, espacioId);
 
-		const ids = await this.fetchActiveItemIds(mlUserId, accessToken);
+		const ids = await this.fetchItemIds(mlUserId, accessToken);
 		if (!ids.length) return { imported: 0, updated: 0, total: 0 };
 
 		const items = await this.fetchItems(ids, accessToken);
@@ -53,6 +54,8 @@ export class MlImportService {
 		const toSave: ProductoEntity[] = [];
 
 		for (const item of items) {
+			// Las finalizadas/cerradas no son publicaciones vigentes: no las bajamos.
+			if (item.status === 'closed') continue;
 			const pics = (item.pictures ?? [])
 				.map(p => (p.secure_url || p.url || '').replace(/^http:\/\//, 'https://'))
 				.filter(Boolean);
@@ -89,15 +92,19 @@ export class MlImportService {
 		}
 
 		await this.productos.save(toSave);
-		return { imported, updated, total: items.length };
+		return { imported, updated, total: imported + updated };
 	}
 
-	/** Junta los ids de todas las publicaciones activas (paginando). */
-	private async fetchActiveItemIds(mlUserId: string, token: string): Promise<string[]> {
+	/**
+	 * Junta los ids de TODAS las publicaciones del vendedor (paginando). No filtra
+	 * por estado: trae activas, pausadas y transitorias (under_review, etc.); las
+	 * cerradas/finalizadas se descartan después, al ver el `status` en el detalle.
+	 */
+	private async fetchItemIds(mlUserId: string, token: string): Promise<string[]> {
 		const ids: string[] = [];
 		const limit = 50;
 		for (let offset = 0; offset < 1000; offset += limit) {
-			const url = `${this.apiHost}/users/${mlUserId}/items/search?status=active&limit=${limit}&offset=${offset}`;
+			const url = `${this.apiHost}/users/${mlUserId}/items/search?limit=${limit}&offset=${offset}`;
 			const body = await this.mlGet<{ results?: string[]; paging?: { total?: number } }>(url, token);
 			const batch = body.results ?? [];
 			ids.push(...batch);
