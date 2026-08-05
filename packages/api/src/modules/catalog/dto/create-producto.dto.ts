@@ -76,6 +76,30 @@ export class CreateProductoDto {
 	@Min(0)
 	stock?: number;
 
+	@ApiProperty({ required: false, example: 20, description: 'Alto del paquete (cm), para envío ML.' })
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	alto?: number;
+
+	@ApiProperty({ required: false, example: 15, description: 'Ancho del paquete (cm).' })
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	ancho?: number;
+
+	@ApiProperty({ required: false, example: 30, description: 'Largo del paquete (cm).' })
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	largo?: number;
+
+	@ApiProperty({ required: false, example: 1000, description: 'Peso del paquete (gramos).' })
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	peso?: number;
+
 	@ApiProperty({ required: false, example: 'MLA1234' })
 	@IsOptional()
 	@IsString()

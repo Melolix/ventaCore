@@ -148,6 +148,15 @@ export interface Producto {
 	gtin: string | null;
 	/** Stock disponible. null = sin definir. */
 	stock: number | null;
+	// ── Dimensiones para cotizar el envío en Mercado Libre ──
+	/** Alto del paquete en cm. */
+	alto: number | null;
+	/** Ancho del paquete en cm. */
+	ancho: number | null;
+	/** Largo/profundidad del paquete en cm. */
+	largo: number | null;
+	/** Peso del paquete en gramos. */
+	peso: number | null;
 	/** Id de categoría de Mercado Libre (ej. "MLA1234"). */
 	mlCategoryId: string | null;
 	/** Path legible de la categoría, cacheado ("Alimentos › Aceites"). */
@@ -187,6 +196,10 @@ export type ProductoWrite = Partial<
 		| 'sku'
 		| 'gtin'
 		| 'stock'
+		| 'alto'
+		| 'ancho'
+		| 'largo'
+		| 'peso'
 		| 'mlCategoryId'
 		| 'mlCategoryName'
 		| 'mlCatalogProductId'

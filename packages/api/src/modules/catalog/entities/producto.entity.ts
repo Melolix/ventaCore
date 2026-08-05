@@ -79,6 +79,19 @@ export class ProductoEntity {
 	@Column({ type: 'integer', nullable: true })
 	stock!: number | null;
 
+	// ── Dimensiones del paquete para cotizar envío en ML (alto/ancho/largo en cm, peso en g) ──
+	@Column({ type: 'integer', nullable: true })
+	alto!: number | null;
+
+	@Column({ type: 'integer', nullable: true })
+	ancho!: number | null;
+
+	@Column({ type: 'integer', nullable: true })
+	largo!: number | null;
+
+	@Column({ type: 'integer', nullable: true })
+	peso!: number | null;
+
 	/** Id de categoría de Mercado Libre (ej. "MLA1234"). */
 	@Column({ type: 'varchar', nullable: true })
 	mlCategoryId!: string | null;
