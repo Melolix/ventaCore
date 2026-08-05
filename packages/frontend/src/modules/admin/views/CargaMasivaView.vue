@@ -462,19 +462,19 @@
 				</div>
 				<!-- Bonificación de la lista: el precio del Excel se toma como COSTO menos esta boni%. -->
 				<div class="flex items-center justify-between gap-3 rounded-xl border border-surface-200 p-3 dark:border-surface-700">
-					<div>
+					<div class="min-w-0">
 						<p class="text-sm font-medium text-surface-700 dark:text-surface-200">{{ $t('admin.carga.import.bonifLabel') }}</p>
 						<p class="text-[11px] text-surface-400">{{ $t('admin.carga.import.bonifHint') }}</p>
 					</div>
-					<InputNumber v-model="importBonif" suffix=" %" :min="0" :max="100" class="w-24 shrink-0" />
+					<InputNumber v-model="importBonif" fluid suffix=" %" :min="0" :max="100" class="w-24 shrink-0" />
 				</div>
 				<!-- Reimportar para actualizar el costo de productos existentes (match por EAN/SKU). -->
 				<div class="flex items-center justify-between gap-3 rounded-xl border border-surface-200 p-3 dark:border-surface-700">
-					<div>
+					<div class="min-w-0">
 						<p class="text-sm font-medium text-surface-700 dark:text-surface-200">{{ $t('admin.carga.import.updateLabel') }}</p>
 						<p class="text-[11px] text-surface-400">{{ $t('admin.carga.import.updateHint') }}</p>
 					</div>
-					<ToggleSwitch v-model="importUpdateExisting" />
+					<ToggleSwitch v-model="importUpdateExisting" class="shrink-0" />
 				</div>
 			</div>
 			<template #footer>
