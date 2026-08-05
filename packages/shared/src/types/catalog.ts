@@ -124,6 +124,8 @@ export interface Producto {
 	precio: number | null;
 	/** Precio de costo (del Excel/proveedor). Base para calcular el margen. */
 	precioCosto: number | null;
+	/** Margen (%) sobre el costo con el que se arma el precio de tienda. null = precio manual. */
+	margen: number | null;
 	/** Precio en Mercado Libre (absorbe la comisión para dejar la ganancia intacta). */
 	precioMl: number | null;
 	/** Tipo de publicación en ML: 'gold_special' (Clásica) | 'gold_pro' (Premium). */
@@ -176,6 +178,7 @@ export type ProductoWrite = Partial<
 		| 'descripcion'
 		| 'precio'
 		| 'precioCosto'
+		| 'margen'
 		| 'precioMl'
 		| 'mlListingType'
 		| 'imageUrl'

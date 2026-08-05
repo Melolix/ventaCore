@@ -357,6 +357,7 @@
 				"categoria": "Category",
 				"precio": "Price",
 				"costo": "Cost",
+				"margen": "Margin",
 				"stock": "Stock",
 				"estado": "Status",
 				"categoriaMl": "ML category"
@@ -433,6 +434,8 @@
 				"fileCols": "File column",
 				"targetField": "Product field",
 				"ignore": "Ignore",
+				"bonifLabel": "List discount",
+				"bonifHint": "The Excel price is taken as cost; we subtract this discount.",
 				"preview": "{n} rows detected",
 				"confirm": "Import {n} rows",
 				"parseError": "Could not read the file",

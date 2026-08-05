@@ -25,6 +25,12 @@ export class CreateProductoDto {
 	@Min(0)
 	precioCosto?: number;
 
+	@ApiProperty({ required: false, example: 50, description: 'Margen % sobre el costo (arma el precio de tienda).' })
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	margen?: number;
+
 	@ApiProperty({ required: false, example: 135000, description: 'Precio en Mercado Libre.' })
 	@IsOptional()
 	@IsNumber()

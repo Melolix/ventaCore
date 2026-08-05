@@ -357,6 +357,7 @@
 				"categoria": "Categoría",
 				"precio": "Precio",
 				"costo": "Costo",
+				"margen": "Margen",
 				"stock": "Stock",
 				"estado": "Estado",
 				"categoriaMl": "Categoría de ML"
@@ -433,6 +434,8 @@
 				"fileCols": "Columna del archivo",
 				"targetField": "Campo del producto",
 				"ignore": "Ignorar",
+				"bonifLabel": "Bonificación de la lista",
+				"bonifHint": "El precio del Excel se toma como costo; le restamos esta bonificación.",
 				"preview": "{n} filas detectadas",
 				"confirm": "Importar {n} filas",
 				"parseError": "No se pudo leer el archivo",

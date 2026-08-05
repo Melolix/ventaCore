@@ -42,6 +42,10 @@ export class ProductoEntity {
 	@Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, transformer: numericTransformer })
 	precioCosto!: number | null;
 
+	/** Margen (%) sobre el costo con el que se arma el precio de tienda. null = precio manual. */
+	@Column({ type: 'numeric', precision: 7, scale: 2, nullable: true, transformer: numericTransformer })
+	margen!: number | null;
+
 	/** Precio en Mercado Libre (mayor que el de tienda: absorbe la comisión de ML). */
 	@Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, transformer: numericTransformer })
 	precioMl!: number | null;

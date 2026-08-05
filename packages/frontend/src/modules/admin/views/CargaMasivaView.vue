@@ -144,7 +144,7 @@
 
 			<!-- Grilla -->
 			<div v-else class="glass-card quiet overflow-x-auto rounded-2xl">
-				<table class="w-full min-w-[820px] table-fixed text-sm">
+				<table class="w-full min-w-[900px] table-fixed text-sm">
 					<thead>
 						<tr
 							class="border-b border-surface-200/60 text-left text-[11px] uppercase tracking-wide text-surface-400 dark:border-surface-700/60"
@@ -153,6 +153,7 @@
 							<th class="px-2 py-2.5">{{ $t('admin.carga.cols.producto') }}</th>
 							<th v-if="mlConnected" class="w-28 px-2 py-2.5">{{ $t('admin.carga.cols.categoriaMl') }}</th>
 							<th class="w-32 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.costo') }}</th>
+							<th class="w-20 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.margen') }}</th>
 							<th class="w-32 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.precio') }}</th>
 							<th class="w-20 px-2 py-2.5 text-center">{{ $t('admin.carga.cols.stock') }}</th>
 							<th class="w-28 px-2 py-2.5">{{ $t('admin.carga.cols.estado') }}</th>
@@ -239,7 +240,20 @@
 									:max-fraction-digits="0"
 									:input-class="quietCls + ' !px-1 text-right tabular-nums'"
 									:placeholder="'—'"
-									@update:model-value="markDirty(row)"
+									@update:model-value="onRowCosto(row)"
+								/>
+							</td>
+							<td class="px-2 py-2 align-middle">
+								<InputNumber
+									v-model="row.margen"
+									fluid
+									suffix=" %"
+									:min="0"
+									:max="900"
+									:max-fraction-digits="0"
+									:input-class="quietCls + ' !px-1 text-right tabular-nums'"
+									:placeholder="'—'"
+									@update:model-value="onRowMargen(row)"
 								/>
 							</td>
 							<td class="px-2 py-2 align-middle">
@@ -252,7 +266,7 @@
 									:min="0"
 									:max-fraction-digits="0"
 									:input-class="quietCls + ' !px-1 text-right font-medium tabular-nums'"
-									@update:model-value="markDirty(row)"
+									@update:model-value="onRowPrecio(row)"
 								/>
 							</td>
 							<td class="px-2 py-2 align-middle">
@@ -418,6 +432,14 @@
 							class="w-44"
 						/>
 					</div>
+				</div>
+				<!-- Bonificación de la lista: el precio del Excel se toma como COSTO menos esta boni%. -->
+				<div class="flex items-center justify-between gap-3 rounded-xl border border-surface-200 p-3 dark:border-surface-700">
+					<div>
+						<p class="text-sm font-medium text-surface-700 dark:text-surface-200">{{ $t('admin.carga.import.bonifLabel') }}</p>
+						<p class="text-[11px] text-surface-400">{{ $t('admin.carga.import.bonifHint') }}</p>
+					</div>
+					<InputNumber v-model="importBonif" suffix=" %" :min="0" :max="100" class="w-24 shrink-0" />
 				</div>
 			</div>
 			<template #footer>
@@ -592,6 +614,8 @@ interface Row {
 	descripcion: string;
 	precio: number | null;
 	precioCosto: number | null;
+	/** Margen (%) sobre el costo con el que se arma el precio de tienda. */
+	margen: number | null;
 	stock: number | null;
 	gtin: string;
 	sku: string;
@@ -638,6 +662,8 @@ export default defineComponent({
 			parsed: null as ParsedTable | null,
 			mapping: [] as ImportField[],
 			acceptExtensions: ACCEPTED_IMPORT_EXTENSIONS,
+			// Bonificación % de la lista: el precio del Excel es costo − boni%.
+			importBonif: 0 as number,
 			// Inputs "silenciosos" en la grilla: look de texto, borde solo en hover/foco.
 			quietCls:
 				'!border-transparent !bg-transparent !shadow-none hover:!border-surface-300 focus:!border-primary dark:hover:!border-surface-600',
@@ -807,6 +833,28 @@ export default defineComponent({
 			if (row) row.dirty = true;
 			this.dirty = true;
 		},
+		// ── Costo ↔ margen ↔ precio de tienda (triángulo por fila) ──
+		/** El usuario tocó el margen: precio = costo × (1 + margen%). */
+		onRowMargen(row: Row) {
+			if (row.precioCosto != null && row.margen != null) {
+				row.precio = Math.round(row.precioCosto * (1 + row.margen / 100));
+			}
+			this.markDirty(row);
+		},
+		/** El usuario tocó el costo: si hay margen, se mantiene y se recalcula el precio. */
+		onRowCosto(row: Row) {
+			if (row.precioCosto != null && row.margen != null) {
+				row.precio = Math.round(row.precioCosto * (1 + row.margen / 100));
+			}
+			this.markDirty(row);
+		},
+		/** El usuario tocó el precio a mano: se deriva el margen mostrado desde el costo. */
+		onRowPrecio(row: Row) {
+			if (row.precioCosto && row.precioCosto > 0 && row.precio != null) {
+				row.margen = Math.round((row.precio / row.precioCosto - 1) * 100);
+			}
+			this.markDirty(row);
+		},
 		onBeforeUnload(e: BeforeUnloadEvent) {
 			if (this.dirty) {
 				e.preventDefault();
@@ -822,6 +870,7 @@ export default defineComponent({
 				descripcion: p.descripcion ?? '',
 				precio: p.precio,
 				precioCosto: p.precioCosto,
+				margen: p.margen,
 				stock: p.stock,
 				gtin: p.gtin ?? '',
 				sku: p.sku ?? '',
@@ -846,6 +895,7 @@ export default defineComponent({
 				descripcion: '',
 				precio: null,
 				precioCosto: null,
+				margen: null,
 				stock: null,
 				gtin: '',
 				sku: '',
@@ -923,6 +973,10 @@ export default defineComponent({
 			for (const row of this.visibleRows)
 				if (row.selected) {
 					row.precio = this.bulkPrecio;
+					// Precio fijado a mano: derivamos el margen mostrado desde el costo.
+					if (row.precioCosto && row.precioCosto > 0 && this.bulkPrecio != null) {
+						row.margen = Math.round((this.bulkPrecio / row.precioCosto - 1) * 100);
+					}
 					row.dirty = true;
 				}
 			this.dirty = true;
@@ -942,6 +996,7 @@ export default defineComponent({
 					continue;
 				}
 				row.precio = Math.round(row.precioCosto * factor);
+				row.margen = this.bulkMargen;
 				row.dirty = true;
 			}
 			this.dirty = true;
@@ -961,6 +1016,7 @@ export default defineComponent({
 				descripcion: r.descripcion.trim() || undefined,
 				precio: r.precio ?? undefined,
 				precioCosto: r.precioCosto ?? undefined,
+				margen: r.margen ?? undefined,
 				stock: r.stock ?? undefined,
 				gtin: r.gtin.trim() || undefined,
 				sku: r.sku.trim() || undefined,
@@ -1155,6 +1211,10 @@ export default defineComponent({
 					else if (field === 'sku') row.sku = value;
 					else if (field === 'imageUrl') row.imageUrl = value;
 				});
+				// La lista de precios es el COSTO: si hay bonificación, se la restamos.
+				if (row.precioCosto != null && this.importBonif > 0) {
+					row.precioCosto = Math.round(row.precioCosto * (1 - this.importBonif / 100));
+				}
 				row.dirty = true;
 				if (nombreCol === -1 || row.nombre) nuevas.push(row);
 			}
