@@ -1,8 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 
 /**
- * Inicializa Firebase Admin una sola vez y expone helpers de auth.
+ * Inicializa Firebase Admin una sola vez y expone helpers de auth y storage.
  * Las credenciales se resuelven desde GOOGLE_APPLICATION_CREDENTIALS
  * (Application Default Credentials).
  */
@@ -17,6 +18,7 @@ export class FirebaseService implements OnModuleInit {
 			const useEmulator = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
 			this.app = admin.initializeApp({
 				projectId: process.env.FIREBASE_PROJECT_ID,
+				storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
 				...(useEmulator ? {} : { credential: admin.credential.applicationDefault() }),
 			});
 		} else {
@@ -26,6 +28,26 @@ export class FirebaseService implements OnModuleInit {
 
 	get auth(): admin.auth.Auth {
 		return this.app.auth();
+	}
+
+	/**
+	 * Sube una imagen a Storage y devuelve su download URL (mismo formato que
+	 * genera el SDK web: `.../o/{path}?alt=media&token=...`), de modo que se puede
+	 * guardar/borrar igual que las subidas del cliente. Respeta el emulador de
+	 * Storage en dev (FIREBASE_STORAGE_EMULATOR_HOST).
+	 */
+	async uploadImage(path: string, buffer: Buffer, contentType: string): Promise<string> {
+		const bucket = this.app.storage().bucket();
+		const downloadToken = randomUUID();
+		await bucket.file(path).save(buffer, {
+			contentType,
+			resumable: false,
+			metadata: { metadata: { firebaseStorageDownloadTokens: downloadToken } },
+		});
+
+		const emulator = process.env.FIREBASE_STORAGE_EMULATOR_HOST;
+		const host = emulator ? `http://${emulator}` : 'https://firebasestorage.googleapis.com';
+		return `${host}/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${downloadToken}`;
 	}
 
 	/** Verifica un ID token del cliente y devuelve el token decodificado. */

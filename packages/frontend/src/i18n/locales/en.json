@@ -36,12 +36,42 @@
 		"upload": "Upload image",
 		"cropTitle": "Crop the image",
 		"cropSave": "Crop and upload",
+		"removeBg": "Remove background",
+		"removingBg": "Removing background…",
 		"err": {
 			"type": "Invalid format. Use JPG, PNG or WebP.",
 			"size": "The image exceeds the maximum size (8 MB).",
 			"dimensions": "The image is too small and would look blurry. Upload a higher-resolution one.",
 			"decode": "Could not read the image.",
-			"upload": "Could not upload the image. Please try again."
+			"upload": "Could not upload the image. Please try again.",
+			"removeBg": "Could not remove the background. Please try again."
+		}
+	},
+	"handoff": {
+		"qr": {
+			"button": "Photo from phone",
+			"title": "Upload the photo from your phone",
+			"subtitle": "Scan the code with your phone camera and take the photo there.",
+			"waiting": "Waiting for the photo…",
+			"received": "Got it! {n} photo(s) received.",
+			"expired": "The code expired. Generate a new one.",
+			"regenerate": "Generate again",
+			"copyLink": "Copy link",
+			"copied": "Link copied!",
+			"done": "Done",
+			"error": "Could not generate the code. Please try again."
+		},
+		"mobile": {
+			"title": "Take the product photo",
+			"subtitle": "The photo will show up on your computer automatically.",
+			"takePhoto": "Take photo",
+			"another": "Take another",
+			"uploading": "Uploading…",
+			"success": "{n} photo(s) sent. You can close now.",
+			"hint": "You can take several photos, one after another.",
+			"invalidTitle": "Invalid link",
+			"invalidMsg": "Open this page by scanning the QR code from your computer.",
+			"errUpload": "Could not upload the photo. Please try again."
 		}
 	},
 	"file": {

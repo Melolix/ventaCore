@@ -93,6 +93,63 @@ export function canvasToBlob(
 }
 
 /**
+ * Quita el fondo de una imagen 100% en el navegador (@imgly/background-removal,
+ * modelo ISNet vía WASM/ONNX). Devuelve un canvas con el objeto recortado sobre
+ * fondo TRANSPARENTE; al exportarlo con `canvasToBlob({ format: 'jpeg' })` las
+ * zonas transparentes quedan en blanco (ver relleno en esta misma función).
+ *
+ * La primera vez descarga el modelo (~40 MB) y lo cachea; usá `onProgress` para
+ * mostrarle el avance al usuario. El import es dinámico para no cargar la
+ * librería (pesada) hasta que alguien realmente use la feature.
+ */
+export async function removeBackground(
+	source: Blob,
+	onProgress?: (ratio: number) => void,
+): Promise<HTMLCanvasElement> {
+	const { removeBackground: imglyRemove } = await import('@imgly/background-removal');
+	const cutout = await imglyRemove(source, {
+		// fp16: mejor balance calidad/peso de borde para fotos de producto.
+		model: 'isnet_fp16',
+		output: { format: 'image/png' }, // PNG conserva el canal alfa (transparencia)
+		progress: (_key, current, total) => {
+			if (onProgress && total > 0) onProgress(current / total);
+		},
+	});
+
+	const bitmap = await createImageBitmap(cutout);
+	const canvas = document.createElement('canvas');
+	canvas.width = bitmap.width;
+	canvas.height = bitmap.height;
+	const ctx = canvas.getContext('2d');
+	if (!ctx) throw new Error('canvas');
+	ctx.drawImage(bitmap, 0, 0);
+	bitmap.close();
+	return canvas;
+}
+
+/**
+ * Pipeline completo de "quitar fondo" reutilizable en cualquier lugar donde
+ * haya una foto de producto: toma la fuente (un Blob que ya tengamos, o la URL
+ * de una imagen ya subida), le quita el fondo, la exporta con fondo blanco y la
+ * sube a Storage. Devuelve la URL nueva y el Blob (útil para cachearlo y evitar
+ * re-descargas).
+ *
+ * Nota CORS: si la fuente es una URL de Storage, el `fetch` requiere que el
+ * bucket tenga CORS habilitado. Cuando reusamos un Blob en memoria (subida de
+ * la misma sesión) no hay problema.
+ */
+export async function stripBackgroundToUpload(
+	source: Blob | string,
+	opts: { folder: string; format?: ImageFormat; maxWidth?: number; onProgress?: (ratio: number) => void },
+): Promise<{ url: string; blob: Blob }> {
+	const input = typeof source === 'string' ? await (await fetch(source)).blob() : source;
+	const canvas = await removeBackground(input, opts.onProgress);
+	const blob = await canvasToBlob(canvas, opts.maxWidth ?? 1600, { format: opts.format ?? 'jpeg' });
+	const url = await uploadImage(blob, opts.folder);
+	return { url, blob };
+}
+
+/**
  * Sube un blob a Firebase Storage bajo uploads/{uid}/{folder}/ y devuelve la
  * URL pública de descarga (la que se guarda en Postgres).
  */

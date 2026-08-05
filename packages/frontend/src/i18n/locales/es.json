@@ -36,12 +36,42 @@
 		"upload": "Subir imagen",
 		"cropTitle": "Recortá la imagen",
 		"cropSave": "Recortar y subir",
+		"removeBg": "Quitar fondo",
+		"removingBg": "Quitando fondo…",
 		"err": {
 			"type": "Formato no válido. Usá JPG, PNG o WebP.",
 			"size": "La imagen supera el tamaño máximo (8 MB).",
 			"dimensions": "La imagen es muy chica y se vería borrosa. Subí una de mayor resolución.",
 			"decode": "No se pudo leer la imagen.",
-			"upload": "No se pudo subir la imagen. Probá de nuevo."
+			"upload": "No se pudo subir la imagen. Probá de nuevo.",
+			"removeBg": "No se pudo quitar el fondo. Probá de nuevo."
+		}
+	},
+	"handoff": {
+		"qr": {
+			"button": "Foto desde el celular",
+			"title": "Subí la foto desde tu celular",
+			"subtitle": "Escaneá el código con la cámara del celular y sacá la foto ahí.",
+			"waiting": "Esperando la foto…",
+			"received": "¡Llegó! {n} foto(s) recibida(s).",
+			"expired": "El código venció. Generá uno nuevo.",
+			"regenerate": "Generar de nuevo",
+			"copyLink": "Copiar el link",
+			"copied": "¡Link copiado!",
+			"done": "Listo",
+			"error": "No se pudo generar el código. Probá de nuevo."
+		},
+		"mobile": {
+			"title": "Sacá la foto del producto",
+			"subtitle": "La foto va a aparecer sola en la computadora.",
+			"takePhoto": "Sacar foto",
+			"another": "Sacar otra",
+			"uploading": "Subiendo…",
+			"success": "{n} foto(s) enviada(s). Ya podés cerrar.",
+			"hint": "Podés sacar varias fotos, una tras otra.",
+			"invalidTitle": "Link inválido",
+			"invalidMsg": "Abrí esta página escaneando el código QR desde la computadora.",
+			"errUpload": "No se pudo subir la foto. Probá de nuevo."
 		}
 	},
 	"file": {

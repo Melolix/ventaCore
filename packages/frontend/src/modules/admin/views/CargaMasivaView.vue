@@ -602,11 +602,16 @@
 						<span v-if="i === 0" class="absolute left-1 top-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white">{{ $t('admin.carga.images.cover') }}</span>
 						<div class="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
 							<Button v-if="i !== 0" icon="pi pi-star" rounded size="small" :title="$t('admin.carga.images.makeCover')" @click="makeCover(i)" />
+							<Button icon="pi pi-eraser" rounded size="small" severity="secondary" :title="$t('image.removeBg')" :disabled="strippingIdx !== null" @click="stripImg(i)" />
 							<Button icon="pi pi-trash" rounded severity="danger" size="small" :title="$t('common.delete')" @click="removeImg(i)" />
+						</div>
+						<div v-if="strippingIdx === i" class="absolute inset-0 flex items-center justify-center bg-surface-0/70 dark:bg-surface-900/70">
+							<i class="pi pi-spin pi-spinner text-xl text-primary" />
 						</div>
 					</div>
 					<ImageUpload :model-value="''" folder="productos" :aspect-ratio="1" :min-width="500" format="jpeg" @update:model-value="onAddImage" />
 				</div>
+				<div class="mt-3"><HandoffButton @photos="onHandoffPhotos" /></div>
 				<p class="mt-3 text-xs text-surface-400">{{ $t('admin.carga.images.hint') }}</p>
 			</div>
 			<template #footer>
@@ -635,6 +640,7 @@ import {
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
+import { stripBackgroundToUpload, deleteImage } from '@/shared/utils/image';
 import {
 	parseTableFile,
 	parseNumber,
@@ -642,6 +648,7 @@ import {
 	type ParsedTable,
 } from '@/modules/admin/utils/importTable';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
+import HandoffButton from '@/shared/components/HandoffButton.vue';
 
 /** Fila editable de la grilla (aún sin persistir o ya existente). */
 interface Row {
@@ -682,7 +689,7 @@ type ImportField = (typeof IMPORT_FIELDS)[number] | 'ignore';
 
 export default defineComponent({
 	name: 'CargaMasivaView',
-	components: { ImageUpload },
+	components: { ImageUpload, HandoffButton },
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -732,6 +739,8 @@ export default defineComponent({
 			// Gestor de imágenes por fila
 			imgVisible: false,
 			imgRow: null as Row | null,
+			// Índice de la imagen a la que se le está quitando el fondo (null = ninguna).
+			strippingIdx: null as number | null,
 			// ¿Hay cambios en la grilla sin guardar?
 			dirty: false,
 			// Buscador de catálogo ML (dentro del modal)
@@ -1560,6 +1569,12 @@ export default defineComponent({
 				this.syncCover();
 			}
 		},
+		/** Fotos llegadas desde el celular (QR): se suman a la galería de la fila. */
+		onHandoffPhotos(urls: string[]) {
+			if (!this.imgRow || !urls.length) return;
+			this.imgRow.imagenes.push(...urls);
+			this.syncCover();
+		},
 		removeImg(i: number) {
 			this.imgRow?.imagenes.splice(i, 1);
 			this.syncCover();
@@ -1569,6 +1584,23 @@ export default defineComponent({
 			const [img] = this.imgRow.imagenes.splice(i, 1);
 			this.imgRow.imagenes.unshift(img);
 			this.syncCover();
+		},
+		/** Quita el fondo (deja blanco) de la imagen i y la reemplaza en la galería. */
+		async stripImg(i: number) {
+			if (!this.imgRow || this.strippingIdx !== null) return;
+			const old = this.imgRow.imagenes[i];
+			if (!old) return;
+			this.strippingIdx = i;
+			try {
+				const { url } = await stripBackgroundToUpload(old, { folder: 'productos', format: 'jpeg' });
+				this.imgRow.imagenes.splice(i, 1, url);
+				this.syncCover();
+				void deleteImage(old);
+			} catch {
+				this.$toast.add({ severity: 'error', summary: this.$t('image.err.removeBg'), life: 5000 });
+			} finally {
+				this.strippingIdx = null;
+			}
 		},
 		async importMl() {
 			if (!this.selectedRubroId) return;

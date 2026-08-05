@@ -17,10 +17,18 @@ export default defineConfig(({ mode }) => {
 	return {
 		envDir: path.resolve(__dirname, '../../'),
 		base: env.VITE_BASE_PATH || '/',
-		// Permite subdominios de localhost (cada negocio: {slug}.localhost:5173).
+		// host: true expone el dev server en la LAN (permite subdominios
+		// {slug}.localhost y probar el handoff por QR desde el celular).
+		// allowedHosts: true acepta cualquier host (incluida tu IP de LAN, que
+		// varía por dev/red) — es solo el dev server; en prod sirve Nginx.
 		server: {
 			host: true,
-			allowedHosts: ['.localhost'],
+			allowedHosts: true,
+			// Proxy del API: el celular solo llega al 5173 y Vite reenvía /api a la
+			// API local. Va de la mano con VITE_API_URL=/api (relativo) en dev.
+			proxy: {
+				'/api': 'http://localhost:3000',
+			},
 		},
 		build: {
 			target: 'esnext',

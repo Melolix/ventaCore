@@ -108,7 +108,10 @@
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.productos.fields.imageUrl') }}</label>
-					<ImageUpload v-model="edit.imageUrl" folder="productos" :aspect-ratio="1" :min-width="500" format="jpeg" />
+					<ImageUpload v-model="edit.imageUrl" folder="productos" :aspect-ratio="1" :min-width="500" format="jpeg" remove-bg />
+					<div class="mt-2">
+						<HandoffButton @photos="onHandoffPhotos" />
+					</div>
 				</div>
 			</div>
 			<template #footer>
@@ -162,6 +165,7 @@ import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
+import HandoffButton from '@/shared/components/HandoffButton.vue';
 
 /**
  * Pestaña Instagram: lista los productos del negocio activo y permite publicarlos
@@ -170,7 +174,7 @@ import ImageUpload from '@/shared/components/ImageUpload.vue';
  */
 export default defineComponent({
 	name: 'InstagramView',
-	components: { ImageUpload },
+	components: { ImageUpload, HandoffButton },
 	setup() {
 		return { ctx: useAdminContext() };
 	},
@@ -238,6 +242,10 @@ export default defineComponent({
 		},
 		formatPrice(value: number): string {
 			return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value);
+		},
+		/** Fotos llegadas desde el celular (QR): tomamos la última como imagen. */
+		onHandoffPhotos(urls: string[]) {
+			if (urls.length) this.edit.imageUrl = urls[urls.length - 1];
 		},
 		openEdit(producto: Producto) {
 			this.editId = producto.id;
