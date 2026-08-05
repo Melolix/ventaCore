@@ -139,7 +139,7 @@
 			<router-view />
 		</main>
 
-		<Toast />
+		<!-- El <Toast /> vive en App.vue (raíz); no repetirlo acá o los toasts salen dobles. -->
 		<ConfirmDialog />
 	</div>
 </template>
