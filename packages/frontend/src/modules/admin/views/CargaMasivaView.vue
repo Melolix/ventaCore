@@ -1277,8 +1277,9 @@ export default defineComponent({
 			const h = header.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 			if (/(nombre|titulo|producto|name|title)/.test(h)) return 'nombre';
 			if (/(descrip|detalle|description)/.test(h)) return 'descripcion';
-			if (/(costo|compra|proveedor|cost)/.test(h)) return 'precioCosto';
-			if (/(precio|price|importe|venta)/.test(h)) return 'precio';
+			// Una lista importada SIEMPRE es de costo: cualquier columna de precio se
+			// mapea por default a Costo; si fuera precio de la app, se cambia a mano.
+			if (/(costo|compra|proveedor|cost|precio|price|importe|venta)/.test(h)) return 'precioCosto';
 			if (/(stock|cantidad|qty|existencia)/.test(h)) return 'stock';
 			if (/(ean|gtin|codigo de barra|barcode)/.test(h)) return 'gtin';
 			if (/(sku|codigo|cod\.?|code)/.test(h)) return 'sku';
