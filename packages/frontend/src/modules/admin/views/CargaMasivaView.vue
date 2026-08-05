@@ -118,6 +118,14 @@
 					:disabled="!selectedCount"
 					@click="bulkPrecioVisible = true"
 				/>
+				<Button
+					:label="$t('admin.carga.bulk.costoUp')"
+					icon="pi pi-arrow-up"
+					size="small"
+					outlined
+					:disabled="!selectedCount"
+					@click="bulkCostoUpVisible = true"
+				/>
 				<div class="ml-auto flex items-center gap-2">
 					<span
 						v-if="dirtyCount"
@@ -393,6 +401,25 @@
 			</template>
 		</Dialog>
 
+		<!-- Dialog: aumento % del costo (inflación) -->
+		<Dialog v-model:visible="bulkCostoUpVisible" modal :header="$t('admin.carga.bulk.costoUp')" class="w-full max-w-sm">
+			<div class="space-y-4 pt-1">
+				<p class="text-sm text-surface-500">{{ $t('admin.carga.bulk.costoUpHint') }}</p>
+				<InputNumber v-model="bulkCostoUp" fluid suffix=" %" :min="0" :max="900" class="w-full" />
+				<Slider
+					:model-value="bulkCostoUp ?? 0"
+					:min="0"
+					:max="200"
+					@update:model-value="v => (bulkCostoUp = Array.isArray(v) ? v[0] : v)"
+				/>
+				<p class="text-xs text-surface-400">{{ $t('admin.carga.bulk.costoUpApplies', { n: selectedCount }) }}</p>
+			</div>
+			<template #footer>
+				<Button :label="$t('common.cancel')" text @click="bulkCostoUpVisible = false" />
+				<Button :label="$t('common.apply')" :disabled="!bulkCostoUp" @click="applyBulkCostoUp" />
+			</template>
+		</Dialog>
+
 		<!-- Dialog: importar Excel/CSV -->
 		<Dialog v-model:visible="importVisible" modal :header="$t('admin.carga.import.title')" class="w-full max-w-2xl">
 			<!-- Paso 1: subir -->
@@ -440,6 +467,14 @@
 						<p class="text-[11px] text-surface-400">{{ $t('admin.carga.import.bonifHint') }}</p>
 					</div>
 					<InputNumber v-model="importBonif" suffix=" %" :min="0" :max="100" class="w-24 shrink-0" />
+				</div>
+				<!-- Reimportar para actualizar el costo de productos existentes (match por EAN/SKU). -->
+				<div class="flex items-center justify-between gap-3 rounded-xl border border-surface-200 p-3 dark:border-surface-700">
+					<div>
+						<p class="text-sm font-medium text-surface-700 dark:text-surface-200">{{ $t('admin.carga.import.updateLabel') }}</p>
+						<p class="text-[11px] text-surface-400">{{ $t('admin.carga.import.updateHint') }}</p>
+					</div>
+					<ToggleSwitch v-model="importUpdateExisting" />
 				</div>
 			</div>
 			<template #footer>
@@ -616,6 +651,8 @@ interface Row {
 	precioCosto: number | null;
 	/** Margen (%) sobre el costo con el que se arma el precio de tienda. */
 	margen: number | null;
+	/** Precio en Mercado Libre (para propagar en actualizaciones masivas). */
+	precioMl: number | null;
 	stock: number | null;
 	gtin: string;
 	sku: string;
@@ -657,6 +694,9 @@ export default defineComponent({
 			// Margen en lote ("quiero ganar X%")
 			bulkMargenVisible: false,
 			bulkMargen: 40 as number | null,
+			// Aumento % del costo (inflación)
+			bulkCostoUpVisible: false,
+			bulkCostoUp: 0 as number | null,
 			// Importar
 			importVisible: false,
 			parsed: null as ParsedTable | null,
@@ -664,6 +704,8 @@ export default defineComponent({
 			acceptExtensions: ACCEPTED_IMPORT_EXTENSIONS,
 			// Bonificación % de la lista: el precio del Excel es costo − boni%.
 			importBonif: 0 as number,
+			// Reimportar para actualizar costos de existentes (match por EAN/SKU).
+			importUpdateExisting: false,
 			// Inputs "silenciosos" en la grilla: look de texto, borde solo en hover/foco.
 			quietCls:
 				'!border-transparent !bg-transparent !shadow-none hover:!border-surface-300 focus:!border-primary dark:hover:!border-surface-600',
@@ -871,6 +913,7 @@ export default defineComponent({
 				precio: p.precio,
 				precioCosto: p.precioCosto,
 				margen: p.margen,
+				precioMl: p.precioMl,
 				stock: p.stock,
 				gtin: p.gtin ?? '',
 				sku: p.sku ?? '',
@@ -896,6 +939,7 @@ export default defineComponent({
 				precio: null,
 				precioCosto: null,
 				margen: null,
+				precioMl: null,
 				stock: null,
 				gtin: '',
 				sku: '',
@@ -1006,6 +1050,32 @@ export default defineComponent({
 			}
 		},
 
+		// ── Aumento % del costo (inflación): sube el costo y propaga a precio de tienda y ML ──
+		applyBulkCostoUp() {
+			if (!this.bulkCostoUp) return;
+			const factor = 1 + this.bulkCostoUp / 100;
+			let sinCosto = 0;
+			for (const row of this.visibleRows) {
+				if (!row.selected) continue;
+				if (row.precioCosto == null) {
+					sinCosto++;
+					continue;
+				}
+				row.precioCosto = Math.round(row.precioCosto * factor);
+				// Precio de tienda: mantiene el margen si lo hay.
+				if (row.margen != null) row.precio = Math.round(row.precioCosto * (1 + row.margen / 100));
+				// Precio de ML: sube proporcional (aprox.; el cálculo exacto de comisión
+				// se puede recalcular en la pantalla de ML). Al guardar, se sincroniza a ML.
+				if (row.precioMl != null) row.precioMl = Math.round(row.precioMl * factor);
+				row.dirty = true;
+			}
+			this.dirty = true;
+			this.bulkCostoUpVisible = false;
+			if (sinCosto) {
+				this.$toast.add({ severity: 'info', summary: this.$t('admin.carga.bulk.margenNoCost', { n: sinCosto }), life: 4000 });
+			}
+		},
+
 		// ── Guardar ──
 		/** Arma el payload de guardado de una fila. */
 		rowToBatchItem(r: Row): BatchProductoItem {
@@ -1017,6 +1087,7 @@ export default defineComponent({
 				precio: r.precio ?? undefined,
 				precioCosto: r.precioCosto ?? undefined,
 				margen: r.margen ?? undefined,
+				precioMl: r.precioMl ?? undefined,
 				stock: r.stock ?? undefined,
 				gtin: r.gtin.trim() || undefined,
 				sku: r.sku.trim() || undefined,
@@ -1157,6 +1228,8 @@ export default defineComponent({
 			this.importVisible = false;
 			this.parsed = null;
 			this.mapping = [];
+			this.importBonif = 0;
+			this.importUpdateExisting = false;
 		},
 		async onFile(event: Event) {
 			const input = event.target as HTMLInputElement;
@@ -1195,6 +1268,7 @@ export default defineComponent({
 		},
 		confirmImport() {
 			if (!this.parsed) return;
+			if (this.importUpdateExisting) return this.confirmImportUpdate();
 			const nombreCol = this.mapping.indexOf('nombre');
 			const nuevas: Row[] = [];
 			for (const cells of this.parsed.rows) {
@@ -1221,6 +1295,61 @@ export default defineComponent({
 			this.rows = [...nuevas, ...this.rows];
 			this.dirty = true;
 			this.closeImport();
+		},
+		/**
+		 * Reimportar una lista para ACTUALIZAR el costo de productos existentes: matchea
+		 * por EAN/GTIN (o SKU), pisa el costo (aplicando la bonificación) y propaga al
+		 * precio de tienda (manteniendo el margen) y al precio de ML (proporcional al
+		 * cambio de costo). Los no encontrados se ignoran.
+		 */
+		confirmImportUpdate() {
+			if (!this.parsed) return;
+			const costoCol = this.mapping.indexOf('precioCosto');
+			const precioCol = this.mapping.indexOf('precio');
+			const gtinCol = this.mapping.indexOf('gtin');
+			const skuCol = this.mapping.indexOf('sku');
+			// La lista es de costos: usamos la columna de costo (o la de precio como respaldo).
+			const listCol = costoCol !== -1 ? costoCol : precioCol;
+			if (listCol === -1) {
+				this.$toast.add({ severity: 'warn', summary: this.$t('admin.carga.import.updateNoCol'), life: 5000 });
+				return;
+			}
+			const byGtin = new Map<string, Row>();
+			const bySku = new Map<string, Row>();
+			for (const row of this.rows) {
+				const g = row.gtin.trim();
+				const s = row.sku.trim();
+				if (g) byGtin.set(g, row);
+				if (s) bySku.set(s, row);
+			}
+			let updated = 0;
+			let notFound = 0;
+			for (const cells of this.parsed.rows) {
+				const lista = parseNumber((cells[listCol] ?? '').trim());
+				const g = gtinCol !== -1 ? (cells[gtinCol] ?? '').trim() : '';
+				const s = skuCol !== -1 ? (cells[skuCol] ?? '').trim() : '';
+				const target = (g ? byGtin.get(g) : undefined) ?? (s ? bySku.get(s) : undefined) ?? null;
+				if (!target || lista == null) {
+					notFound++;
+					continue;
+				}
+				const nuevoCosto = this.importBonif > 0 ? Math.round(lista * (1 - this.importBonif / 100)) : Math.round(lista);
+				const oldCosto = target.precioCosto;
+				target.precioCosto = nuevoCosto;
+				if (target.margen != null) target.precio = Math.round(nuevoCosto * (1 + target.margen / 100));
+				if (target.precioMl != null && oldCosto && oldCosto > 0) {
+					target.precioMl = Math.round(target.precioMl * (nuevoCosto / oldCosto));
+				}
+				target.dirty = true;
+				updated++;
+			}
+			this.dirty = true;
+			this.closeImport();
+			this.$toast.add({
+				severity: updated ? 'success' : 'warn',
+				summary: this.$t('admin.carga.import.updatedN', { updated, notFound }),
+				life: 6000,
+			});
 		},
 
 		// ── Mercado Libre: categoría + atributos ──
