@@ -140,19 +140,19 @@ export class MlPricingService {
 		const body = (await res.json().catch(() => ({}))) as Record<string, unknown> & { message?: string };
 		if (!res.ok) throw new BadRequestException(`No se pudo cotizar el envío en Mercado Libre: ${body.message || res.statusText}`);
 
-		// Parseo defensivo: el costo puede venir plano o dentro de options/coverage.
-		const opt = this.firstOption(body);
+		// Forma real de la respuesta:
+		//   { coverage: { all_country: { list_cost, currency_id, discount: { type } } } }
+		// `list_cost` es lo que paga el vendedor; `discount.type === 'mandatory'` indica
+		// que a ese precio ML EXIGE envío gratis (por debajo del mínimo, type='none' y
+		// el costo lo paga el comprador).
+		const coverage = (body.coverage ?? {}) as Record<string, unknown>;
+		const opt = (coverage.all_country ?? Object.values(coverage)[0] ?? {}) as Record<string, unknown>;
+		const discount = (opt.discount ?? {}) as Record<string, unknown>;
 		const num = (v: unknown): number => (typeof v === 'number' ? v : Number(v) || 0);
-		const cost = num(opt.list_cost ?? opt.cost ?? body.list_cost);
-		const mandatory = Boolean(body.mandatory_free_shipping ?? opt.mandatory_free_shipping ?? false);
-		const currencyId = String(opt.currency_id ?? body.currency_id ?? 'ARS');
-		return { cost, mandatory, currencyId };
-	}
-
-	/** Toma la primera "opción" de la respuesta de envío, sea plana o en array. */
-	private firstOption(body: Record<string, unknown>): Record<string, unknown> {
-		const arr = (body.options ?? body.coverage) as unknown;
-		if (Array.isArray(arr) && arr.length) return arr[0] as Record<string, unknown>;
-		return body;
+		return {
+			cost: num(opt.list_cost),
+			mandatory: discount.type === 'mandatory',
+			currencyId: String(opt.currency_id ?? 'ARS'),
+		};
 	}
 }
