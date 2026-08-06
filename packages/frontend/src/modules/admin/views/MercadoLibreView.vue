@@ -214,6 +214,30 @@
 						</div>
 					</div>
 
+					<!-- Dimensiones del paquete (para cotizar el envío de Mercado Libre) -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.shippingDims') }}</label>
+						<div class="grid grid-cols-4 gap-2">
+							<div>
+								<InputNumber v-model="edit.alto" fluid suffix=" cm" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
+								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimAlto') }}</p>
+							</div>
+							<div>
+								<InputNumber v-model="edit.ancho" fluid suffix=" cm" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
+								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimAncho') }}</p>
+							</div>
+							<div>
+								<InputNumber v-model="edit.largo" fluid suffix=" cm" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
+								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimLargo') }}</p>
+							</div>
+							<div>
+								<InputNumber v-model="edit.peso" fluid suffix=" g" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
+								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimPeso') }}</p>
+							</div>
+						</div>
+						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.shippingHint') }}</p>
+					</div>
+
 					<!-- Desglose en vivo -->
 					<div class="rounded-xl border border-surface-200 p-4 dark:border-surface-700">
 						<div v-if="feeLoading" class="py-2 text-center text-surface-500"><i class="pi pi-spin pi-spinner" /></div>
@@ -224,6 +248,7 @@
 								<div class="bg-surface-400" :style="{ width: pct(costPart) + '%' }" :title="$t('admin.ml.cost')" />
 								<div class="bg-emerald-500" :style="{ width: pct(gainPart) + '%' }" :title="$t('admin.ml.gain')" />
 								<div class="bg-amber-500" :style="{ width: pct(fee.saleFeeAmount) + '%' }" :title="$t('admin.ml.commission')" />
+								<div v-if="envioCost > 0" class="bg-sky-500" :style="{ width: pct(envioCost) + '%' }" :title="$t('admin.ml.shipping')" />
 							</div>
 							<div class="grid grid-cols-3 gap-2 text-center text-xs">
 								<div>
@@ -241,6 +266,13 @@
 									<p class="text-surface-400">{{ $t('admin.ml.commission') }} ({{ fee.percentageFee }}%)</p>
 									<p class="font-semibold text-amber-600 dark:text-amber-400">{{ money(fee.saleFeeAmount) }}</p>
 								</div>
+							</div>
+							<!-- Envío -->
+							<div class="text-xs">
+								<span v-if="shippingLoading" class="text-surface-400"><i class="pi pi-spin pi-spinner" /> {{ $t('admin.ml.shippingCalc') }}</span>
+								<span v-else-if="!hasDims" class="text-surface-400">{{ $t('admin.ml.shippingNeedDims') }}</span>
+								<span v-else-if="shipping && shipping.mandatory" class="flex items-center gap-1.5 text-sky-600 dark:text-sky-400"><i class="pi pi-truck" /> {{ $t('admin.ml.shippingFree', { cost: money(shipping.cost) }) }}</span>
+								<span v-else-if="shipping" class="flex items-center gap-1.5 text-surface-500"><i class="pi pi-truck" /> {{ $t('admin.ml.shippingBuyer') }}</span>
 							</div>
 							<p v-if="loss" class="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400">
 								<i class="pi pi-exclamation-triangle" /> {{ $t('admin.ml.lossWarn') }}
@@ -403,6 +435,7 @@ import type {
 	Producto,
 	Rubro,
 	MlFeeBreakdown,
+	MlShippingQuote,
 	MlListingType,
 	BatchProductoItem,
 	MlCategoryPrediction,
@@ -431,6 +464,11 @@ interface EditState {
 	mlCatalogProductId: string;
 	mlItemId: string;
 	stock: number | null;
+	// Dimensiones del paquete para cotizar el envío (cm) + peso (g).
+	alto: number | null;
+	ancho: number | null;
+	largo: number | null;
+	peso: number | null;
 	descripcion: string;
 	gtin: string;
 	sku: string;
@@ -471,6 +509,9 @@ export default defineComponent({
 			feeLoading: false,
 			calculating: false,
 			feeTimer: null as ReturnType<typeof setTimeout> | null,
+			// Envío (costo que paga el vendedor si el envío gratis es obligatorio a ese precio)
+			shipping: null as MlShippingQuote | null,
+			shippingLoading: false,
 			// Beneficio real por producto (para la lista): { pct, loss }
 			benefit: {} as Record<string, { pct: number; loss: boolean }>,
 			// Categoría + atributos de ML (misma función que en Cargar productos)
@@ -517,10 +558,18 @@ export default defineComponent({
 		canCalc(): boolean {
 			return !!this.edit?.mlCategoryId && !!this.edit?.precio;
 		},
-		/** Neto que recibe el vendedor con el precio ML actual. */
+		/** ¿Están cargadas las 4 dimensiones para poder cotizar el envío? */
+		hasDims(): boolean {
+			return !!(this.edit?.alto && this.edit?.ancho && this.edit?.largo && this.edit?.peso);
+		},
+		/** Costo de envío que se descuenta del neto: solo si el envío gratis es OBLIGATORIO a este precio. */
+		envioCost(): number {
+			return this.shipping?.mandatory ? this.shipping.cost : 0;
+		},
+		/** Neto que recibe el vendedor con el precio ML actual (tras comisión y envío). */
 		neto(): number | null {
 			if (!this.edit?.precioMl || !this.fee) return null;
-			return this.edit.precioMl - this.fee.saleFeeAmount;
+			return this.edit.precioMl - this.fee.saleFeeAmount - this.envioCost;
 		},
 		/** Parte de costo (para la barrita). */
 		costPart(): number | null {
@@ -659,6 +708,10 @@ export default defineComponent({
 				mlCatalogProductId: p.mlCatalogProductId ?? '',
 				mlItemId: p.mlItemId ?? '',
 				stock: p.stock,
+				alto: p.alto,
+				ancho: p.ancho,
+				largo: p.largo,
+				peso: p.peso,
 				descripcion: p.descripcion ?? '',
 				gtin: p.gtin ?? '',
 				sku: p.sku ?? '',
@@ -676,6 +729,7 @@ export default defineComponent({
 			// Margen implícito a partir de costo + precio de tienda.
 			this.margenPct = this.deriveMargin();
 			this.fee = null;
+			this.shipping = null;
 			this.editorVisible = true;
 			if (this.edit.precioMl) this.refreshFee();
 			if (p.mlCategoryId && !this.attrsByCategory[p.mlCategoryId]) void this.loadAttrs(p.mlCategoryId);
@@ -847,6 +901,7 @@ export default defineComponent({
 			const e = this.edit;
 			if (!e || !e.mlCategoryId || !e.precioMl || !this.rubro) {
 				this.fee = null;
+				this.shipping = null;
 				return;
 			}
 			this.feeLoading = true;
@@ -858,6 +913,32 @@ export default defineComponent({
 			} finally {
 				this.feeLoading = false;
 			}
+			void this.refreshShipping();
+		},
+		/**
+		 * Cotiza el envío gratis con las dimensiones cargadas. Falla silenciosa: el
+		 * endpoint está bloqueado para usuarios de prueba (403), así que en local no
+		 * devuelve nada; en producción con cuenta real sí.
+		 */
+		async refreshShipping() {
+			const e = this.edit;
+			if (!e || !this.rubro || !e.precioMl || !this.hasDims) {
+				this.shipping = null;
+				return;
+			}
+			this.shippingLoading = true;
+			try {
+				this.shipping = await this.catalog.fetchShippingCost(
+					this.rubro.id,
+					{ alto: e.alto as number, ancho: e.ancho as number, largo: e.largo as number, peso: e.peso as number },
+					e.precioMl,
+					e.mlListingType,
+				);
+			} catch {
+				this.shipping = null;
+			} finally {
+				this.shippingLoading = false;
+			}
 		},
 		/** Calcula el precio de ML para dejar el precio de tienda como neto. */
 		async calcMlPrice() {
@@ -868,6 +949,7 @@ export default defineComponent({
 				const suggested = await this.catalog.suggestMlPrice(this.rubro.id, e.precio, e.mlCategoryId, e.mlListingType);
 				e.precioMl = suggested.price;
 				this.fee = suggested;
+				void this.refreshShipping();
 			} catch (err: unknown) {
 				this.$toast.add({ severity: 'error', summary: apiErrorMessage(err, this.$t('admin.ml.feeError')), life: 5000 });
 			} finally {
@@ -890,6 +972,10 @@ export default defineComponent({
 					precioCosto: e.precioCosto ?? undefined,
 					precioMl: e.precioMl ?? undefined,
 					stock: e.stock ?? undefined,
+					alto: e.alto ?? undefined,
+					ancho: e.ancho ?? undefined,
+					largo: e.largo ?? undefined,
+					peso: e.peso ?? undefined,
 					descripcion: e.descripcion.trim() || undefined,
 					gtin: e.gtin.trim() || undefined,
 					sku: e.sku.trim() || undefined,
