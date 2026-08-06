@@ -609,6 +609,48 @@
 			"pickPending": "Falta elegir dónde publicar"
 		},
 		"ml": {
+			"tabs": {
+				"publicaciones": "Publicaciones",
+				"ventas": "Ventas"
+			},
+			"ventas": {
+				"eyebrow": "Mercado Libre",
+				"pageTitle": "Ventas concretadas",
+				"pageSubtitle": "Las ventas pagadas de este negocio en Mercado Libre.",
+				"count": "{n} ventas",
+				"sync": "Sincronizar",
+				"synced": "Se sincronizaron {n} ventas.",
+				"syncError": "No se pudieron sincronizar las ventas.",
+				"loadError": "No se pudieron cargar las ventas.",
+				"empty": "Todavía no hay ventas.",
+				"emptyHint": "Sincronizá para traer el historial de Mercado Libre.",
+				"moreItems": "+{n} más",
+				"colDate": "Fecha",
+				"colProducts": "Producto",
+				"colQty": "Cant.",
+				"colTotal": "Total",
+				"colNet": "Neto",
+				"colStatus": "Estado",
+				"colBuyer": "Comprador",
+				"colShipping": "Envío",
+				"colLabel": "Etiqueta",
+				"labelPdf": "Etiqueta PDF (impresora normal)",
+				"labelZpl": "Etiqueta ZPL (impresora térmica)",
+				"labelError": "No se pudo obtener la etiqueta.",
+				"status": {
+					"paid": "Pagada",
+					"cancelled": "Cancelada",
+					"confirmed": "Confirmada",
+					"invalid": "Inválida"
+				},
+				"shipment": {
+					"pending": "Pendiente",
+					"ready_to_ship": "Listo para despachar",
+					"shipped": "Enviado",
+					"delivered": "Entregado",
+					"not_delivered": "No entregado"
+				}
+			},
 			"button": "Mercado Libre",
 			"title": "Mercado Libre del rubro",
 			"appTitle": "App de Mercado Libre del negocio",

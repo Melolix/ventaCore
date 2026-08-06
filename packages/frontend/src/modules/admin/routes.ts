@@ -31,9 +31,22 @@ const adminRoutes: RouteRecordRaw[] = [
 			},
 			{
 				path: 'mercado-libre',
-				name: 'admin-mercado-libre',
-				component: () => import('./views/MercadoLibreView.vue'),
+				component: () => import('./views/MercadoLibreLayout.vue'),
 				beforeEnter: requireChannel('mercadolibre'),
+				children: [
+					// La ruta base redirige a Publicaciones (el nombre histórico se mantiene).
+					{ path: '', name: 'admin-mercado-libre', redirect: { name: 'admin-ml-publicaciones' } },
+					{
+						path: 'publicaciones',
+						name: 'admin-ml-publicaciones',
+						component: () => import('./views/MercadoLibreView.vue'),
+					},
+					{
+						path: 'ventas',
+						name: 'admin-ml-ventas',
+						component: () => import('./views/VentasView.vue'),
+					},
+				],
 			},
 			{
 				path: 'instagram',

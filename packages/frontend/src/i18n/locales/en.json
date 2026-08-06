@@ -609,6 +609,48 @@
 			"pickPending": "Pick where to publish"
 		},
 		"ml": {
+			"tabs": {
+				"publicaciones": "Listings",
+				"ventas": "Sales"
+			},
+			"ventas": {
+				"eyebrow": "Mercado Libre",
+				"pageTitle": "Completed sales",
+				"pageSubtitle": "This business's paid sales on Mercado Libre.",
+				"count": "{n} sales",
+				"sync": "Sync",
+				"synced": "Synced {n} sales.",
+				"syncError": "Could not sync sales.",
+				"loadError": "Could not load sales.",
+				"empty": "No sales yet.",
+				"emptyHint": "Sync to pull the history from Mercado Libre.",
+				"moreItems": "+{n} more",
+				"colDate": "Date",
+				"colProducts": "Product",
+				"colQty": "Qty",
+				"colTotal": "Total",
+				"colNet": "Net",
+				"colStatus": "Status",
+				"colBuyer": "Buyer",
+				"colShipping": "Shipping",
+				"colLabel": "Label",
+				"labelPdf": "PDF label (regular printer)",
+				"labelZpl": "ZPL label (thermal printer)",
+				"labelError": "Could not get the label.",
+				"status": {
+					"paid": "Paid",
+					"cancelled": "Cancelled",
+					"confirmed": "Confirmed",
+					"invalid": "Invalid"
+				},
+				"shipment": {
+					"pending": "Pending",
+					"ready_to_ship": "Ready to ship",
+					"shipped": "Shipped",
+					"delivered": "Delivered",
+					"not_delivered": "Not delivered"
+				}
+			},
 			"button": "Mercado Libre",
 			"title": "Rubro's Mercado Libre",
 			"appTitle": "Business's Mercado Libre app",

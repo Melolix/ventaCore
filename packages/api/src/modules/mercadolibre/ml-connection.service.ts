@@ -29,6 +29,16 @@ export class MlConnectionService {
 		return entity ? MlConnectionService.toPublic(entity) : null;
 	}
 
+	/**
+	 * Resuelve el rubro + espacio dueños de una cuenta de ML a partir del
+	 * `user_id` del vendedor. Es la llave de los webhooks entrantes: ML avisa con
+	 * el `user_id` y con esto lo mapeamos al rubro. null si nadie matchea.
+	 */
+	async findByMlUserId(mlUserId: string): Promise<{ rubroId: string; espacioId: string } | null> {
+		const entity = await this.connections.findOne({ where: { mlUserId } });
+		return entity ? { rubroId: entity.rubroId, espacioId: entity.espacioId } : null;
+	}
+
 	/** Estado completo de ML del rubro (app de plataforma lista + conexión). Valida el espacio. */
 	async stateForRubro(rubroId: string, espacioId: string): Promise<MlRubroState> {
 		await this.assertRubro(rubroId, espacioId);

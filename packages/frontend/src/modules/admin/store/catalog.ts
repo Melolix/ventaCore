@@ -20,6 +20,8 @@ import type {
 	MlFeeBreakdown,
 	MlShippingQuote,
 	MlListingType,
+	MlOrderView,
+	MlOrdersSyncResult,
 	PaymentProvider,
 	PaymentProviderConfigPublic,
 	SubscriptionPlan,
@@ -331,6 +333,30 @@ export const useCatalogStore = defineStore('catalog', {
 				params: { price, listingType, ...dims },
 			});
 			return data;
+		},
+
+		// ── Ventas de Mercado Libre (panel) ──
+		/** Lista las ventas concretadas del rubro (filtro opcional por estado). */
+		async fetchMlOrders(rubroId: string, status?: string): Promise<MlOrderView[]> {
+			const { data } = await api.get<MlOrderView[]>(`/rubros/${rubroId}/ml/orders`, {
+				params: status ? { status } : {},
+			});
+			return data;
+		},
+
+		/** Sincroniza (backfill) el historial de ventas pagadas desde Mercado Libre. */
+		async syncMlOrders(rubroId: string): Promise<MlOrdersSyncResult> {
+			const { data } = await api.post<MlOrdersSyncResult>(`/rubros/${rubroId}/ml/orders/sync`, {});
+			return data;
+		},
+
+		/** Baja la etiqueta de envío de una venta como blob ('pdf' o 'zpl' para térmica). */
+		async fetchMlLabel(rubroId: string, orderId: string, format: 'pdf' | 'zpl'): Promise<Blob> {
+			const { data } = await api.get(`/rubros/${rubroId}/ml/orders/${orderId}/label`, {
+				params: { format },
+				responseType: 'blob',
+			});
+			return data as Blob;
 		},
 
 		// ── Cobros / Suscripciones (por espacio y por rubro) ──

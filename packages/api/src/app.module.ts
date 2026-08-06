@@ -22,6 +22,9 @@ import { PaymentProviderConfigEntity } from './modules/payments/entities/payment
 import { SubscriptionPlanEntity } from './modules/payments/entities/subscription-plan.entity';
 import { SubscriptionEntity } from './modules/payments/entities/subscription.entity';
 import { SubscriptionEventEntity } from './modules/payments/entities/subscription-event.entity';
+import { SalesModule } from './modules/sales/sales.module';
+import { MlNotificationEntity } from './modules/sales/entities/ml-notification.entity';
+import { MlOrderEntity } from './modules/sales/entities/ml-order.entity';
 
 @Module({
 	imports: [
@@ -47,6 +50,8 @@ import { SubscriptionEventEntity } from './modules/payments/entities/subscriptio
 				SubscriptionPlanEntity,
 				SubscriptionEntity,
 				SubscriptionEventEntity,
+				MlNotificationEntity,
+				MlOrderEntity,
 			],
 			synchronize: process.env.DB_SYNCHRONIZE === 'true',
 		}),
@@ -60,6 +65,7 @@ import { SubscriptionEventEntity } from './modules/payments/entities/subscriptio
 		HandoffModule,
 		MediaModule,
 		PaymentsModule,
+		SalesModule,
 	],
 })
 export class AppModule {}
