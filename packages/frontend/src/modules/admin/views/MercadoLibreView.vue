@@ -940,16 +940,38 @@ export default defineComponent({
 				this.shippingLoading = false;
 			}
 		},
-		/** Calcula el precio de ML para dejar el precio de tienda como neto. */
+		/**
+		 * Calcula el precio de ML para que el neto (tras comisión Y envío) sea el
+		 * precio de tienda (costo + margen). Contempla el umbral de envío gratis: si
+		 * el precio para el objetivo queda debajo del mínimo, el envío lo paga el
+		 * comprador (no se suma); si queda arriba, el envío es obligatorio y se suma
+		 * al objetivo para que el vendedor igual se quede con su margen.
+		 */
 		async calcMlPrice() {
 			const e = this.edit;
 			if (!e || !e.mlCategoryId || !e.precio || !this.rubro) return;
+			const rubroId = this.rubro.id;
+			const objetivo = e.precio; // lo que el vendedor quiere ganar neto (costo + margen).
 			this.calculating = true;
 			try {
-				const suggested = await this.catalog.suggestMlPrice(this.rubro.id, e.precio, e.mlCategoryId, e.mlListingType);
+				// 1) Precio para dejar el objetivo neto tras la comisión (sin envío).
+				let suggested = await this.catalog.suggestMlPrice(rubroId, objetivo, e.mlCategoryId, e.mlListingType);
+				let quote: MlShippingQuote | null = null;
+				const dims = this.hasDims
+					? { alto: e.alto as number, ancho: e.ancho as number, largo: e.largo as number, peso: e.peso as number }
+					: null;
+				if (dims) {
+					quote = await this.catalog.fetchShippingCost(rubroId, dims, suggested.price, e.mlListingType).catch(() => null);
+					// 2) Si a ese precio el envío gratis es OBLIGATORIO, lo paga el vendedor:
+					//    reapuntamos a (objetivo + envío) para que el neto real quede intacto.
+					if (quote?.mandatory && quote.cost > 0) {
+						suggested = await this.catalog.suggestMlPrice(rubroId, objetivo + quote.cost, e.mlCategoryId, e.mlListingType);
+						quote = await this.catalog.fetchShippingCost(rubroId, dims, suggested.price, e.mlListingType).catch(() => quote);
+					}
+				}
 				e.precioMl = suggested.price;
 				this.fee = suggested;
-				void this.refreshShipping();
+				this.shipping = quote;
 			} catch (err: unknown) {
 				this.$toast.add({ severity: 'error', summary: apiErrorMessage(err, this.$t('admin.ml.feeError')), life: 5000 });
 			} finally {
