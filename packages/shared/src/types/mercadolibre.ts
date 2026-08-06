@@ -148,6 +148,16 @@ export interface MlFeeBreakdown {
 	currencyId: string;
 }
 
+/** Cotización del envío gratis de Mercado Libre para un producto/precio. */
+export interface MlShippingQuote {
+	/** Lo que paga el VENDEDOR por el envío gratis (list_cost, ya con el descuento de ML). */
+	cost: number;
+	/** ML exige envío gratis a este precio (superó el mínimo de la categoría). Si es false, lo paga el comprador. */
+	mandatory: boolean;
+	/** Moneda (ej. "ARS"). */
+	currencyId: string;
+}
+
 /**
  * Cálculo completo de precios para publicar en Mercado Libre. A partir del costo
  * y el precio de venta en ML, dice cuánto queda neto tras la comisión y cuánta

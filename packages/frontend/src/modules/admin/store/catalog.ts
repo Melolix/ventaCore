@@ -18,6 +18,7 @@ import type {
 	MlCatalogProduct,
 	MlImportResult,
 	MlFeeBreakdown,
+	MlShippingQuote,
 	MlListingType,
 	PaymentProvider,
 	PaymentProviderConfigPublic,
@@ -315,6 +316,19 @@ export const useCatalogStore = defineStore('catalog', {
 		): Promise<MlFeeBreakdown> {
 			const { data } = await api.get<MlFeeBreakdown>(`/rubros/${rubroId}/ml/suggest-price`, {
 				params: { neto, categoryId, listingType },
+			});
+			return data;
+		},
+
+		/** Cotiza el envío gratis de ML (costo del vendedor + si es obligatorio a ese precio). */
+		async fetchShippingCost(
+			rubroId: string,
+			dims: { alto: number; ancho: number; largo: number; peso: number },
+			price: number,
+			listingType: MlListingType,
+		): Promise<MlShippingQuote> {
+			const { data } = await api.get<MlShippingQuote>(`/rubros/${rubroId}/ml/shipping-cost`, {
+				params: { price, listingType, ...dims },
 			});
 			return data;
 		},

@@ -56,6 +56,22 @@ export class MlCatalogController {
 		return this.pricing.suggestPrice(rubroId, espacioDe(user), Number(neto), categoryId, listingTypeDe(listingType));
 	}
 
+	/** Cotiza el envío gratis de ML (costo que paga el vendedor + si es obligatorio). */
+	@Get('shipping-cost')
+	shippingCost(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Query('price') price = '',
+		@Query('alto') alto = '',
+		@Query('ancho') ancho = '',
+		@Query('largo') largo = '',
+		@Query('peso') peso = '',
+		@Query('listingType') listingType?: string,
+	) {
+		const dims = { alto: Number(alto), ancho: Number(ancho), largo: Number(largo), peso: Number(peso) };
+		return this.pricing.getFreeShipping(rubroId, espacioDe(user), dims, Number(price), listingTypeDe(listingType));
+	}
+
 	/** Predice categorías de ML a partir del título del producto. */
 	@Get('categories/predict')
 	predict(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string, @Query('q') q = '') {
