@@ -611,7 +611,26 @@
 		"ml": {
 			"tabs": {
 				"publicaciones": "Listings",
-				"ventas": "Sales"
+				"ventas": "Sales",
+				"preguntas": "Questions"
+			},
+			"preguntas": {
+				"eyebrow": "Mercado Libre",
+				"pageTitle": "Questions",
+				"pageSubtitle": "Answer your listings' questions without leaving the app.",
+				"sync": "Sync",
+				"synced": "Synced {n} questions.",
+				"syncError": "Could not sync questions.",
+				"loadError": "Could not load questions.",
+				"empty": "No questions.",
+				"emptyHint": "Sync to pull them from Mercado Libre.",
+				"filterUnanswered": "Unanswered",
+				"filterAll": "All",
+				"answer": "Answer",
+				"answerPlaceholder": "Write your answer…",
+				"answered": "Answer posted to Mercado Libre.",
+				"answerError": "Could not post the answer.",
+				"closed": "Question closed without an answer."
 			},
 			"ventas": {
 				"eyebrow": "Mercado Libre",

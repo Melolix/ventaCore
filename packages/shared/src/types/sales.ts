@@ -49,3 +49,26 @@ export interface MlOrdersSyncResult {
 	/** Total que ML dice tener para ese vendedor (paging.total). */
 	total: number;
 }
+
+/** Una pregunta de Mercado Libre, tal como la ve el panel. */
+export interface MlQuestionView {
+	id: string;
+	/** Id de la pregunta en Mercado Libre. */
+	mlQuestionId: string;
+	/** Id de la publicación preguntada. */
+	mlItemId: string;
+	/** Nombre del producto propio linkeado por `mlItemId`, o null si no está. */
+	itemTitle: string | null;
+	text: string;
+	/** Estado en ML: 'UNANSWERED' | 'ANSWERED' | 'CLOSED_UNANSWERED' | ... */
+	status: string;
+	answerText: string | null;
+	dateCreated: string | null;
+	answeredAt: string | null;
+}
+
+/** Resultado del backfill/sincronización de preguntas. */
+export interface MlQuestionsSyncResult {
+	imported: number;
+	total: number;
+}

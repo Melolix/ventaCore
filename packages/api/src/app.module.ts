@@ -25,6 +25,7 @@ import { SubscriptionEventEntity } from './modules/payments/entities/subscriptio
 import { SalesModule } from './modules/sales/sales.module';
 import { MlNotificationEntity } from './modules/sales/entities/ml-notification.entity';
 import { MlOrderEntity } from './modules/sales/entities/ml-order.entity';
+import { MlQuestionEntity } from './modules/sales/entities/ml-question.entity';
 
 @Module({
 	imports: [
@@ -52,6 +53,7 @@ import { MlOrderEntity } from './modules/sales/entities/ml-order.entity';
 				SubscriptionEventEntity,
 				MlNotificationEntity,
 				MlOrderEntity,
+				MlQuestionEntity,
 			],
 			synchronize: process.env.DB_SYNCHRONIZE === 'true',
 		}),

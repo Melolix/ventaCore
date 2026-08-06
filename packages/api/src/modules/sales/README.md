@@ -13,8 +13,9 @@ ML  ──POST /webhooks/ml──►  MlWebhookController
                           · persiste el aviso (ml_notifications)
                           · resuelve el rubro por user_id (findByMlUserId)
                           · despacha por topic
-                                 ├── orders_v2 ─► MlOrdersService   (venta + stock)
-                                 └── shipments ─► MlShipmentsService (estado envío)
+                                 ├── orders_v2 ─► MlOrdersService    (venta + stock)
+                                 ├── shipments ─► MlShipmentsService (estado envío)
+                                 └── questions ─► MlQuestionsService (responder desde la app)
 ```
 
 - **Un solo endpoint** atiende todos los topics; se despacha por `topic`.
@@ -39,6 +40,8 @@ ML  ──POST /webhooks/ml──►  MlWebhookController
    El **backfill NO toca stock** (las ventas históricas ya están reflejadas).
 3. **Envío** (`shipments`): trae `GET /shipments/{id}`, actualiza `shipmentStatus`.
 4. **Etiqueta**: on-demand desde el panel, `GET /shipment_labels` (PDF o ZPL).
+5. **Pregunta** (`questions`): trae `GET /questions/{id}`, upsert en `ml_questions`.
+   Se responde desde la app con `POST /answers` (sin WhatsApp).
 
 ## Endpoints
 
@@ -48,6 +51,9 @@ ML  ──POST /webhooks/ml──►  MlWebhookController
 | `GET` | `/rubros/:rubroId/ml/orders` | admin | Lista las ventas del rubro |
 | `POST` | `/rubros/:rubroId/ml/orders/sync` | admin | Backfill del historial (`/orders/search`) |
 | `GET` | `/rubros/:rubroId/ml/orders/:orderId/label?format=pdf\|zpl` | admin | Baja la etiqueta |
+| `GET` | `/rubros/:rubroId/ml/questions` | admin | Lista las preguntas del rubro |
+| `POST` | `/rubros/:rubroId/ml/questions/sync` | admin | Backfill de preguntas |
+| `POST` | `/rubros/:rubroId/ml/questions/:questionId/answer` | admin | Responde (POST /answers a ML) |
 
 ## Configuración para que lleguen los webhooks
 
@@ -56,7 +62,7 @@ ML  ──POST /webhooks/ml──►  MlWebhookController
 2. Un **túnel público** al API (ej. ngrok).
 3. En el panel de la app de ML (developers.mercadolibre.com.ar → Notificaciones):
    - **Callback URL**: `{túnel}/webhooks/ml`
-   - **Topics**: `orders_v2`, `shipments`
+   - **Topics**: `orders_v2`, `shipments`, `questions`
 4. El rubro tiene que tener una cuenta de ML **real** conectada (los usuarios de
    PRUEBA tienen bloqueado el envío/etiqueta por policy → 403).
 

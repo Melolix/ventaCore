@@ -30,6 +30,7 @@ export default defineComponent({
 			tabs: [
 				{ name: 'admin-ml-publicaciones', label: 'admin.ml.tabs.publicaciones', icon: 'pi pi-shopping-cart' },
 				{ name: 'admin-ml-ventas', label: 'admin.ml.tabs.ventas', icon: 'pi pi-receipt' },
+				{ name: 'admin-ml-preguntas', label: 'admin.ml.tabs.preguntas', icon: 'pi pi-comments' },
 			],
 		};
 	},

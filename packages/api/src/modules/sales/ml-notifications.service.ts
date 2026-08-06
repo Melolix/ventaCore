@@ -5,6 +5,7 @@ import { MlConnectionService } from '../mercadolibre/ml-connection.service';
 import { MlNotificationEntity } from './entities/ml-notification.entity';
 import { MlOrdersService } from './ml-orders.service';
 import { MlShipmentsService } from './ml-shipments.service';
+import { MlQuestionsService } from './ml-questions.service';
 
 /** Forma cruda de una notificación de Mercado Libre (solo lo que usamos). */
 interface RawMlNotification {
@@ -37,6 +38,7 @@ export class MlNotificationsService {
 		private readonly connections: MlConnectionService,
 		private readonly orders: MlOrdersService,
 		private readonly shipments: MlShipmentsService,
+		private readonly questions: MlQuestionsService,
 	) {}
 
 	/** Persiste el aviso crudo con estado 'received'. Devuelve la entidad guardada. */
@@ -82,8 +84,9 @@ export class MlNotificationsService {
 	}
 
 	/**
-	 * Despacha según el topic: `orders_v2` (ventas + stock) y `shipments` (estado
-	 * del envío para la etiqueta). Los topics sin handler quedan logueados.
+	 * Despacha según el topic: `orders_v2` (ventas + stock), `shipments` (estado
+	 * del envío para la etiqueta) y `questions` (preguntas). Los topics sin handler
+	 * quedan logueados.
 	 */
 	private async dispatch(topic: string, resource: string, owner: { rubroId: string; espacioId: string }): Promise<void> {
 		switch (topic) {
@@ -93,6 +96,9 @@ export class MlNotificationsService {
 				break;
 			case 'shipments':
 				await this.shipments.handleShipmentNotification(resource, owner);
+				break;
+			case 'questions':
+				await this.questions.handleQuestionNotification(resource, owner);
 				break;
 			default:
 				this.logger.log(`topic sin handler: ${topic} (${resource})`);

@@ -22,6 +22,8 @@ import type {
 	MlListingType,
 	MlOrderView,
 	MlOrdersSyncResult,
+	MlQuestionView,
+	MlQuestionsSyncResult,
 	PaymentProvider,
 	PaymentProviderConfigPublic,
 	SubscriptionPlan,
@@ -357,6 +359,27 @@ export const useCatalogStore = defineStore('catalog', {
 				responseType: 'blob',
 			});
 			return data as Blob;
+		},
+
+		// ── Preguntas de Mercado Libre (panel) ──
+		/** Lista las preguntas del rubro (filtro opcional por estado, ej. UNANSWERED). */
+		async fetchMlQuestions(rubroId: string, status?: string): Promise<MlQuestionView[]> {
+			const { data } = await api.get<MlQuestionView[]>(`/rubros/${rubroId}/ml/questions`, {
+				params: status ? { status } : {},
+			});
+			return data;
+		},
+
+		/** Publica la respuesta de una pregunta en Mercado Libre. */
+		async answerMlQuestion(rubroId: string, questionId: string, text: string): Promise<MlQuestionView> {
+			const { data } = await api.post<MlQuestionView>(`/rubros/${rubroId}/ml/questions/${questionId}/answer`, { text });
+			return data;
+		},
+
+		/** Sincroniza (backfill) las preguntas desde Mercado Libre. */
+		async syncMlQuestions(rubroId: string): Promise<MlQuestionsSyncResult> {
+			const { data } = await api.post<MlQuestionsSyncResult>(`/rubros/${rubroId}/ml/questions/sync`, {});
+			return data;
 		},
 
 		// ── Cobros / Suscripciones (por espacio y por rubro) ──

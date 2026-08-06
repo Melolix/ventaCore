@@ -46,6 +46,11 @@ const adminRoutes: RouteRecordRaw[] = [
 						name: 'admin-ml-ventas',
 						component: () => import('./views/VentasView.vue'),
 					},
+					{
+						path: 'preguntas',
+						name: 'admin-ml-preguntas',
+						component: () => import('./views/PreguntasView.vue'),
+					},
 				],
 			},
 			{

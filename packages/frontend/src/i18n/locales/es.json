@@ -611,7 +611,26 @@
 		"ml": {
 			"tabs": {
 				"publicaciones": "Publicaciones",
-				"ventas": "Ventas"
+				"ventas": "Ventas",
+				"preguntas": "Preguntas"
+			},
+			"preguntas": {
+				"eyebrow": "Mercado Libre",
+				"pageTitle": "Preguntas",
+				"pageSubtitle": "Respondé las preguntas de tus publicaciones sin salir de la app.",
+				"sync": "Sincronizar",
+				"synced": "Se sincronizaron {n} preguntas.",
+				"syncError": "No se pudieron sincronizar las preguntas.",
+				"loadError": "No se pudieron cargar las preguntas.",
+				"empty": "No hay preguntas.",
+				"emptyHint": "Sincronizá para traerlas de Mercado Libre.",
+				"filterUnanswered": "Sin responder",
+				"filterAll": "Todas",
+				"answer": "Responder",
+				"answerPlaceholder": "Escribí tu respuesta…",
+				"answered": "Respuesta publicada en Mercado Libre.",
+				"answerError": "No se pudo publicar la respuesta.",
+				"closed": "Pregunta cerrada sin responder."
 			},
 			"ventas": {
 				"eyebrow": "Mercado Libre",
