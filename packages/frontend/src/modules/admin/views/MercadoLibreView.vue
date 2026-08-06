@@ -999,9 +999,15 @@ export default defineComponent({
 					}
 					this.$toast.add({ severity: 'success', summary: this.$t('admin.carga.pub.done'), detail: res.permalink || '', life: 7000 });
 				} else {
-					// Ya publicado: empujamos el nuevo precio/stock a la publicación de ML.
-					await this.catalog.updateMlListing(this.rubro.id, saved.id);
-					this.$toast.add({ severity: 'success', summary: this.$t('admin.ml.savedSynced'), life: 4000 });
+					// Ya publicado: empujamos el nuevo precio/stock (best-effort). Algunos ítems
+					// (en revisión, con ofertas activas, o de catálogo) no permiten cambiar precio
+					// ni stock: en ese caso guardamos igual y avisamos, no rompemos.
+					try {
+						await this.catalog.updateMlListing(this.rubro.id, saved.id);
+						this.$toast.add({ severity: 'success', summary: this.$t('admin.ml.savedSynced'), life: 4000 });
+					} catch {
+						this.$toast.add({ severity: 'warn', summary: this.$t('admin.ml.savedNoSync'), life: 7000 });
+					}
 				}
 				await this.catalog.fetchAllProductos();
 				this.editorVisible = false;
