@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MercadoLibreModule } from '../mercadolibre/mercadolibre.module';
+import { UsersModule } from '../users/users.module';
+import { FirebaseAuthGuard } from '../../common/auth/firebase-auth.guard';
+import { RolesGuard } from '../../common/auth/roles.guard';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
 import { MlNotificationEntity } from './entities/ml-notification.entity';
 import { MlOrderEntity } from './entities/ml-order.entity';
@@ -24,8 +27,9 @@ import { MlQuestionsService } from './ml-questions.service';
 	imports: [
 		TypeOrmModule.forFeature([MlNotificationEntity, MlOrderEntity, MlQuestionEntity, ProductoEntity]),
 		MercadoLibreModule,
+		UsersModule,
 	],
 	controllers: [MlWebhookController, MlOrdersController, MlQuestionsController],
-	providers: [MlNotificationsService, MlOrdersService, MlShipmentsService, MlQuestionsService],
+	providers: [MlNotificationsService, MlOrdersService, MlShipmentsService, MlQuestionsService, FirebaseAuthGuard, RolesGuard],
 })
 export class SalesModule {}
