@@ -1,5 +1,6 @@
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { auth, storage } from '@/shared/providers/firebase';
+import { api } from '@/shared/services/api';
 
 export const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 export const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 MB
@@ -128,21 +129,32 @@ export async function removeBackground(
 }
 
 /**
+ * Baja una imagen ya subida a Storage a través de NUESTRO backend (`/media/proxy`)
+ * en vez de un fetch directo. Así el navegador no hace una request cross-origin
+ * y no dependemos del CORS del bucket ni del cache del navegador (el fetch
+ * directo se bloqueaba con "No 'Access-Control-Allow-Origin'").
+ */
+async function fetchImageViaProxy(url: string): Promise<Blob> {
+	const { data } = await api.get('/media/proxy', { params: { url }, responseType: 'blob' });
+	return data as Blob;
+}
+
+/**
  * Pipeline completo de "quitar fondo" reutilizable en cualquier lugar donde
  * haya una foto de producto: toma la fuente (un Blob que ya tengamos, o la URL
  * de una imagen ya subida), le quita el fondo, la exporta con fondo blanco y la
  * sube a Storage. Devuelve la URL nueva y el Blob (útil para cachearlo y evitar
  * re-descargas).
  *
- * Nota CORS: si la fuente es una URL de Storage, el `fetch` requiere que el
- * bucket tenga CORS habilitado. Cuando reusamos un Blob en memoria (subida de
- * la misma sesión) no hay problema.
+ * Si la fuente es una URL, la bajamos por el proxy del backend (evita CORS del
+ * bucket). Si ya tenemos el Blob en memoria (subida de la misma sesión), lo
+ * usamos directo.
  */
 export async function stripBackgroundToUpload(
 	source: Blob | string,
 	opts: { folder: string; format?: ImageFormat; maxWidth?: number; onProgress?: (ratio: number) => void },
 ): Promise<{ url: string; blob: Blob }> {
-	const input = typeof source === 'string' ? await (await fetch(source)).blob() : source;
+	const input = typeof source === 'string' ? await fetchImageViaProxy(source) : source;
 	const canvas = await removeBackground(input, opts.onProgress);
 	const blob = await canvasToBlob(canvas, opts.maxWidth ?? 1600, { format: opts.format ?? 'jpeg' });
 	const url = await uploadImage(blob, opts.folder);

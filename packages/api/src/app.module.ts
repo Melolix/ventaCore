@@ -16,6 +16,7 @@ import { MetaTargetEntity } from './modules/social/entities/meta-target.entity';
 import { MercadoLibreModule } from './modules/mercadolibre/mercadolibre.module';
 import { MlConnectionEntity } from './modules/mercadolibre/entities/ml-connection.entity';
 import { HandoffModule } from './modules/handoff/handoff.module';
+import { MediaModule } from './modules/media/media.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { PaymentProviderConfigEntity } from './modules/payments/entities/payment-provider-config.entity';
 import { SubscriptionPlanEntity } from './modules/payments/entities/subscription-plan.entity';
@@ -57,6 +58,7 @@ import { SubscriptionEventEntity } from './modules/payments/entities/subscriptio
 		SocialModule,
 		MercadoLibreModule,
 		HandoffModule,
+		MediaModule,
 		PaymentsModule,
 	],
 })
