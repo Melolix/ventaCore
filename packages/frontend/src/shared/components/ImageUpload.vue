@@ -11,6 +11,15 @@
 					class="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
 				>
 					<Button icon="pi pi-pencil" rounded size="small" :aria-label="$t('common.edit')" @click="pick" />
+					<Button
+						v-if="removeBg"
+						icon="pi pi-eraser"
+						rounded
+						size="small"
+						severity="secondary"
+						:aria-label="$t('image.removeBg')"
+						@click="stripBackground"
+					/>
 					<Button icon="pi pi-trash" rounded severity="danger" size="small" :aria-label="$t('common.delete')" @click="remove" />
 				</div>
 			</template>
@@ -26,9 +35,12 @@
 
 			<div
 				v-if="uploading"
-				class="absolute inset-0 flex items-center justify-center bg-surface-0/70 dark:bg-surface-900/70"
+				class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-surface-0/70 px-4 text-center dark:bg-surface-900/70"
 			>
 				<i class="pi pi-spin pi-spinner text-2xl text-primary" />
+				<span v-if="busyKey" class="text-xs font-medium text-primary">
+					{{ $t(busyKey) }}<template v-if="busyPct !== null"> {{ busyPct }}%</template>
+				</span>
 			</div>
 		</div>
 
@@ -59,6 +71,7 @@ import {
 	loadImage,
 	checkDimensions,
 	canvasToBlob,
+	stripBackgroundToUpload,
 	uploadImage,
 	deleteImage,
 	type ImageError,
@@ -81,9 +94,11 @@ const props = withDefaults(
 		rounded?: boolean;
 		/** Formato de salida. 'jpeg' para fotos que se publican en Instagram. */
 		format?: ImageFormat;
+		/** Habilita el botón "Quitar fondo" sobre la imagen ya subida. */
+		removeBg?: boolean;
 		hint?: string;
 	}>(),
-	{ aspectRatio: 16 / 9, maxWidth: 1600, minWidth: 600, minHeight: 0, rounded: false, format: 'webp', hint: '' },
+	{ aspectRatio: 16 / 9, maxWidth: 1600, minWidth: 600, minHeight: 0, rounded: false, format: 'webp', removeBg: false, hint: '' },
 );
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
@@ -94,6 +109,13 @@ const cropVisible = ref(false);
 const cropSrc = ref('');
 const uploading = ref(false);
 const errorKey = ref('');
+// Mensaje mostrado sobre el spinner mientras se procesa (ej. quitar fondo).
+const busyKey = ref('');
+// Progreso 0..100 de la descarga del modelo de fondo (null = sin barra).
+const busyPct = ref<number | null>(null);
+// Blob subido en ESTA sesión. Lo reusamos para "quitar fondo" sin re-descargar
+// de Storage (evita CORS). Se descarta cuando la imagen cambia desde afuera.
+const lastBlob = ref<Blob | null>(null);
 
 const errKey = (e: ImageError): string => `image.err.${e}`;
 
@@ -111,6 +133,7 @@ watch(
 	val => {
 		if (val === selfEmitted) return; // cambio propio: lo ignoramos
 		pending.clear(); // cambio externo (guardado/carga): olvidamos lo pendiente
+		lastBlob.value = null; // la imagen ya no es la que subimos en esta sesión
 	},
 );
 
@@ -164,6 +187,7 @@ async function confirmCrop(): Promise<void> {
 			pending.delete(prevUrl);
 			void deleteImage(prevUrl);
 		}
+		lastBlob.value = blob; // fuente para "quitar fondo" sin re-descargar
 		pending.add(url);
 		selfEmitted = url;
 		emit('update:modelValue', url);
@@ -172,6 +196,45 @@ async function confirmCrop(): Promise<void> {
 		errorKey.value = 'image.err.upload';
 	} finally {
 		uploading.value = false;
+	}
+}
+
+/**
+ * Quita el fondo de la imagen ya subida y sube el resultado (objeto sobre
+ * blanco). Acción opcional que dispara el usuario desde la preview. Reusa el
+ * blob de esta sesión para no re-descargar de Storage; si no lo tenemos (imagen
+ * que venía persistida), lo baja por URL.
+ */
+async function stripBackground(): Promise<void> {
+	if (!props.modelValue || uploading.value) return;
+	uploading.value = true;
+	busyKey.value = 'image.removingBg';
+	busyPct.value = null;
+	errorKey.value = '';
+	try {
+		const { url, blob } = await stripBackgroundToUpload(lastBlob.value ?? props.modelValue, {
+			folder: props.folder,
+			format: props.format,
+			maxWidth: props.maxWidth,
+			onProgress: ratio => {
+				busyPct.value = Math.round(ratio * 100);
+			},
+		});
+		const prevUrl = props.modelValue;
+		if (prevUrl && pending.has(prevUrl)) {
+			pending.delete(prevUrl);
+			void deleteImage(prevUrl);
+		}
+		lastBlob.value = blob;
+		pending.add(url);
+		selfEmitted = url;
+		emit('update:modelValue', url);
+	} catch {
+		errorKey.value = 'image.err.removeBg';
+	} finally {
+		uploading.value = false;
+		busyKey.value = '';
+		busyPct.value = null;
 	}
 }
 

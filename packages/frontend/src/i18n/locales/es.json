@@ -41,8 +41,11 @@
 			"size": "La imagen supera el tamaño máximo (8 MB).",
 			"dimensions": "La imagen es muy chica y se vería borrosa. Subí una de mayor resolución.",
 			"decode": "No se pudo leer la imagen.",
-			"upload": "No se pudo subir la imagen. Probá de nuevo."
-		}
+			"upload": "No se pudo subir la imagen. Probá de nuevo.",
+			"removeBg": "No se pudo quitar el fondo. Probá de nuevo."
+		},
+		"removeBg": "Quitar fondo",
+		"removingBg": "Quitando fondo…"
 	},
 	"file": {
 		"uploadApk": "Subir APK",
@@ -205,7 +208,9 @@
 		"panelSubtitle": "Gestión VentaCore",
 		"soon": "Próximamente",
 		"viewSite": "Ver el sitio",
-		"sidebar": { "general": "General" },
+		"sidebar": {
+			"general": "General"
+		},
 		"impersonating": "Viendo como {nombre}",
 		"impersonatingExit": "Salir",
 		"business": "Negocio",
@@ -344,10 +349,22 @@
 			"title": "Cargar productos",
 			"subtitle": "Traé tus productos y publicalos en lote. El sistema completa lo que puede solo.",
 			"sources": {
-				"scan": { "title": "Escanear código", "desc": "Autocompleta del catálogo de Mercado Libre" },
-				"excel": { "title": "Importar Excel / CSV", "desc": "Mapeás columnas una vez" },
-				"erp": { "title": "Desde ERP / tienda", "desc": "ML actual, Tiendanube, POS" },
-				"ia": { "title": "Foto + nombre → IA", "desc": "Para productos sin código" },
+				"scan": {
+					"title": "Escanear código",
+					"desc": "Autocompleta del catálogo de Mercado Libre"
+				},
+				"excel": {
+					"title": "Importar Excel / CSV",
+					"desc": "Mapeás columnas una vez"
+				},
+				"erp": {
+					"title": "Desde ERP / tienda",
+					"desc": "ML actual, Tiendanube, POS"
+				},
+				"ia": {
+					"title": "Foto + nombre → IA",
+					"desc": "Para productos sin código"
+				},
 				"soon": "Próximamente"
 			},
 			"addRow": "Agregar fila",
@@ -615,7 +632,7 @@
 			"shippingNeedDims": "Cargá las dimensiones del paquete para calcular el envío.",
 			"shippingFree": "Envío gratis obligatorio: te cuesta {cost} (ya descontado del neto).",
 			"shippingBuyer": "Sin envío gratis obligatorio a este precio: lo paga el comprador.",
-			"savedSynced": "Guardado y sincronizado con Mercado Libre",
+			"savedSynced": "Guardado y sincronizado con Mercado Libre",
 			"savedNoSync": "Guardado. Mercado Libre no aceptó actualizar precio/stock (el ítem está en revisión o tiene ofertas).",
 			"connectedAs": "Conectado como {name}",
 			"disconnect": "Desconectar",
@@ -703,6 +720,33 @@
 			"done": "Publicado con éxito",
 			"partial": "Publicado con algunos errores",
 			"failed": "No se pudo publicar"
+		}
+	},
+	"handoff": {
+		"qr": {
+			"button": "Foto desde el celular",
+			"title": "Subí la foto desde tu celular",
+			"subtitle": "Escaneá el código con la cámara del celular y sacá la foto ahí.",
+			"waiting": "Esperando la foto…",
+			"received": "¡Llegó! {n} foto(s) recibida(s).",
+			"expired": "El código venció. Generá uno nuevo.",
+			"regenerate": "Generar de nuevo",
+			"copyLink": "Copiar el link",
+			"copied": "¡Link copiado!",
+			"done": "Listo",
+			"error": "No se pudo generar el código. Probá de nuevo."
+		},
+		"mobile": {
+			"title": "Sacá la foto del producto",
+			"subtitle": "La foto va a aparecer sola en la computadora.",
+			"takePhoto": "Sacar foto",
+			"another": "Sacar otra",
+			"uploading": "Subiendo…",
+			"success": "{n} foto(s) enviada(s). Ya podés cerrar.",
+			"hint": "Podés sacar varias fotos, una tras otra.",
+			"invalidTitle": "Link inválido",
+			"invalidMsg": "Abrí esta página escaneando el código QR desde la computadora.",
+			"errUpload": "No se pudo subir la foto. Probá de nuevo."
 		}
 	}
 }

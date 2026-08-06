@@ -30,6 +30,15 @@ const routes: RouteRecordRaw[] = [
 
 	...superadminRoutes,
 	...adminRoutes,
+
+	// Subida de foto desde el celular (handoff por QR). Pública, sin layout ni
+	// auth: se abre al escanear el QR y se autoriza con el token del fragmento.
+	{
+		path: '/m/subir/:id',
+		name: 'handoff-mobile-upload',
+		component: () => import('@/modules/app/views/MobileUploadView.vue'),
+	},
+
 	// appRoutes define la raíz '/' (vitrina pública del negocio del dominio).
 	...appRoutes,
 

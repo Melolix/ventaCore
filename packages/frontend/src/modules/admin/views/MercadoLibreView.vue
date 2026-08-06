@@ -404,11 +404,16 @@
 							<span v-if="i === 0" class="absolute left-1 top-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white">{{ $t('admin.carga.images.cover') }}</span>
 							<div class="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
 								<Button v-if="i !== 0" icon="pi pi-star" rounded size="small" :title="$t('admin.carga.images.makeCover')" @click="makeCover(i)" />
+								<Button icon="pi pi-eraser" rounded size="small" severity="secondary" :title="$t('image.removeBg')" :disabled="strippingIdx !== null" @click="stripImg(i)" />
 								<Button icon="pi pi-trash" rounded severity="danger" size="small" :title="$t('common.delete')" @click="removeImg(i)" />
+							</div>
+							<div v-if="strippingIdx === i" class="absolute inset-0 flex items-center justify-center bg-surface-0/70 dark:bg-surface-900/70">
+								<i class="pi pi-spin pi-spinner text-xl text-primary" />
 							</div>
 						</div>
 						<ImageUpload :model-value="''" folder="productos" :aspect-ratio="1" :min-width="500" format="jpeg" @update:model-value="onAddImage" />
 					</div>
+					<div><HandoffButton @photos="onHandoffPhotos" /></div>
 					<p class="text-[11px] text-surface-400">{{ $t('admin.ml.imagesHint') }}</p>
 					</section>
 					</div>
@@ -446,7 +451,9 @@ import type {
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
+import { stripBackgroundToUpload, deleteImage } from '@/shared/utils/image';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
+import HandoffButton from '@/shared/components/HandoffButton.vue';
 
 type FilterKey = 'all' | 'published' | 'ready' | 'missing';
 type ProductState = 'published' | 'ready' | 'missing';
@@ -481,7 +488,7 @@ interface EditState {
 
 export default defineComponent({
 	name: 'MercadoLibreView',
-	components: { ImageUpload },
+	components: { ImageUpload, HandoffButton },
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -489,6 +496,8 @@ export default defineComponent({
 			loading: false,
 			mlConnected: false,
 			importing: false,
+			// Índice de la imagen a la que se le está quitando el fondo (null = ninguna).
+			strippingIdx: null as number | null,
 			activeFilter: 'all' as FilterKey,
 			search: '',
 			// "Listas" (completo pero sin publicar) se sacó: desde acá al guardar se
@@ -762,6 +771,12 @@ export default defineComponent({
 				this.edit.imageUrl = this.edit.imagenes[0] ?? '';
 			}
 		},
+		/** Fotos llegadas desde el celular (QR): se suman a la galería. */
+		onHandoffPhotos(urls: string[]) {
+			if (!this.edit || !urls.length) return;
+			this.edit.imagenes.push(...urls);
+			this.edit.imageUrl = this.edit.imagenes[0] ?? '';
+		},
 		makeCover(i: number) {
 			if (!this.edit) return;
 			const [img] = this.edit.imagenes.splice(i, 1);
@@ -772,6 +787,23 @@ export default defineComponent({
 			if (!this.edit) return;
 			this.edit.imagenes.splice(i, 1);
 			this.edit.imageUrl = this.edit.imagenes[0] ?? '';
+		},
+		/** Quita el fondo (deja blanco) de la imagen i y la reemplaza en la galería. */
+		async stripImg(i: number) {
+			if (!this.edit || this.strippingIdx !== null) return;
+			const old = this.edit.imagenes[i];
+			if (!old) return;
+			this.strippingIdx = i;
+			try {
+				const { url } = await stripBackgroundToUpload(old, { folder: 'productos', format: 'jpeg' });
+				this.edit.imagenes.splice(i, 1, url);
+				this.edit.imageUrl = this.edit.imagenes[0] ?? '';
+				void deleteImage(old);
+			} catch {
+				this.$toast.add({ severity: 'error', summary: this.$t('image.err.removeBg'), life: 5000 });
+			} finally {
+				this.strippingIdx = null;
+			}
 		},
 		// ── Categoría + atributos de ML ──
 		async suggestCategories() {
