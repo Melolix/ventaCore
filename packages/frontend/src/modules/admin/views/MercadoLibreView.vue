@@ -205,16 +205,8 @@
 						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.storePriceHint') }}</p>
 					</div>
 
-					<!-- Precio ML + calcular -->
-					<div class="space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.mlPrice') }}</label>
-						<div class="flex gap-2">
-							<InputNumber v-model="edit.precioMl" class="flex-1" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onMlPriceChange" />
-							<Button :label="$t('admin.ml.calcBtn')" icon="pi pi-calculator" :loading="calculating" :disabled="!canCalc" @click="calcMlPrice" />
-						</div>
-					</div>
-
-					<!-- Dimensiones del paquete (para cotizar el envío de Mercado Libre) -->
+					<!-- Dimensiones del paquete (para cotizar el envío de Mercado Libre).
+					     Van ANTES del precio ML para que "Calcular" ya conozca el envío. -->
 					<div class="space-y-1.5">
 						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.shippingDims') }}</label>
 						<div class="grid grid-cols-4 gap-2">
@@ -236,6 +228,15 @@
 							</div>
 						</div>
 						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.shippingHint') }}</p>
+					</div>
+
+					<!-- Precio ML + calcular -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.mlPrice') }}</label>
+						<div class="flex gap-2">
+							<InputNumber v-model="edit.precioMl" class="flex-1" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onMlPriceChange" />
+							<Button :label="$t('admin.ml.calcBtn')" icon="pi pi-calculator" :loading="calculating" :disabled="!canCalc" @click="calcMlPrice" />
+						</div>
 					</div>
 
 					<!-- Desglose en vivo -->
