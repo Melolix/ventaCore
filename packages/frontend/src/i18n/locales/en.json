@@ -369,6 +369,8 @@
 			},
 			"addRow": "Add row",
 			"selectedOf": "{sel} selected of {total}",
+			"searchPlaceholder": "Search by name, brand, EAN…",
+			"searchNoResults": "No products match “{q}”.",
 			"cols": {
 				"producto": "Product",
 				"categoria": "Category",
@@ -407,6 +409,13 @@
 				"costoUpHint": "Raise cost by a % (inflation). Recomputes the page price (keeping the margin) and the Mercado Libre price.",
 				"costoUpApplies": "Applies to {n} selected. Save afterwards to sync with Mercado Libre.",
 				"margenNoCost": "{n} without a cost: their price wasn't changed.",
+				"delete": "Delete",
+				"deleteTitle": "Delete selected",
+				"deleteBody": "You're about to delete {n} products. This can't be undone.",
+				"deletePublished": "{n} are published on Mercado Libre: they're removed here but the listing stays active on ML.",
+				"deleteConfirm": "Delete {n}",
+				"deleted": "{n} products deleted.",
+				"deletePartial": "{n} deleted, {fail} failed.",
 				"completarIa": "Complete with AI"
 			},
 			"legend": {

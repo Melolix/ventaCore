@@ -97,10 +97,28 @@
 				class="glass-card sticky top-20 z-20 mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3 shadow-sm"
 			>
 				<Button :label="$t('admin.carga.addRow')" icon="pi pi-plus" size="small" @click="addRow()" />
+				<!-- Buscador: filtra por nombre, marca, EAN/SKU… y acota las acciones en lote. -->
+				<div class="relative">
+					<i class="pi pi-search pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-surface-400" />
+					<InputText
+						v-model="search"
+						:placeholder="$t('admin.carga.searchPlaceholder')"
+						class="w-48 !py-1.5 !pl-8 !pr-7 text-sm sm:w-56"
+					/>
+					<button
+						v-if="search"
+						type="button"
+						class="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
+						:title="$t('common.cancel')"
+						@click="search = ''"
+					>
+						<i class="pi pi-times text-xs" />
+					</button>
+				</div>
 				<span class="hidden h-6 w-px bg-surface-200 dark:bg-surface-700 sm:block" />
 				<Checkbox :model-value="allSelected" binary @update:model-value="toggleAll" />
 				<span class="text-sm font-semibold text-surface-700 dark:text-surface-200">
-					{{ $t('admin.carga.selectedOf', { sel: selectedCount, total: visibleRows.length }) }}
+					{{ $t('admin.carga.selectedOf', { sel: selectedCount, total: gridRows.length }) }}
 				</span>
 				<Button
 					:label="$t('admin.carga.bulk.margen')"
@@ -126,6 +144,15 @@
 					:disabled="!selectedCount"
 					@click="bulkCostoUpVisible = true"
 				/>
+				<Button
+					:label="$t('admin.carga.bulk.delete')"
+					icon="pi pi-trash"
+					size="small"
+					outlined
+					severity="danger"
+					:disabled="!selectedCount"
+					@click="bulkDeleteVisible = true"
+				/>
 				<div class="ml-auto flex items-center gap-2">
 					<span
 						v-if="dirtyCount"
@@ -145,9 +172,13 @@
 				</div>
 			</div>
 
-			<!-- Grilla vacía -->
-			<div v-if="!visibleRows.length" class="glass-card rounded-2xl p-10 text-center text-surface-500">
-				{{ $t('admin.carga.empty') }}
+			<!-- Grilla vacía (o sin resultados del buscador) -->
+			<div v-if="!gridRows.length" class="glass-card rounded-2xl p-10 text-center text-surface-500">
+				<template v-if="search">
+					<i class="pi pi-search-minus mb-2 block text-2xl text-surface-400" />
+					{{ $t('admin.carga.searchNoResults', { q: search }) }}
+				</template>
+				<template v-else>{{ $t('admin.carga.empty') }}</template>
 			</div>
 
 			<!-- Grilla -->
@@ -170,10 +201,11 @@
 					</thead>
 					<tbody>
 						<tr
-							v-for="row in visibleRows"
+							v-for="row in gridRows"
 							:key="row.key"
-							class="border-b border-surface-100 transition-colors last:border-0 hover:bg-surface-50/60 dark:border-surface-800/60 dark:hover:bg-surface-800/30"
-							:class="row.dirty ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''"
+							class="cursor-pointer border-b border-surface-100 transition-colors last:border-0 hover:bg-surface-50/60 dark:border-surface-800/60 dark:hover:bg-surface-800/30"
+							:class="[row.dirty ? 'bg-amber-50/50 dark:bg-amber-950/20' : '', row.selected ? 'bg-primary/5 dark:bg-primary/10' : '']"
+							@click="onRowClick(row, $event)"
 						>
 							<td class="px-2 py-2 align-middle">
 								<Checkbox v-model="row.selected" binary />
@@ -417,6 +449,20 @@
 			<template #footer>
 				<Button :label="$t('common.cancel')" text @click="bulkCostoUpVisible = false" />
 				<Button :label="$t('common.apply')" :disabled="!bulkCostoUp" @click="applyBulkCostoUp" />
+			</template>
+		</Dialog>
+
+		<!-- Dialog: borrar seleccionados (confirmación) -->
+		<Dialog v-model:visible="bulkDeleteVisible" modal :header="$t('admin.carga.bulk.deleteTitle')" class="w-full max-w-sm">
+			<div class="space-y-3 pt-1">
+				<p class="text-sm text-surface-600 dark:text-surface-300">{{ $t('admin.carga.bulk.deleteBody', { n: selectedCount }) }}</p>
+				<p v-if="selectedPublished" class="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+					<i class="pi pi-exclamation-triangle mt-0.5" /> {{ $t('admin.carga.bulk.deletePublished', { n: selectedPublished }) }}
+				</p>
+			</div>
+			<template #footer>
+				<Button :label="$t('common.cancel')" text :disabled="deleting" @click="bulkDeleteVisible = false" />
+				<Button :label="$t('admin.carga.bulk.deleteConfirm', { n: selectedCount })" severity="danger" icon="pi pi-trash" :loading="deleting" @click="bulkDelete" />
 			</template>
 		</Dialog>
 
@@ -698,8 +744,14 @@ export default defineComponent({
 			saving: false,
 			rows: [] as Row[],
 			seq: 0,
+			// Buscador: filtra las filas visibles por nombre, marca, EAN/SKU o atributos.
+			// Acota todas las acciones en lote (ej. "yamaha" → seleccionar todo → +10%).
+			search: '',
 			// ¿Cada rubro tiene ML conectado? (para el contexto)
 			mlStateByRubro: {} as Record<string, boolean>,
+			// Borrar seleccionados
+			bulkDeleteVisible: false,
+			deleting: false,
 			// Precio en lote
 			bulkPrecioVisible: false,
 			bulkPrecio: null as number | null,
@@ -810,9 +862,26 @@ export default defineComponent({
 		selectedRubro(): { id: string; nombre: string } | undefined {
 			return this.catalog.rubros.find(r => r.id === this.selectedRubroId);
 		},
-		/** Filas del rubro elegido (lo que muestra la grilla). */
+		/** Filas del rubro elegido (todas, sin filtrar por el buscador). */
 		visibleRows(): Row[] {
 			return this.rows.filter(r => r.rubroId === this.selectedRubroId);
+		},
+		/**
+		 * Filas que muestra la grilla: las del rubro filtradas por el buscador. El
+		 * texto matchea nombre, EAN/SKU y cualquier atributo (marca, modelo, etc.), sin
+		 * distinguir mayúsculas ni acentos. Es el conjunto sobre el que operan
+		 * seleccionar-todo y las acciones en lote.
+		 */
+		gridRows(): Row[] {
+			const q = this.search.trim();
+			if (!q) return this.visibleRows;
+			// Normaliza: minúsculas y sin acentos (rango de tildes combinantes U+0300–U+036F).
+			const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+			const terms = norm(q).split(/\s+/).filter(Boolean);
+			return this.visibleRows.filter(r => {
+				const haystack = norm([r.nombre, r.gtin, r.sku, ...Object.values(r.atributos || {})].filter(Boolean).join(' '));
+				return terms.every(t => haystack.includes(t));
+			});
 		},
 		fieldOptions(): { label: string; value: ImportField }[] {
 			const opts: { label: string; value: ImportField }[] = IMPORT_FIELDS.map(f => ({
@@ -823,14 +892,18 @@ export default defineComponent({
 			return opts;
 		},
 		selectedCount(): number {
-			return this.visibleRows.filter(r => r.selected).length;
+			return this.gridRows.filter(r => r.selected).length;
+		},
+		/** De las seleccionadas, cuántas están publicadas en ML (para avisar antes de borrar). */
+		selectedPublished(): number {
+			return this.gridRows.filter(r => r.selected && r.mlItemId).length;
 		},
 		/** Filas del negocio activo con cambios sin guardar. */
 		dirtyCount(): number {
 			return this.visibleRows.filter(r => r.dirty).length;
 		},
 		allSelected(): boolean {
-			return this.visibleRows.length > 0 && this.visibleRows.every(r => r.selected);
+			return this.gridRows.length > 0 && this.gridRows.every(r => r.selected);
 		},
 		tally(): { ready: number; review: number; missing: number } {
 			const t = { ready: 0, review: 0, missing: 0 };
@@ -980,7 +1053,45 @@ export default defineComponent({
 			this.rows = this.rows.filter(r => r.key !== row.key);
 		},
 		toggleAll(value: boolean) {
-			for (const row of this.visibleRows) row.selected = value;
+			for (const row of this.gridRows) row.selected = value;
+		},
+		/**
+		 * Click en el renglón para seleccionarlo. Ignora clicks en campos editables o
+		 * controles (inputs, botones, links, selects) para no romper la edición: solo
+		 * selecciona al tocar zonas "muertas" (fondo, imagen, estado, bordes).
+		 */
+		onRowClick(row: Row, e: MouseEvent) {
+			const el = e.target as HTMLElement | null;
+			if (el?.closest('input, textarea, button, a, [role="button"], .p-inputnumber, .p-checkbox, .p-select, .p-inputtext')) return;
+			row.selected = !row.selected;
+		},
+		/** Filas visibles seleccionadas (sobre las que actúan las acciones en lote). */
+		selectedRows(): Row[] {
+			return this.gridRows.filter(r => r.selected);
+		},
+		/** Borra las filas seleccionadas: de la base las guardadas, y todas de la grilla. */
+		async bulkDelete() {
+			const sel = this.selectedRows();
+			if (!sel.length) return;
+			this.deleting = true;
+			try {
+				const guardadas = sel.filter(r => r.id);
+				const results = await Promise.all(
+					guardadas.map(r => this.catalog.deleteProducto(this.selectedRubroId, r.id as string).then(() => true).catch(() => false)),
+				);
+				const fallidas = results.filter(ok => !ok).length;
+				const keys = new Set(sel.map(r => r.key));
+				this.rows = this.rows.filter(r => !keys.has(r.key));
+				this.dirty = this.rows.some(r => r.dirty);
+				if (fallidas) {
+					this.$toast.add({ severity: 'warn', summary: this.$t('admin.carga.bulk.deletePartial', { n: sel.length - fallidas, fail: fallidas }), life: 5000 });
+				} else {
+					this.$toast.add({ severity: 'success', summary: this.$t('admin.carga.bulk.deleted', { n: sel.length }), life: 4000 });
+				}
+			} finally {
+				this.deleting = false;
+				this.bulkDeleteVisible = false;
+			}
 		},
 		toLike(row: Row): ProductoLike {
 			return {
@@ -1030,7 +1141,7 @@ export default defineComponent({
 
 		// ── Precio en lote ──
 		applyBulkPrecio() {
-			for (const row of this.visibleRows)
+			for (const row of this.gridRows)
 				if (row.selected) {
 					row.precio = this.bulkPrecio;
 					// Precio fijado a mano: derivamos el margen mostrado desde el costo.
@@ -1049,7 +1160,7 @@ export default defineComponent({
 			if (this.bulkMargen == null) return;
 			const factor = 1 + this.bulkMargen / 100;
 			let sinCosto = 0;
-			for (const row of this.visibleRows) {
+			for (const row of this.gridRows) {
 				if (!row.selected) continue;
 				if (row.precioCosto == null) {
 					sinCosto++;
@@ -1071,7 +1182,7 @@ export default defineComponent({
 			if (!this.bulkCostoUp) return;
 			const factor = 1 + this.bulkCostoUp / 100;
 			let sinCosto = 0;
-			for (const row of this.visibleRows) {
+			for (const row of this.gridRows) {
 				if (!row.selected) continue;
 				if (row.precioCosto == null) {
 					sinCosto++;
@@ -1166,8 +1277,9 @@ export default defineComponent({
 			}
 		},
 		async saveSelected() {
-			// Sin selección: guardamos TODAS las filas del rubro (editar + guardar directo).
-			const marcadas = this.visibleRows.filter(r => r.selected);
+			// Con selección (dentro del filtro activo): guardamos esas. Sin selección:
+			// guardamos TODAS las del rubro, así el buscador no oculta cambios sin guardar.
+			const marcadas = this.gridRows.filter(r => r.selected);
 			const seleccionadas = marcadas.length ? marcadas : this.visibleRows;
 			if (!seleccionadas.length) {
 				this.$toast.add({ severity: 'warn', summary: this.$t('admin.carga.empty'), life: 3000 });

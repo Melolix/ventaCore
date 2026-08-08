@@ -369,6 +369,8 @@
 			},
 			"addRow": "Agregar fila",
 			"selectedOf": "{sel} seleccionados de {total}",
+			"searchPlaceholder": "Buscar por nombre, marca, EAN…",
+			"searchNoResults": "No hay productos que coincidan con «{q}».",
 			"cols": {
 				"producto": "Producto",
 				"categoria": "Categoría",
@@ -407,6 +409,13 @@
 				"costoUpHint": "Subí el costo un % (inflación). Recalcula el precio de página (manteniendo el margen) y el de Mercado Libre.",
 				"costoUpApplies": "Se aplica a {n} seleccionados. Después guardá para sincronizar con Mercado Libre.",
 				"margenNoCost": "{n} sin costo cargado: a esos no se les tocó el precio.",
+				"delete": "Borrar",
+				"deleteTitle": "Borrar seleccionados",
+				"deleteBody": "Vas a borrar {n} productos. Esta acción no se puede deshacer.",
+				"deletePublished": "{n} están publicados en Mercado Libre: se borran de acá pero la publicación sigue activa en ML.",
+				"deleteConfirm": "Borrar {n}",
+				"deleted": "{n} productos borrados.",
+				"deletePartial": "{n} borrados, {fail} fallaron.",
 				"completarIa": "Completar con IA"
 			},
 			"legend": {
