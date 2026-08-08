@@ -24,6 +24,7 @@ import type {
 	MlOrdersSyncResult,
 	MlQuestionView,
 	MlQuestionsSyncResult,
+	MlMetrics,
 	PaymentProvider,
 	PaymentProviderConfigPublic,
 	SubscriptionPlan,
@@ -343,6 +344,12 @@ export const useCatalogStore = defineStore('catalog', {
 			const { data } = await api.get<MlOrderView[]>(`/rubros/${rubroId}/ml/orders`, {
 				params: status ? { status } : {},
 			});
+			return data;
+		},
+
+		/** Métricas de la cuenta de ML para el dashboard (publicaciones, ventas, preguntas, visitas, reputación). */
+		async fetchMlMetrics(rubroId: string): Promise<MlMetrics> {
+			const { data } = await api.get<MlMetrics>(`/rubros/${rubroId}/ml/metrics`);
 			return data;
 		},
 

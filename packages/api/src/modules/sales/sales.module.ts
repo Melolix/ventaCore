@@ -11,10 +11,12 @@ import { MlQuestionEntity } from './entities/ml-question.entity';
 import { MlWebhookController } from './ml-webhook.controller';
 import { MlOrdersController } from './ml-orders.controller';
 import { MlQuestionsController } from './ml-questions.controller';
+import { MlMetricsController } from './ml-metrics.controller';
 import { MlNotificationsService } from './ml-notifications.service';
 import { MlOrdersService } from './ml-orders.service';
 import { MlShipmentsService } from './ml-shipments.service';
 import { MlQuestionsService } from './ml-questions.service';
+import { MlMetricsService } from './ml-metrics.service';
 
 /**
  * Ventas de Mercado Libre: receptor de notificaciones (webhooks), panel de
@@ -29,7 +31,7 @@ import { MlQuestionsService } from './ml-questions.service';
 		MercadoLibreModule,
 		UsersModule,
 	],
-	controllers: [MlWebhookController, MlOrdersController, MlQuestionsController],
-	providers: [MlNotificationsService, MlOrdersService, MlShipmentsService, MlQuestionsService, FirebaseAuthGuard, RolesGuard],
+	controllers: [MlWebhookController, MlOrdersController, MlQuestionsController, MlMetricsController],
+	providers: [MlNotificationsService, MlOrdersService, MlShipmentsService, MlQuestionsService, MlMetricsService, FirebaseAuthGuard, RolesGuard],
 })
 export class SalesModule {}

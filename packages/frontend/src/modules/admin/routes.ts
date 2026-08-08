@@ -51,6 +51,11 @@ const adminRoutes: RouteRecordRaw[] = [
 						name: 'admin-ml-preguntas',
 						component: () => import('./views/PreguntasView.vue'),
 					},
+					{
+						path: 'metricas',
+						name: 'admin-ml-metricas',
+						component: () => import('./views/MetricasView.vue'),
+					},
 				],
 			},
 			{

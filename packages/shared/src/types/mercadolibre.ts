@@ -186,6 +186,56 @@ export interface MlPriceCalc {
 }
 
 /**
+ * Métricas de la cuenta de Mercado Libre para el dashboard. Junta datos de la API
+ * de ML (publicaciones, visitas, reputación del vendedor) con los nuestros
+ * (ventas y preguntas ya guardadas). Todo por rubro (una cuenta de ML).
+ */
+export interface MlMetrics {
+	/** Cantidad de publicaciones por estado. */
+	publicaciones: {
+		active: number;
+		paused: number;
+		closed: number;
+		total: number;
+	};
+	/** Ventas concretadas (de nuestra tabla): cantidad, facturación bruta y neto tras comisión. */
+	ventas: {
+		count: number;
+		facturacion: number;
+		comision: number;
+		neto: number;
+		currencyId: string;
+	};
+	/** Preguntas: sin responder, respondidas y tasa de respuesta (0..1, null si no hay). */
+	preguntas: {
+		unanswered: number;
+		answered: number;
+		total: number;
+		responseRate: number | null;
+	};
+	/** Visitas de los últimos 30 días: total + serie diaria (para un mini gráfico). */
+	visitas: {
+		total: number;
+		days: { date: string; total: number }[];
+	};
+	/** Reputación del vendedor (de ML). null si ML no la devuelve. */
+	reputacion: {
+		levelId: string | null;
+		powerSellerStatus: string | null;
+		transactionsTotal: number;
+		transactionsCompleted: number;
+		transactionsCanceled: number;
+		ratingsPositive: number;
+		ratingsNeutral: number;
+		ratingsNegative: number;
+		/** Tasas (0..1) del período que informa ML (típicamente 365 días). */
+		claimsRate: number;
+		cancellationsRate: number;
+		delayedHandlingRate: number;
+	} | null;
+}
+
+/**
  * Estado de Mercado Libre de un rubro para el panel. Cada rubro trae su propia
  * app (modelo BYO): primero configura App ID/Secret, después conecta por OAuth.
  * Nunca incluye el App Secret ni tokens.
