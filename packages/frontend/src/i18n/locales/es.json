@@ -409,6 +409,8 @@
 				"costoUpHint": "Subí el costo un % (inflación). Recalcula el precio de página (manteniendo el margen) y el de Mercado Libre.",
 				"costoUpApplies": "Se aplica a {n} seleccionados. Después guardá para sincronizar con Mercado Libre.",
 				"margenNoCost": "{n} sin costo cargado: a esos no se les tocó el precio.",
+				"adjustPrices": "Ajustar precios",
+				"clearSelection": "Deseleccionar todo",
 				"delete": "Borrar",
 				"deleteTitle": "Borrar seleccionados",
 				"deleteBody": "Vas a borrar {n} productos. Esta acción no se puede deshacer.",

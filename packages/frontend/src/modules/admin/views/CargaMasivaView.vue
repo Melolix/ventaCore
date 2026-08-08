@@ -120,39 +120,40 @@
 				<span class="text-sm font-semibold text-surface-700 dark:text-surface-200">
 					{{ $t('admin.carga.selectedOf', { sel: selectedCount, total: gridRows.length }) }}
 				</span>
-				<Button
-					:label="$t('admin.carga.bulk.margen')"
-					icon="pi pi-percentage"
-					size="small"
-					outlined
-					:disabled="!selectedCount"
-					@click="bulkMargenVisible = true"
-				/>
-				<Button
-					:label="$t('admin.carga.bulk.precioEnLote')"
-					icon="pi pi-dollar"
-					size="small"
-					outlined
-					:disabled="!selectedCount"
-					@click="bulkPrecioVisible = true"
-				/>
-				<Button
-					:label="$t('admin.carga.bulk.costoUp')"
-					icon="pi pi-arrow-up"
-					size="small"
-					outlined
-					:disabled="!selectedCount"
-					@click="bulkCostoUpVisible = true"
-				/>
-				<Button
-					:label="$t('admin.carga.bulk.delete')"
-					icon="pi pi-trash"
-					size="small"
-					outlined
-					severity="danger"
-					:disabled="!selectedCount"
-					@click="bulkDeleteVisible = true"
-				/>
+
+				<!-- Acciones en lote: aparecen SOLO al seleccionar, agrupadas y resaltadas
+				     (leen como "esto aplica a lo seleccionado"). Los 3 ajustes de precio
+				     van en un menú para no saturar la barra. -->
+				<div
+					v-if="selectedCount"
+					class="flex items-center gap-1 rounded-xl bg-primary/5 p-1 dark:bg-primary/10"
+				>
+					<Button
+						:label="$t('admin.carga.bulk.adjustPrices')"
+						icon="pi pi-sliders-h"
+						size="small"
+						text
+						@click="togglePriceMenu"
+					/>
+					<Menu ref="priceMenu" :model="priceMenuItems" popup />
+					<Button
+						:label="$t('admin.carga.bulk.delete')"
+						icon="pi pi-trash"
+						size="small"
+						text
+						severity="danger"
+						@click="bulkDeleteVisible = true"
+					/>
+					<button
+						type="button"
+						class="ml-0.5 flex h-6 w-6 items-center justify-center rounded-full text-surface-400 transition-colors hover:bg-surface-200 hover:text-surface-600 dark:hover:bg-surface-700"
+						:title="$t('admin.carga.bulk.clearSelection')"
+						@click="clearSelection"
+					>
+						<i class="pi pi-times text-xs" />
+					</button>
+				</div>
+
 				<div class="ml-auto flex items-center gap-2">
 					<span
 						v-if="dirtyCount"
@@ -669,6 +670,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import type { MenuItem } from 'primevue/menuitem';
 import {
 	ProductoSource,
 	ProductoEstado,
@@ -898,6 +900,14 @@ export default defineComponent({
 		selectedPublished(): number {
 			return this.gridRows.filter(r => r.selected && r.mlItemId).length;
 		},
+		/** Ítems del menú "Ajustar precios". "Aumentar costo" primero (flujo más usado). */
+		priceMenuItems(): MenuItem[] {
+			return [
+				{ label: this.$t('admin.carga.bulk.costoUp'), icon: 'pi pi-arrow-up', command: () => { this.bulkCostoUpVisible = true; } },
+				{ label: this.$t('admin.carga.bulk.margen'), icon: 'pi pi-percentage', command: () => { this.bulkMargenVisible = true; } },
+				{ label: this.$t('admin.carga.bulk.precioEnLote'), icon: 'pi pi-dollar', command: () => { this.bulkPrecioVisible = true; } },
+			];
+		},
 		/** Filas del negocio activo con cambios sin guardar. */
 		dirtyCount(): number {
 			return this.visibleRows.filter(r => r.dirty).length;
@@ -1054,6 +1064,14 @@ export default defineComponent({
 		},
 		toggleAll(value: boolean) {
 			for (const row of this.gridRows) row.selected = value;
+		},
+		/** Deselecciona todo el rubro (limpia el estado de selección, no solo lo filtrado). */
+		clearSelection() {
+			for (const row of this.visibleRows) row.selected = false;
+		},
+		/** Abre el menú "Ajustar precios" anclado al botón. */
+		togglePriceMenu(e: Event) {
+			(this.$refs.priceMenu as { toggle: (e: Event) => void } | undefined)?.toggle(e);
 		},
 		/**
 		 * Click en el renglón para seleccionarlo. Ignora clicks en campos editables o

@@ -409,6 +409,8 @@
 				"costoUpHint": "Raise cost by a % (inflation). Recomputes the page price (keeping the margin) and the Mercado Libre price.",
 				"costoUpApplies": "Applies to {n} selected. Save afterwards to sync with Mercado Libre.",
 				"margenNoCost": "{n} without a cost: their price wasn't changed.",
+				"adjustPrices": "Adjust prices",
+				"clearSelection": "Clear selection",
 				"delete": "Delete",
 				"deleteTitle": "Delete selected",
 				"deleteBody": "You're about to delete {n} products. This can't be undone.",
