@@ -722,6 +722,8 @@
 			"calcBtn": "Calculate",
 			"needCategory": "Assign an ML category above to compute the fee.",
 			"noCostHint": "Add cost",
+			"benefitNoShipping": "Shipping not included. Add the product's height, width, length and weight to compute the real profit.",
+			"benefitNoShippingShort": "no shipping",
 			"secPricing": "Price & profitability",
 			"secData": "Data",
 			"secFicha": "Mercado Libre listing",

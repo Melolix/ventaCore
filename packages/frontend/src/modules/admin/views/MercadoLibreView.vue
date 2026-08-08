@@ -84,9 +84,17 @@
 					<div class="text-right">
 						<p class="text-[11px] uppercase tracking-wide text-surface-400">{{ $t('admin.ml.colMl') }}</p>
 						<p class="font-semibold text-surface-800 dark:text-surface-100">{{ mlPriceLabel(p) }}</p>
-						<!-- Beneficio real (tras comisión) sobre el costo. Deja ver de un vistazo si el precio está mal. -->
+						<!-- Beneficio real (tras comisión y envío) sobre el costo. Deja ver de un vistazo si el precio está mal. -->
 						<p v-if="benefit[p.id]" class="text-[11px] font-semibold" :class="benefitClass(benefit[p.id])">
 							{{ benefitLabel(benefit[p.id]) }}
+							<i
+								v-if="benefit[p.id].shippingUnknown"
+								class="pi pi-truck ml-0.5 text-[10px] text-amber-500"
+								:title="$t('admin.ml.benefitNoShipping')"
+							/>
+						</p>
+						<p v-if="benefit[p.id] && benefit[p.id].shippingUnknown" class="text-[10px] leading-tight text-amber-500">
+							{{ $t('admin.ml.benefitNoShippingShort') }}
 						</p>
 						<p v-else-if="p.precioCosto == null" class="text-[11px] text-surface-300 dark:text-surface-600">{{ $t('admin.ml.noCostHint') }}</p>
 					</div>
@@ -523,7 +531,7 @@ export default defineComponent({
 			shipping: null as MlShippingQuote | null,
 			shippingLoading: false,
 			// Beneficio real por producto (para la lista): { pct, loss }
-			benefit: {} as Record<string, { pct: number; loss: boolean }>,
+			benefit: {} as Record<string, { pct: number; loss: boolean; shippingUnknown?: boolean }>,
 			// Categoría + atributos de ML (misma función que en Cargar productos)
 			mlPredicting: false,
 			mlPredictions: [] as MlCategoryPrediction[],
@@ -644,26 +652,56 @@ export default defineComponent({
 			return `${b.pct >= 0 ? '+' : ''}${b.pct}%`;
 		},
 		/**
-		 * Calcula, en segundo plano, el beneficio real (tras comisión) de cada
-		 * producto que tenga costo + categoría + precio. Consulta la comisión a ML
-		 * con concurrencia limitada. Los que no tienen costo quedan sin dato.
+		 * Beneficio real de UN producto: precio − comisión − envío − costo, en % sobre
+		 * el costo. Descuenta el envío si el producto tiene medidas y a ese precio el
+		 * envío gratis es obligatorio. Sin medidas no podemos cotizarlo: marcamos
+		 * `shippingUnknown` cuando el precio supera el umbral aproximado (~$33.000),
+		 * donde el envío ya lo pagaría el vendedor (por debajo lo paga el comprador y
+		 * el % es exacto igual). Guarda el resultado en `this.benefit[p.id]`.
+		 */
+		async computeBenefitFor(p: Producto): Promise<void> {
+			if (!this.rubro || p.precioCosto == null || this.mlPrice(p) == null || !p.mlCategoryId) {
+				delete this.benefit[p.id];
+				return;
+			}
+			// Umbral aproximado de envío gratis obligatorio (solo para el aviso "falta
+			// envío" en productos sin medidas; el costo real siempre sale de la API).
+			const FREE_SHIPPING_MIN = 33000;
+			const price = this.mlPrice(p) as number;
+			const listingType = p.mlListingType || 'gold_special';
+			try {
+				const fee = await this.catalog.fetchMlFee(this.rubro.id, price, p.mlCategoryId, listingType);
+				let envio = 0;
+				let shippingUnknown = false;
+				if (p.alto && p.ancho && p.largo && p.peso) {
+					// Con medidas: cotizamos el envío real y lo restamos si es obligatorio.
+					const quote = await this.catalog
+						.fetchShippingCost(this.rubro.id, { alto: p.alto, ancho: p.ancho, largo: p.largo, peso: p.peso }, price, listingType)
+						.catch(() => null);
+					if (quote) envio = quote.mandatory ? quote.cost : 0;
+					else shippingUnknown = price >= FREE_SHIPPING_MIN; // falló la cotización
+				} else {
+					// Sin medidas: solo es un problema si el precio ya paga envío.
+					shippingUnknown = price >= FREE_SHIPPING_MIN;
+				}
+				const ganancia = price - fee.saleFeeAmount - envio - p.precioCosto;
+				this.benefit[p.id] = { pct: Math.round((ganancia / p.precioCosto) * 100), loss: ganancia < 0, shippingUnknown };
+			} catch {
+				/* si falla la comisión, dejamos el producto sin dato */
+			}
+		},
+		/**
+		 * Calcula en segundo plano el beneficio de todos los productos con costo +
+		 * categoría + precio, con concurrencia limitada (3 en paralelo).
 		 */
 		async computeBenefits() {
 			if (!this.rubro) return;
 			const queue = this.productos.filter(p => p.precioCosto != null && this.mlPrice(p) != null && p.mlCategoryId);
-			const rubroId = this.rubro.id;
 			const worker = async () => {
 				for (;;) {
 					const p = queue.shift();
 					if (!p) return;
-					try {
-						const price = this.mlPrice(p) as number;
-						const fee = await this.catalog.fetchMlFee(rubroId, price, p.mlCategoryId as string, p.mlListingType || 'gold_special');
-						const ganancia = price - fee.saleFeeAmount - (p.precioCosto as number);
-						this.benefit[p.id] = { pct: Math.round((ganancia / (p.precioCosto as number)) * 100), loss: ganancia < 0 };
-					} catch {
-						/* si falla la comisión de uno, seguimos con el resto */
-					}
+					await this.computeBenefitFor(p);
 				}
 			};
 			await Promise.all([worker(), worker(), worker()]);
@@ -1065,6 +1103,10 @@ export default defineComponent({
 					}
 				}
 				await this.catalog.fetchAllProductos();
+				// Recalcula el % de beneficio del producto recién guardado para que el
+				// renglón muestre el dato nuevo sin necesidad de recargar la pantalla.
+				const fresh = this.catalog.allProductos.find(p => p.id === saved.id);
+				if (fresh) void this.computeBenefitFor(fresh);
 				this.editorVisible = false;
 			} catch (err: unknown) {
 				this.$toast.add({ severity: 'error', summary: apiErrorMessage(err, this.$t('admin.carga.pub.error')), life: 7000 });

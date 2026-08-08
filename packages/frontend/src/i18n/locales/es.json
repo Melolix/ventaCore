@@ -722,6 +722,8 @@
 			"calcBtn": "Calcular",
 			"needCategory": "Asigná una categoría de ML arriba para calcular la comisión.",
 			"noCostHint": "Poné el costo",
+			"benefitNoShipping": "No incluye el envío. Cargá alto, ancho, largo y peso del producto para calcular la ganancia real.",
+			"benefitNoShippingShort": "falta envío",
 			"secPricing": "Precio y rentabilidad",
 			"secData": "Datos",
 			"secFicha": "Ficha de Mercado Libre",
