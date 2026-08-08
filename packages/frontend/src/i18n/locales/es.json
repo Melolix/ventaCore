@@ -401,6 +401,8 @@
 			},
 			"bulk": {
 				"asignarRubro": "Asignar categoría",
+				"costoEnLote": "Poner costo",
+				"costoEnLoteHint": "Fijá el mismo costo para todos los seleccionados. Si tienen margen, el precio de tienda se recalcula solo.",
 				"precioEnLote": "Precio en lote",
 				"margen": "Ganar %",
 				"margenHint": "Poné el % que querés ganar. Calculamos el precio sobre el costo de cada producto seleccionado.",

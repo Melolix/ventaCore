@@ -401,6 +401,8 @@
 			},
 			"bulk": {
 				"asignarRubro": "Assign category",
+				"costoEnLote": "Set cost",
+				"costoEnLoteHint": "Set the same cost for all selected. If they have a margin, the store price is recalculated automatically.",
 				"precioEnLote": "Bulk price",
 				"margen": "Earn %",
 				"margenHint": "Set the % you want to earn. We compute the price from each selected product's cost.",

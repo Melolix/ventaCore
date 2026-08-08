@@ -399,6 +399,19 @@
 			</p>
 		</template>
 
+		<!-- Dialog: costo en lote (valor fijo de costo para las seleccionadas) -->
+		<Dialog v-model:visible="bulkCostoVisible" modal :header="$t('admin.carga.bulk.costoEnLote')" class="w-full max-w-sm">
+			<div class="space-y-3 pt-1">
+				<p class="text-sm text-surface-500">{{ $t('admin.carga.bulk.costoEnLoteHint') }}</p>
+				<InputNumber v-model="bulkCosto" class="w-full" mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" />
+				<p class="text-xs text-surface-400">{{ $t('admin.carga.bulk.costoUpApplies', { n: selectedCount }) }}</p>
+			</div>
+			<template #footer>
+				<Button :label="$t('common.cancel')" text @click="bulkCostoVisible = false" />
+				<Button :label="$t('common.apply')" :disabled="bulkCosto == null" @click="applyBulkCosto" />
+			</template>
+		</Dialog>
+
 		<!-- Dialog: precio en lote -->
 		<Dialog
 			v-model:visible="bulkPrecioVisible"
@@ -754,6 +767,9 @@ export default defineComponent({
 			// Borrar seleccionados
 			bulkDeleteVisible: false,
 			deleting: false,
+			// Costo en lote (valor fijo de costo para las seleccionadas)
+			bulkCostoVisible: false,
+			bulkCosto: null as number | null,
 			// Precio en lote
 			bulkPrecioVisible: false,
 			bulkPrecio: null as number | null,
@@ -903,6 +919,7 @@ export default defineComponent({
 		/** Ítems del menú "Ajustar precios". "Aumentar costo" primero (flujo más usado). */
 		priceMenuItems(): MenuItem[] {
 			return [
+				{ label: this.$t('admin.carga.bulk.costoEnLote'), icon: 'pi pi-tag', command: () => { this.bulkCostoVisible = true; } },
 				{ label: this.$t('admin.carga.bulk.costoUp'), icon: 'pi pi-arrow-up', command: () => { this.bulkCostoUpVisible = true; } },
 				{ label: this.$t('admin.carga.bulk.margen'), icon: 'pi pi-percentage', command: () => { this.bulkMargenVisible = true; } },
 				{ label: this.$t('admin.carga.bulk.precioEnLote'), icon: 'pi pi-dollar', command: () => { this.bulkPrecioVisible = true; } },
@@ -1158,6 +1175,20 @@ export default defineComponent({
 		},
 
 		// ── Precio en lote ──
+		// ── Costo en lote: fija el mismo costo en las seleccionadas y, si hay margen,
+		//    recalcula el precio de tienda (mantiene el margen de cada fila) ──
+		applyBulkCosto() {
+			if (this.bulkCosto == null) return;
+			for (const row of this.gridRows)
+				if (row.selected) {
+					row.precioCosto = this.bulkCosto;
+					if (row.margen != null) row.precio = Math.round(this.bulkCosto * (1 + row.margen / 100));
+					row.dirty = true;
+				}
+			this.dirty = true;
+			this.bulkCostoVisible = false;
+			this.bulkCosto = null;
+		},
 		applyBulkPrecio() {
 			for (const row of this.gridRows)
 				if (row.selected) {
