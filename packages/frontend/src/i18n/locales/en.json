@@ -235,6 +235,32 @@
 			"soonTitle": "Under construction",
 			"soonBody": "The team is building this section. In the meantime, connect the business Instagram account in Settings."
 		},
+		"estudio": {
+			"eyebrow": "Instagram",
+			"title": "Content studio",
+			"subtitle": "Pick a product, apply a template and publish.",
+			"connected": "Connected",
+			"product": "Product",
+			"searchProduct": "Search product…",
+			"noPrice": "No price",
+			"template": "Template",
+			"caption": "Post caption",
+			"videoSoon": "Upload a video and trim it",
+			"optional": "Optional",
+			"previewNote": "Live preview · the photo is composed inside the template",
+			"publishNow": "Publish now",
+			"schedule": "Schedule",
+			"download": "Download",
+			"campaign": "Run campaign",
+			"soon": "Soon",
+			"published": "Published to Instagram!",
+			"tpl": {
+				"oferta": "Sale",
+				"minimal": "Minimal",
+				"precioGrande": "Big price",
+				"nuevo": "New"
+			}
+		},
 		"nav": {
 			"rubros": "Categories",
 			"carga": "Upload products",

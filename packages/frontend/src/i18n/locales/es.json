@@ -235,6 +235,32 @@
 			"soonTitle": "En construcción",
 			"soonBody": "Esta sección la está armando el equipo. Mientras tanto, conectá la cuenta de Instagram del negocio en Configuraciones."
 		},
+		"estudio": {
+			"eyebrow": "Instagram",
+			"title": "Estudio de contenido",
+			"subtitle": "Elegí un producto, aplicale una plantilla y publicá.",
+			"connected": "Conectado",
+			"product": "Producto",
+			"searchProduct": "Buscar producto…",
+			"noPrice": "Sin precio",
+			"template": "Plantilla",
+			"caption": "Texto del posteo",
+			"videoSoon": "Subir un video y recortarlo",
+			"optional": "Opcional",
+			"previewNote": "Vista previa en vivo · la foto se compone dentro de la plantilla",
+			"publishNow": "Publicar ahora",
+			"schedule": "Programar",
+			"download": "Descargar",
+			"campaign": "Realizar campaña",
+			"soon": "Pronto",
+			"published": "¡Publicado en Instagram!",
+			"tpl": {
+				"oferta": "Oferta",
+				"minimal": "Minimal",
+				"precioGrande": "Precio grande",
+				"nuevo": "Nuevo"
+			}
+		},
 		"nav": {
 			"rubros": "Rubros",
 			"carga": "Cargar productos",

@@ -1,180 +1,174 @@
 <template>
-	<div class="mx-auto max-w-4xl">
+	<div class="mx-auto max-w-6xl">
 		<!-- Encabezado -->
-		<div class="mb-6">
-			<p class="text-xs font-semibold uppercase tracking-wide text-pink-500">{{ $t('admin.instagram.eyebrow') }}</p>
-			<h1 class="text-2xl font-extrabold text-surface-900 dark:text-surface-0">{{ $t('admin.instagram.title') }}</h1>
-			<p class="mt-1 text-sm text-surface-500">{{ $t('admin.instagram.subtitle') }}</p>
+		<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+			<div>
+				<p class="ig-eyebrow text-xs font-extrabold uppercase tracking-widest">{{ $t('admin.estudio.eyebrow') }}</p>
+				<h1 class="text-2xl font-extrabold text-surface-900 dark:text-surface-0">{{ $t('admin.estudio.title') }}</h1>
+				<p class="mt-1 text-sm text-surface-500">{{ $t('admin.estudio.subtitle') }}</p>
+			</div>
+			<div v-if="igUsername" class="flex items-center gap-2 rounded-full border border-surface-200 px-3 py-1.5 text-xs font-semibold dark:border-surface-700">
+				<span class="ig-badge" /> {{ '@' + igUsername }} · {{ $t('admin.estudio.connected') }}
+			</div>
 		</div>
 
-		<!-- Sin negocio elegido -->
-		<div v-if="!rubroId" class="glass-card rounded-2xl p-10 text-center text-surface-500">
-			{{ $t('admin.businessNone') }}
+		<!-- Sin negocio -->
+		<div v-if="!rubroId" class="glass-card rounded-2xl p-10 text-center text-surface-500">{{ $t('admin.businessNone') }}</div>
+
+		<!-- No conectado -->
+		<div
+			v-else-if="!metaReady"
+			class="flex flex-col items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 sm:flex-row sm:items-center sm:justify-between"
+		>
+			<p class="text-sm text-amber-700 dark:text-amber-300">{{ $t('admin.publish.notReady') }}</p>
+			<Button :label="$t('admin.rubros.configure')" icon="pi pi-cog" size="small" outlined @click="$router.push({ name: 'admin-configuraciones' })" />
 		</div>
 
 		<template v-else>
-			<!-- Aviso: falta conectar Instagram/Facebook para poder publicar. -->
-			<div
-				v-if="!metaReady"
-				class="mb-5 flex flex-col items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:flex-row sm:items-center sm:justify-between"
-			>
-				<p class="text-sm text-amber-700 dark:text-amber-300">{{ $t('admin.publish.notReady') }}</p>
-				<Button
-					:label="$t('admin.rubros.configure')"
-					icon="pi pi-cog"
-					size="small"
-					outlined
-					@click="$router.push({ name: 'admin-configuraciones' })"
-				/>
-			</div>
-
-			<h3 class="mb-4 text-xl font-semibold text-surface-900 dark:text-surface-0">
-				{{ $t('admin.productos.listTitle', { n: catalog.productos.length }) }}
-			</h3>
-
-			<div v-if="loading" class="py-12 text-center text-surface-500">
-				<i class="pi pi-spin pi-spinner text-2xl" />
-			</div>
+			<div v-if="loading" class="py-16 text-center text-surface-500"><i class="pi pi-spin pi-spinner text-2xl" /></div>
 
 			<div v-else-if="!catalog.productos.length" class="glass-card rounded-2xl p-10 text-center text-surface-500">
 				{{ $t('admin.productos.empty') }}
 			</div>
 
-			<div v-else class="space-y-3">
-				<div
-					v-for="producto in catalog.productos"
-					:key="producto.id"
-					class="glass-card flex items-center gap-4 rounded-2xl p-4"
-				>
-					<div class="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-surface-100 dark:bg-surface-800">
-						<img v-if="producto.imageUrl" :src="producto.imageUrl" class="h-full w-full object-cover" :alt="producto.nombre" />
-						<div v-else class="flex h-full w-full items-center justify-center text-surface-400">
-							<i class="pi pi-shopping-bag" />
+			<!-- Estudio -->
+			<div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-[244px_minmax(0,1fr)_320px]">
+				<!-- A: producto -->
+				<div class="glass-card rounded-2xl">
+					<p class="px-4 pt-3 text-xs font-bold uppercase tracking-wide text-surface-400">{{ $t('admin.estudio.product') }}</p>
+					<div class="relative m-3">
+						<i class="pi pi-search pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-surface-400" />
+						<InputText v-model="search" :placeholder="$t('admin.estudio.searchProduct')" class="w-full !py-1.5 !pl-8 text-sm" />
+					</div>
+					<div class="max-h-[460px] space-y-0.5 overflow-auto px-2 pb-3">
+						<button
+							v-for="p in filteredProducts"
+							:key="p.id"
+							type="button"
+							class="flex w-full items-center gap-2.5 rounded-xl border border-transparent p-2 text-left transition-colors"
+							:class="selectedId === p.id ? 'border-pink-500/30 bg-pink-500/10' : 'hover:bg-surface-100 dark:hover:bg-surface-800'"
+							@click="selectProduct(p)"
+						>
+							<div class="h-9 w-9 flex-none overflow-hidden rounded-lg bg-surface-100 dark:bg-surface-800">
+								<img v-if="p.imageUrl" :src="p.imageUrl" class="h-full w-full object-cover" alt="" />
+								<div v-else class="flex h-full w-full items-center justify-center text-surface-400"><i class="pi pi-image text-xs" /></div>
+							</div>
+							<div class="min-w-0">
+								<p class="truncate text-[13px] font-semibold text-surface-800 dark:text-surface-100">{{ p.nombre }}</p>
+								<p class="text-xs" :class="selectedId === p.id ? 'font-semibold text-pink-500' : 'text-surface-400'">
+									{{ p.precio != null ? money(p.precio) : $t('admin.estudio.noPrice') }}
+								</p>
+							</div>
+						</button>
+					</div>
+				</div>
+
+				<!-- B: vista previa -->
+				<div class="glass-card flex flex-col gap-3 rounded-2xl p-4">
+					<div class="flex gap-1.5">
+						<button
+							v-for="f in formats"
+							:key="f.key"
+							type="button"
+							class="flex-1 rounded-lg border px-2 py-2 text-[13px] font-bold transition-colors"
+							:class="format === f.key
+								? 'border-transparent text-white ig-fill'
+								: 'border-surface-200 bg-surface-50 text-surface-600 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-300'"
+							@click="format = f.key"
+						>
+							{{ f.label }}
+						</button>
+					</div>
+					<div class="flex flex-1 items-center justify-center py-2">
+						<div class="relative">
+							<canvas
+								ref="preview"
+								class="max-h-[52vh] w-auto rounded-2xl shadow-xl"
+								:style="{ maxWidth: '100%', aspectRatio: aspect }"
+							/>
+							<div v-if="imgLoading" class="absolute inset-0 flex items-center justify-center rounded-2xl bg-surface-900/30">
+								<i class="pi pi-spin pi-spinner text-2xl text-white" />
+							</div>
 						</div>
 					</div>
-					<div class="flex-1">
-						<div class="flex items-center gap-2">
-							<h4 class="font-semibold text-surface-900 dark:text-surface-0">{{ producto.nombre }}</h4>
-							<Tag v-if="isApps && producto.seccion" :value="producto.seccion" severity="secondary" class="uppercase" />
+					<p class="text-center text-xs text-surface-400">{{ $t('admin.estudio.previewNote') }}</p>
+				</div>
+
+				<!-- C: diseño + publicar -->
+				<div class="flex flex-col gap-4">
+					<div class="glass-card rounded-2xl">
+						<p class="px-4 pt-3 text-xs font-bold uppercase tracking-wide text-surface-400">{{ $t('admin.estudio.template') }}</p>
+						<div class="grid grid-cols-3 gap-2 p-3">
+							<button
+								v-for="t in templates"
+								:key="t.id"
+								type="button"
+								class="overflow-hidden rounded-xl border transition-all"
+								:class="templateId === t.id ? 'border-pink-500 ring-2 ring-pink-500/40' : 'border-surface-200 dark:border-surface-700'"
+								@click="templateId = t.id"
+							>
+								<canvas :ref="'thumb_' + t.id" class="block w-full" style="aspect-ratio:1/1" />
+								<span class="block border-t border-surface-100 py-1 text-center text-[10px] font-bold text-surface-500 dark:border-surface-800">
+									{{ $t('admin.estudio.tpl.' + t.id_label) }}
+								</span>
+							</button>
 						</div>
-						<p class="line-clamp-1 text-sm text-surface-500">{{ producto.descripcion || '—' }}</p>
+						<div class="px-4 pb-4">
+							<label class="mb-1.5 mt-1 block text-xs font-bold uppercase tracking-wide text-surface-400">{{ $t('admin.estudio.caption') }}</label>
+							<Textarea v-model="caption" class="w-full" rows="4" auto-resize />
+							<div class="mt-2.5 flex items-center gap-2 rounded-lg border border-dashed border-surface-300 px-3 py-2 text-xs text-surface-400 dark:border-surface-600">
+								<i class="pi pi-video" /> {{ $t('admin.estudio.videoSoon') }}
+								<span class="ml-auto rounded-full bg-surface-100 px-2 py-0.5 text-[10px] font-bold uppercase text-surface-400 dark:bg-surface-800">{{ $t('admin.estudio.optional') }}</span>
+							</div>
+						</div>
 					</div>
-					<span v-if="!isApps && producto.precio != null" class="font-bold text-primary">{{ formatPrice(producto.precio) }}</span>
-					<div class="flex gap-2">
+
+					<div class="glass-card flex flex-col gap-2 rounded-2xl p-4">
 						<Button
+							:label="$t('admin.estudio.publishNow')"
 							icon="pi pi-send"
-							:label="$t('admin.publish.button')"
-							size="small"
-							:disabled="!metaReady"
-							:title="metaReady ? '' : $t('admin.publish.notReady')"
-							@click="openPublish(producto)"
+							class="ig-fill w-full border-0 font-bold text-white"
+							:loading="publishing"
+							:disabled="!selectedId || imgLoading"
+							@click="publish"
 						/>
-						<Button icon="pi pi-pencil" severity="secondary" outlined size="small" @click="openEdit(producto)" />
-						<Button icon="pi pi-trash" severity="danger" outlined size="small" @click="confirmDelete(producto)" />
+						<div class="grid grid-cols-2 gap-2">
+							<Button :label="$t('admin.estudio.schedule')" icon="pi pi-clock" size="small" outlined disabled />
+							<Button :label="$t('admin.estudio.download')" icon="pi pi-download" size="small" outlined :disabled="!selectedId || imgLoading" @click="download" />
+						</div>
+						<Button :label="$t('admin.estudio.campaign')" icon="pi pi-megaphone" size="small" outlined disabled class="justify-start">
+							<template #default>
+								<span class="flex w-full items-center gap-2">
+									<i class="pi pi-megaphone" /> {{ $t('admin.estudio.campaign') }}
+									<span class="ml-auto rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">{{ $t('admin.estudio.soon') }}</span>
+								</span>
+							</template>
+						</Button>
 					</div>
 				</div>
 			</div>
 		</template>
-
-		<!-- Dialog edición -->
-		<Dialog v-model:visible="editVisible" modal :header="$t('admin.productos.editTitle')" class="w-full max-w-md">
-			<div class="flex flex-col gap-4 pt-2">
-				<div class="space-y-1">
-					<label class="text-sm font-medium">{{ $t('admin.productos.fields.name') }}</label>
-					<InputText v-model="edit.nombre" class="w-full" />
-				</div>
-				<div class="space-y-1">
-					<label class="text-sm font-medium">{{ $t('admin.productos.fields.description') }}</label>
-					<Textarea v-model="edit.descripcion" class="w-full" rows="3" />
-				</div>
-				<div v-if="isApps" class="space-y-1">
-					<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-clone" /> {{ $t('admin.productos.fields.seccion') }}</label>
-					<InputText v-model="edit.seccion" class="w-full" :placeholder="$t('admin.productos.fields.seccionPlaceholder')" />
-					<div v-if="seccionesExistentes.length" class="flex flex-wrap gap-1.5">
-						<button
-							v-for="s in seccionesExistentes"
-							:key="s"
-							type="button"
-							class="rounded-full bg-surface-100 px-2.5 py-1 text-xs text-surface-600 transition-colors hover:bg-primary/10 hover:text-primary dark:bg-surface-800 dark:text-surface-300"
-							@click="edit.seccion = s"
-						>
-							{{ s }}
-						</button>
-					</div>
-				</div>
-				<div v-if="!isApps" class="space-y-1">
-					<label class="text-sm font-medium">{{ $t('admin.productos.fields.price') }}</label>
-					<InputNumber v-model="edit.precio" class="w-full" mode="currency" currency="ARS" locale="es-AR" :min="0" />
-				</div>
-				<div class="space-y-1">
-					<label class="text-sm font-medium">{{ $t('admin.productos.fields.imageUrl') }}</label>
-					<ImageUpload v-model="edit.imageUrl" folder="productos" :aspect-ratio="1" :min-width="500" format="jpeg" remove-bg />
-					<div class="mt-2">
-						<HandoffButton @photos="onHandoffPhotos" />
-					</div>
-				</div>
-			</div>
-			<template #footer>
-				<Button :label="$t('common.cancel')" text @click="editVisible = false" />
-				<Button :label="$t('admin.productos.saveChanges')" :loading="savingEdit" @click="submitEdit" />
-			</template>
-		</Dialog>
-
-		<!-- Dialog de publicación en redes -->
-		<Dialog v-model:visible="publishVisible" modal :header="$t('admin.publish.confirmTitle')" class="w-full max-w-md">
-			<div class="flex flex-col gap-4 pt-2">
-				<p class="text-sm font-semibold text-surface-800 dark:text-surface-100">{{ publishRef?.nombre }}</p>
-
-				<div class="space-y-1">
-					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
-						{{ $t('admin.publish.captionLabel') }}
-					</label>
-					<Textarea v-model="publishCaption" class="w-full" rows="3" :placeholder="$t('admin.publish.captionPlaceholder')" />
-				</div>
-
-				<div v-if="!showTestUrl">
-					<Button
-						:label="$t('admin.publish.useTestImage')"
-						text
-						size="small"
-						icon="pi pi-image"
-						class="px-0"
-						@click="showTestUrl = true"
-					/>
-				</div>
-				<div v-else class="space-y-1">
-					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
-						{{ $t('admin.publish.testUrlLabel') }}
-					</label>
-					<InputText v-model="publishTestUrl" class="w-full" placeholder="https://.../foto.jpg" />
-					<p class="text-xs text-surface-400">{{ $t('admin.publish.testUrlHint') }}</p>
-				</div>
-			</div>
-			<template #footer>
-				<Button :label="$t('common.cancel')" text @click="publishVisible = false" />
-				<Button :label="$t('admin.publish.button')" icon="pi pi-send" :loading="publishing" @click="doPublish" />
-			</template>
-		</Dialog>
 	</div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { EspacioType, type Producto } from '@base-template/shared';
+import type { MetaRubroState, Producto, Rubro } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
-import ImageUpload from '@/shared/components/ImageUpload.vue';
-import HandoffButton from '@/shared/components/HandoffButton.vue';
+import { uploadImage } from '@/shared/utils/image';
+import { TEMPLATES, FORMATS, formatPrice, type PostFormat } from '@/modules/admin/instagram/templates';
+import { loadProductImage, renderTemplate, exportJpeg, type ProductBitmap, type PostContent } from '@/modules/admin/instagram/compose';
 
 /**
- * Pestaña Instagram: lista los productos del negocio activo y permite publicarlos
- * en Instagram/Facebook (Meta). La CARGA de productos se hace en "Cargar productos";
- * acá solo se listan, se editan puntualmente y se publican.
+ * Estudio de Instagram: convierte productos en posts con plantillas y los
+ * publica en Instagram. La foto del producto se compone dentro de la plantilla
+ * elegida en un canvas; al publicar, se exporta a JPEG, se sube a Storage y se
+ * usa esa URL pública para publicar (reutiliza el publish de Meta ya existente).
  */
 export default defineComponent({
 	name: 'InstagramView',
-	components: { ImageUpload, HandoffButton },
 	setup() {
 		return { ctx: useAdminContext() };
 	},
@@ -182,172 +176,204 @@ export default defineComponent({
 		return {
 			catalog: useCatalogStore(),
 			loading: false,
-			savingEdit: false,
-			// Publicación en redes
-			publishVisible: false,
-			publishRef: null as Producto | null,
-			publishCaption: '',
-			publishTestUrl: '',
-			showTestUrl: false,
+			search: '',
+			selectedId: '',
+			templateId: TEMPLATES[0].id,
+			format: 'square' as PostFormat,
+			caption: '',
+			bmp: null as ProductBitmap | null,
+			metaState: null as MetaRubroState | null,
+			imgLoading: false,
 			publishing: false,
-			editVisible: false,
-			editId: '',
-			edit: { nombre: '', descripcion: '', precio: null as number | null, imageUrl: '', seccion: '' },
+			templates: TEMPLATES,
+			formats: [
+				{ key: 'square' as PostFormat, label: 'Post 1:1' },
+				{ key: 'portrait' as PostFormat, label: 'Retrato 4:5' },
+			],
 		};
 	},
 	computed: {
-		/** Negocio (rubro) activo, tomado del contexto persistido. */
 		rubroId(): string {
 			return this.ctx.currentRubroId;
 		},
-		/** Secciones/pestañas ya usadas en este rubro (para sugerir al editar capturas). */
-		seccionesExistentes(): string[] {
-			const set = new Set<string>();
-			for (const p of this.catalog.productos) if (p.seccion) set.add(p.seccion);
-			return [...set];
+		rubro(): Rubro | undefined {
+			return this.catalog.rubroById(this.rubroId);
 		},
-		/** El rubro está listo para publicar si eligió un destino de Meta. */
 		metaReady(): boolean {
-			return !!this.catalog.rubroById(this.rubroId)?.metaTargetId;
+			return !!this.rubro?.metaTargetId;
 		},
-		/** Espacios tipo "apps": los "productos" son capturas de la app (sin precio). */
-		isApps(): boolean {
-			return this.catalog.miEspacio?.type === EspacioType.APPS;
+		igUsername(): string | null {
+			const target = this.metaState?.connection?.targets.find(t => t.id === this.rubro?.metaTargetId);
+			return target?.igUsername ?? null;
+		},
+		selectedProduct(): Producto | undefined {
+			return this.catalog.productos.find(p => p.id === this.selectedId);
+		},
+		filteredProducts(): Producto[] {
+			const q = this.search.trim().toLowerCase();
+			return q ? this.catalog.productos.filter(p => p.nombre.toLowerCase().includes(q)) : this.catalog.productos;
+		},
+		/** Nombre del negocio que va como marca en la plantilla. */
+		brand(): string {
+			return this.rubro?.nombre ?? '';
+		},
+		content(): PostContent {
+			return {
+				nombre: this.selectedProduct?.nombre ?? '',
+				precio: this.selectedProduct?.precio ?? null,
+				brand: this.brand,
+			};
+		},
+		aspect(): string {
+			const f = FORMATS[this.format];
+			return `${f.w} / ${f.h}`;
 		},
 	},
 	watch: {
-		// Al cambiar de negocio en el selector, recargamos su lista de productos.
 		rubroId() {
 			void this.reload();
 		},
+		selectedId() {
+			void this.loadAndRender();
+		},
+		format() {
+			this.render();
+		},
+		templateId() {
+			this.render();
+		},
 	},
 	async created() {
-		// El layout ya suele cargar miEspacio; lo aseguramos para saber si es una app.
-		if (!this.catalog.miEspacio) await this.catalog.fetchMiEspacio().catch(() => undefined);
 		if (!this.catalog.rubros.length) await this.catalog.fetchRubros().catch(() => undefined);
 		await this.reload();
 	},
 	methods: {
-		/** Trae los productos del negocio activo. */
 		async reload() {
 			if (!this.rubroId) return;
 			this.loading = true;
 			try {
 				await this.catalog.fetchProductos(this.rubroId);
+				this.metaState = await this.catalog.fetchMetaState(this.rubroId).catch(() => null);
+				// Elegimos el primer producto con imagen (o el primero).
+				const first = this.catalog.productos.find(p => p.imageUrl) ?? this.catalog.productos[0];
+				this.selectedId = first?.id ?? '';
+				this.caption = this.buildCaption();
+				await this.loadAndRender();
 			} catch {
 				this.$toast.add({ severity: 'error', summary: this.$t('admin.errors.load'), life: 4000 });
 			} finally {
 				this.loading = false;
 			}
 		},
-		formatPrice(value: number): string {
-			return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value);
+		selectProduct(p: Producto) {
+			this.selectedId = p.id;
+			this.caption = this.buildCaption(p);
 		},
-		/** Fotos llegadas desde el celular (QR): tomamos la última como imagen. */
-		onHandoffPhotos(urls: string[]) {
-			if (urls.length) this.edit.imageUrl = urls[urls.length - 1];
-		},
-		openEdit(producto: Producto) {
-			this.editId = producto.id;
-			this.edit = {
-				nombre: producto.nombre,
-				descripcion: producto.descripcion ?? '',
-				precio: producto.precio,
-				imageUrl: producto.imageUrl ?? '',
-				seccion: producto.seccion ?? '',
-			};
-			this.editVisible = true;
-		},
-		async submitEdit() {
-			this.savingEdit = true;
-			try {
-				await this.catalog.updateProducto(this.rubroId, this.editId, {
-					nombre: this.edit.nombre.trim(),
-					descripcion: this.edit.descripcion.trim() || undefined,
-					precio: this.edit.precio ?? undefined,
-					imageUrl: this.edit.imageUrl.trim() || undefined,
-					...(this.isApps ? { seccion: this.edit.seccion.trim() || null } : {}),
-				});
-				this.$toast.add({ severity: 'success', summary: this.$t('admin.productos.updated'), life: 3000 });
-				this.editVisible = false;
-			} catch (e: unknown) {
-				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
-			} finally {
-				this.savingEdit = false;
-			}
-		},
-		confirmDelete(producto: Producto) {
-			this.$confirm.require({
-				message: this.$t('admin.productos.deleteConfirm', { name: producto.nombre }),
-				header: this.$t('admin.productos.deleteTitle'),
-				icon: 'pi pi-exclamation-triangle',
-				rejectProps: { label: this.$t('common.cancel'), text: true },
-				acceptProps: { label: this.$t('common.delete'), severity: 'danger' },
-				accept: async () => {
-					try {
-						await this.catalog.deleteProducto(this.rubroId, producto.id);
-						this.$toast.add({ severity: 'success', summary: this.$t('admin.productos.deleted'), life: 3000 });
-					} catch (e: unknown) {
-						this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.delete')), life: 5000 });
-					}
-				},
-			});
-		},
-
-		// ── Publicar en redes (Meta) ──
-		/** Arma el texto por defecto con los datos del producto (igual que el backend). */
-		buildCaption(producto: Producto): string {
-			const parts = [producto.nombre];
-			if (producto.descripcion) parts.push(producto.descripcion);
-			if (producto.precio != null) parts.push(this.formatPrice(producto.precio));
+		buildCaption(p?: Producto): string {
+			const prod = p ?? this.selectedProduct;
+			if (!prod) return '';
+			const parts = [prod.nombre];
+			if (prod.descripcion) parts.push(prod.descripcion);
+			if (prod.precio != null) parts.push(formatPrice(prod.precio));
 			return parts.join('\n\n');
 		},
-		openPublish(producto: Producto) {
-			this.publishRef = producto;
-			this.publishCaption = this.buildCaption(producto);
-			this.publishTestUrl = '';
-			this.showTestUrl = false;
-			this.publishVisible = true;
+		money(n: number): string {
+			return formatPrice(n);
 		},
-		async doPublish() {
-			const producto = this.publishRef;
-			if (!producto) return;
+		/** Carga la foto del producto (por proxy) y re-renderiza todo. */
+		async loadAndRender() {
+			const url = this.selectedProduct?.imageUrl;
+			this.imgLoading = true;
+			try {
+				this.bmp = await loadProductImage(url);
+			} finally {
+				this.imgLoading = false;
+			}
+			this.render();
+		},
+		/** Renderiza la vista previa grande + las miniaturas de plantillas. */
+		render() {
+			this.$nextTick(() => {
+				const tpl = this.templates.find(t => t.id === this.templateId) ?? this.templates[0];
+				const canvas = this.$refs.preview as HTMLCanvasElement | undefined;
+				if (canvas) renderTemplate(canvas, tpl, this.format, this.content, this.bmp);
+				// Miniaturas (siempre en cuadrado, para comparar diseños).
+				for (const t of this.templates) {
+					const ref = (this.$refs['thumb_' + t.id] as HTMLCanvasElement[] | HTMLCanvasElement | undefined);
+					const c = Array.isArray(ref) ? ref[0] : ref;
+					if (c) renderTemplate(c, t, 'square', this.content, this.bmp);
+				}
+			});
+		},
+		/** Exporta el post compuesto a un Blob JPEG. */
+		async exportBlob(): Promise<Blob> {
+			const tpl = this.templates.find(t => t.id === this.templateId) ?? this.templates[0];
+			// Renderizamos en un canvas offscreen a resolución completa del formato.
+			const canvas = document.createElement('canvas');
+			renderTemplate(canvas, tpl, this.format, this.content, this.bmp);
+			return exportJpeg(canvas);
+		},
+		async publish() {
+			const prod = this.selectedProduct;
+			if (!prod) return;
 			this.publishing = true;
 			try {
-				const results = await this.catalog.publishProducto(this.rubroId, producto.id, {
-					caption: this.publishCaption.trim() || undefined,
-					imageUrl: this.publishTestUrl.trim() || undefined,
+				const blob = await this.exportBlob();
+				const imageUrl = await uploadImage(blob, 'instagram');
+				const results = await this.catalog.publishProducto(this.rubroId, prod.id, {
+					networks: ['instagram'],
+					caption: this.caption.trim() || undefined,
+					imageUrl,
 				});
-				const net = (n: string): string => (n === 'facebook' ? 'Facebook' : 'Instagram');
-				const ok = results.filter(r => r.ok).map(r => net(r.network));
-				const fail = results.filter(r => !r.ok);
-				if (!fail.length) {
-					this.$toast.add({ severity: 'success', summary: this.$t('admin.publish.done'), detail: ok.join(', '), life: 4000 });
-					this.publishVisible = false;
-				} else if (ok.length) {
-					const okPart = `✓ ${ok.join(', ')}`;
-					const failPart = fail.map(f => `✗ ${net(f.network)}: ${f.error}`).join(' · ');
-					this.$toast.add({
-						severity: 'warn',
-						summary: this.$t('admin.publish.partial'),
-						detail: `${okPart} · ${failPart}`,
-						life: 8000,
-					});
+				const ok = results.some(r => r.network === 'instagram' && r.ok);
+				if (ok) {
+					this.$toast.add({ severity: 'success', summary: this.$t('admin.estudio.published'), life: 4000 });
 				} else {
-					this.$toast.add({
-						severity: 'error',
-						summary: this.$t('admin.publish.failed'),
-						detail: fail.map(f => `${net(f.network)}: ${f.error}`).join(' · '),
-						life: 7000,
-					});
+					const err = results.find(r => r.network === 'instagram')?.error || '';
+					this.$toast.add({ severity: 'error', summary: this.$t('admin.publish.failed'), detail: err, life: 7000 });
 				}
 			} catch (e: unknown) {
-				const detail = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-				this.$toast.add({ severity: 'error', summary: this.$t('admin.publish.failed'), detail, life: 6000 });
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.publish.failed')), life: 6000 });
 			} finally {
 				this.publishing = false;
+			}
+		},
+		async download() {
+			const prod = this.selectedProduct;
+			if (!prod) return;
+			try {
+				const blob = await this.exportBlob();
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `${prod.nombre.replace(/[^\w\-]+/g, '_').slice(0, 40)}-${this.format}.jpg`;
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+				URL.revokeObjectURL(url);
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.publish.failed')), life: 5000 });
 			}
 		},
 	},
 });
 </script>
+
+<style scoped>
+.ig-badge {
+	width: 18px;
+	height: 18px;
+	border-radius: 5px;
+	display: inline-block;
+	background: linear-gradient(135deg, #feda75, #fa7e1e 26%, #d62976 55%, #962fbf 78%, #4f5bd5);
+}
+.ig-eyebrow {
+	background: linear-gradient(135deg, #feda75, #fa7e1e 26%, #d62976 55%, #962fbf 78%, #4f5bd5);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+.ig-fill {
+	background: linear-gradient(135deg, #feda75, #fa7e1e 26%, #d62976 55%, #962fbf 78%, #4f5bd5);
+}
+</style>

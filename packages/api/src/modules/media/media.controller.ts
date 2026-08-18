@@ -13,8 +13,13 @@ import { FirebaseAuthGuard } from '../../common/auth/firebase-auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 
-/** Solo proxeamos imágenes de NUESTRO Storage de Firebase (evita SSRF). */
-const ALLOWED_URL = /^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//;
+/**
+ * Lista blanca de orígenes que proxeamos (evita SSRF). Nuestro Storage de
+ * Firebase + el CDN de imágenes de Mercado Libre (las fotos de productos
+ * importados viven ahí y el Estudio de Instagram necesita componerlas en canvas
+ * sin que el navegador las bloquee por CORS).
+ */
+const ALLOWED_URL = /^https:\/\/(firebasestorage\.googleapis\.com\/v0\/b\/|[a-z0-9-]+\.mlstatic\.com\/)/;
 
 @ApiTags('media')
 @ApiBearerAuth()
