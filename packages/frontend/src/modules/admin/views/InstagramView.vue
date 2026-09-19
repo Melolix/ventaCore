@@ -91,6 +91,20 @@
 							</div>
 						</div>
 					</div>
+
+					<!-- Imágenes del producto: elegí cuál queda mejor en la plantilla. -->
+					<div v-if="productImages.length > 1" class="flex flex-wrap justify-center gap-2">
+						<button
+							v-for="(img, i) in productImages"
+							:key="i"
+							type="button"
+							class="h-11 w-11 overflow-hidden rounded-lg border-2 transition-all"
+							:class="img === selectedImageUrl ? 'border-pink-500' : 'border-transparent opacity-60 hover:opacity-100'"
+							@click="selectImage(img)"
+						>
+							<img :src="img" class="h-full w-full object-cover" alt="" />
+						</button>
+					</div>
 				</div>
 
 				<!-- C: diseño + publicar -->
@@ -117,7 +131,7 @@
 								<label class="text-xs font-bold uppercase tracking-wide text-surface-400">{{ $t('admin.estudio.caption') }}</label>
 								<span class="text-[10px] tabular-nums" :class="caption.length > 2200 ? 'font-semibold text-red-500' : 'text-surface-400'">{{ caption.length }}/2200</span>
 							</div>
-							<Textarea v-model="caption" class="w-full" rows="4" auto-resize />
+							<Textarea v-model="caption" class="w-full !max-h-36 overflow-y-auto" rows="4" />
 							<div class="mt-2.5 flex items-center gap-2 rounded-lg border border-dashed border-surface-300 px-3 py-2 text-xs text-surface-400 dark:border-surface-600">
 								<i class="pi pi-video" /> {{ $t('admin.estudio.videoSoon') }}
 								<span class="ml-auto rounded-full bg-surface-100 px-2 py-0.5 text-[10px] font-bold uppercase text-surface-400 dark:bg-surface-800">{{ $t('admin.estudio.optional') }}</span>
@@ -209,6 +223,7 @@ export default defineComponent({
 			caption: '',
 			bmp: null as ProductBitmap | null,
 			logoBmp: null as ProductBitmap | null,
+			selectedImageUrl: '',
 			metaState: null as MetaRubroState | null,
 			posts: [] as MetaPost[],
 			imgLoading: false,
@@ -238,6 +253,13 @@ export default defineComponent({
 		selectedProduct(): Producto | undefined {
 			return this.catalog.productos.find(p => p.id === this.selectedId);
 		},
+		/** Imágenes del producto elegido (para elegir cuál componer en la plantilla). */
+		productImages(): string[] {
+			const p = this.selectedProduct;
+			if (!p) return [];
+			const imgs = (p.imagenes ?? []).filter(Boolean);
+			return imgs.length ? imgs : p.imageUrl ? [p.imageUrl] : [];
+		},
 		filteredProducts(): Producto[] {
 			const q = this.search.trim().toLowerCase();
 			return q ? this.catalog.productos.filter(p => p.nombre.toLowerCase().includes(q)) : this.catalog.productos;
@@ -263,6 +285,8 @@ export default defineComponent({
 			void this.reload();
 		},
 		selectedId() {
+			// Al cambiar de producto, arrancamos con su imagen de portada.
+			this.selectedImageUrl = this.productImages[0] ?? '';
 			void this.loadAndRender();
 		},
 		format() {
@@ -290,6 +314,7 @@ export default defineComponent({
 				// Elegimos el primer producto con imagen (o el primero).
 				const first = this.catalog.productos.find(p => p.imageUrl) ?? this.catalog.productos[0];
 				this.selectedId = first?.id ?? '';
+				this.selectedImageUrl = this.productImages[0] ?? '';
 				this.caption = this.buildCaption();
 				await this.loadAndRender();
 			} catch {
@@ -313,9 +338,15 @@ export default defineComponent({
 		money(n: number): string {
 			return formatPrice(n);
 		},
-		/** Carga la foto del producto (por proxy) y re-renderiza todo. */
+		/** Elige otra imagen del producto para componer. */
+		selectImage(url: string) {
+			if (url === this.selectedImageUrl) return;
+			this.selectedImageUrl = url;
+			void this.loadAndRender();
+		},
+		/** Carga la foto elegida del producto (por proxy) y re-renderiza todo. */
 		async loadAndRender() {
-			const url = this.selectedProduct?.imageUrl;
+			const url = this.selectedImageUrl || this.selectedProduct?.imageUrl;
 			this.imgLoading = true;
 			try {
 				this.bmp = await loadProductImage(url);
