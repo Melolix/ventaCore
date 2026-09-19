@@ -7,6 +7,7 @@ import { Roles } from '../../common/auth/roles.decorator';
 import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { MetaConnectionService } from './meta-connection.service';
 import { MetaOauthService } from './meta-oauth.service';
+import { MetaPublishService } from './meta-publish.service';
 import { SetTargetDto } from './dto/set-target.dto';
 
 function espacioDe(user: AuthenticatedUser): string {
@@ -24,12 +25,19 @@ export class MetaConnectionsController {
 	constructor(
 		private readonly connections: MetaConnectionService,
 		private readonly oauth: MetaOauthService,
+		private readonly publish: MetaPublishService,
 	) {}
 
 	/** Estado de Meta del rubro: app configurada + conexión. */
 	@Get()
 	state(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string) {
 		return this.connections.stateForRubro(rubroId, espacioDe(user));
+	}
+
+	/** Historial de publicaciones del rubro (para "Publicaciones recientes" del estudio). */
+	@Get('posts')
+	posts(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string) {
+		return this.publish.listPosts(rubroId, espacioDe(user));
 	}
 
 	/** Arranca el OAuth con la app de plataforma: devuelve la URL de consentimiento. */

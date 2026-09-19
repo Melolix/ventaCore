@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import type { MetaNetwork } from '@base-template/shared';
 
 /** Opciones al publicar un producto en las redes del rubro. */
@@ -26,4 +26,9 @@ export class PublishProductoDto {
 	@IsString()
 	@MaxLength(1000)
 	imageUrl?: string;
+
+	@ApiProperty({ required: false, description: 'Si true, publica como Historia (9:16, media_type=STORIES, sin caption).' })
+	@IsOptional()
+	@IsBoolean()
+	story?: boolean;
 }

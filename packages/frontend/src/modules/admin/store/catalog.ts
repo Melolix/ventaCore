@@ -8,6 +8,7 @@ import type {
 	Espacio,
 	MetaConnection,
 	MetaRubroState,
+	MetaPost,
 	MetaNetwork,
 	MetaPublishResult,
 	MlRubroState,
@@ -195,6 +196,12 @@ export const useCatalogStore = defineStore('catalog', {
 			return data;
 		},
 
+		/** Historial de publicaciones del rubro (para "Publicaciones recientes" del estudio). */
+		async fetchMetaPosts(rubroId: string): Promise<MetaPost[]> {
+			const { data } = await api.get<MetaPost[]>(`/rubros/${rubroId}/meta/posts`);
+			return data;
+		},
+
 		/** Arranca el OAuth: devuelve la URL de consentimiento para redirigir. */
 		async connectMeta(rubroId: string): Promise<string> {
 			const { data } = await api.post<{ url: string }>(`/rubros/${rubroId}/meta/connect`, {});
@@ -220,7 +227,7 @@ export const useCatalogStore = defineStore('catalog', {
 		async publishProducto(
 			rubroId: string,
 			productoId: string,
-			payload: { networks?: MetaNetwork[]; caption?: string; imageUrl?: string } = {},
+			payload: { networks?: MetaNetwork[]; caption?: string; imageUrl?: string; story?: boolean } = {},
 		): Promise<MetaPublishResult[]> {
 			const { data } = await api.post<MetaPublishResult[]>(
 				`/rubros/${rubroId}/productos/${productoId}/publish`,

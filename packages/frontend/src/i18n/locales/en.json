@@ -254,6 +254,8 @@
 			"campaign": "Run campaign",
 			"soon": "Soon",
 			"published": "Published to Instagram!",
+			"recent": "Recent posts",
+			"statusPublished": "Published",
 			"tpl": {
 				"oferta": "Sale",
 				"minimal": "Minimal",

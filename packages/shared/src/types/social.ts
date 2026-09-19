@@ -37,6 +37,32 @@ export interface MetaPublishResult {
 	error?: string;
 }
 
+/**
+ * Una publicación concretada en las redes de Meta (Instagram/Facebook), guardada
+ * para mostrar el historial en el estudio ("Publicaciones recientes"). La imagen
+ * es la ya compuesta con la plantilla (URL pública en Storage).
+ */
+export interface MetaPost {
+	id: string;
+	network: MetaNetwork;
+	/** Producto del que salió el post (para linkear), o null. */
+	productoId: string | null;
+	/** Nombre del producto (para el tooltip/label), o null. */
+	productoNombre: string | null;
+	/** Imagen compuesta que se publicó (URL pública). */
+	imageUrl: string;
+	/** Texto del posteo. */
+	caption: string | null;
+	/** ID del media/post en la red (para linkear/depurar). */
+	mediaId: string | null;
+	/** Link público al post, si se pudo obtener. */
+	permalink: string | null;
+	/** Estado: 'published'. */
+	status: string;
+	/** Momento de la publicación (ISO). */
+	createdAt: string;
+}
+
 /** Estado de la conexión OAuth de un espacio con Meta. */
 export enum MetaConnectionStatus {
 	/** Conexión activa y token vigente. */

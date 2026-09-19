@@ -8,6 +8,7 @@ import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
 import { MetaConnectionEntity } from './entities/meta-connection.entity';
 import { MetaTargetEntity } from './entities/meta-target.entity';
+import { MetaPostEntity } from './entities/meta-post.entity';
 import { MetaConnectionService } from './meta-connection.service';
 import { MetaOauthService } from './meta-oauth.service';
 import { MetaPublishService } from './meta-publish.service';
@@ -24,7 +25,7 @@ import { MetaPublishController } from './meta-publish.controller';
  */
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([MetaConnectionEntity, MetaTargetEntity, RubroEntity, ProductoEntity]),
+		TypeOrmModule.forFeature([MetaConnectionEntity, MetaTargetEntity, MetaPostEntity, RubroEntity, ProductoEntity]),
 		UsersModule,
 	],
 	controllers: [MetaController, MetaConnectionsController, MetaPublishController],

@@ -25,6 +25,10 @@ export interface ComposeData {
 	nombre: string;
 	precio: number | null;
 	brand: string;
+	/** Logo del negocio (si tiene). Si está, se dibuja en vez del nombre en texto. */
+	logo?: CanvasImageSource | null;
+	logoW?: number;
+	logoH?: number;
 }
 
 export interface StudioTemplate {
@@ -124,7 +128,21 @@ function priceChip(ctx: CanvasRenderingContext2D, x: number, y: number, precio: 
 	ctx.textBaseline = 'alphabetic';
 }
 
-function brandMark(ctx: CanvasRenderingContext2D, x: number, y: number, brand: string, unit: number, onLight = false): void {
+function brandMark(ctx: CanvasRenderingContext2D, x: number, y: number, d: ComposeData, unit: number, onLight = false): void {
+	// Si el negocio tiene logo, lo dibujamos (alineado a la izquierda) en vez del nombre.
+	if (d.logo && d.logoW && d.logoH) {
+		const h = unit * 0.09;
+		const w = (d.logoW / d.logoH) * h;
+		ctx.save();
+		if (!onLight) {
+			ctx.shadowColor = 'rgba(0,0,0,0.5)';
+			ctx.shadowBlur = unit * 0.01;
+		}
+		ctx.drawImage(d.logo, x, y, w, h);
+		ctx.restore();
+		return;
+	}
+	const brand = d.brand;
 	if (!brand) return;
 	const px = unit * 0.032;
 	ctx.font = `800 ${px}px 'Segoe UI', system-ui, sans-serif`;
@@ -153,14 +171,18 @@ const oferta: StudioTemplate = {
 		const u = Math.min(W, H);
 		drawCover(ctx, d, 0, 0, W, H);
 		scrim(ctx, W, H, H * 0.5);
-		// Cinta diagonal
+		// Cinta diagonal en la esquina superior izquierda (banda centrada en la
+		// diagonal de la esquina, con el texto corriendo a lo largo).
 		ctx.save();
-		ctx.translate(-u * 0.02, u * 0.14);
+		const cxy = u * 0.12; // centro de la cinta, a esta distancia de la esquina
+		ctx.translate(cxy, cxy);
 		ctx.rotate(-Math.PI / 4);
-		ctx.fillStyle = igGradient(ctx, -u * 0.4, 0, u * 0.4, 0);
-		ctx.fillRect(-u * 0.4, -u * 0.05, u * 0.8, u * 0.1);
+		const bandW = u * 0.52; // más larga: las puntas se van fuera del cuadro y no se ve el corte
+		const bandH = u * 0.06;
+		ctx.fillStyle = igGradient(ctx, -bandW / 2, 0, bandW / 2, 0);
+		ctx.fillRect(-bandW / 2, -bandH / 2, bandW, bandH);
 		ctx.fillStyle = '#ffffff';
-		ctx.font = `800 ${u * 0.04}px 'Segoe UI', system-ui, sans-serif`;
+		ctx.font = `800 ${u * 0.028}px 'Segoe UI', system-ui, sans-serif`;
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
 		ctx.fillText('OFERTA', 0, 0);
@@ -169,7 +191,7 @@ const oferta: StudioTemplate = {
 		ctx.textBaseline = 'alphabetic';
 		// Marca arriba a la derecha
 		ctx.textAlign = 'right';
-		brandMarkRight(ctx, W - u * 0.05, u * 0.05, d.brand, u);
+		brandMarkRight(ctx, W - u * 0.05, u * 0.05, d, u);
 		ctx.textAlign = 'left';
 		// Nombre + precio abajo
 		const pad = u * 0.06;
@@ -197,7 +219,7 @@ const minimal: StudioTemplate = {
 		drawCover(ctx, d, m, m, W - m * 2, photoH);
 		ctx.restore();
 		// Marca arriba
-		brandMark(ctx, m, m + photoH + u * 0.03, d.brand, u, true);
+		brandMark(ctx, m, m + photoH + u * 0.03, d, u, true);
 		// Nombre
 		ctx.fillStyle = '#151318';
 		const namePx = fitText(ctx, d.nombre, W - m * 2 - u * 0.28, u * 0.048, 700);
@@ -225,7 +247,7 @@ const precioGrande: StudioTemplate = {
 		ctx.fillStyle = '#141118';
 		ctx.fillRect(0, H - bandH, W, bandH);
 		const pad = u * 0.06;
-		brandMark(ctx, pad, H - bandH + pad, d.brand, u);
+		brandMark(ctx, pad, H - bandH + pad, d, u);
 		ctx.fillStyle = '#b9b3c4';
 		const namePx = fitText(ctx, d.nombre, W - pad * 2, u * 0.04, 600);
 		ctx.font = `600 ${namePx}px 'Segoe UI', system-ui, sans-serif`;
@@ -259,7 +281,7 @@ const nuevo: StudioTemplate = {
 		ctx.textBaseline = 'middle';
 		ctx.fillText(label, pad + u * 0.025, pad + u * 0.03);
 		ctx.textBaseline = 'alphabetic';
-		brandMarkRight(ctx, W - pad, pad + u * 0.01, d.brand, u);
+		brandMarkRight(ctx, W - pad, pad + u * 0.01, d, u);
 		// Nombre + precio
 		const namePx = fitText(ctx, d.nombre, W - pad * 2, u * 0.05, 700);
 		ctx.fillStyle = '#ffffff';
@@ -270,7 +292,19 @@ const nuevo: StudioTemplate = {
 };
 
 // Marca alineada a la derecha (variante usada en plantillas con foto a sangre).
-function brandMarkRight(ctx: CanvasRenderingContext2D, xRight: number, y: number, brand: string, unit: number): void {
+function brandMarkRight(ctx: CanvasRenderingContext2D, xRight: number, y: number, d: ComposeData, unit: number): void {
+	// Logo del negocio (alineado a la derecha) si tiene; si no, el nombre en texto.
+	if (d.logo && d.logoW && d.logoH) {
+		const h = unit * 0.1;
+		const w = (d.logoW / d.logoH) * h;
+		ctx.save();
+		ctx.shadowColor = 'rgba(0,0,0,0.5)';
+		ctx.shadowBlur = unit * 0.012;
+		ctx.drawImage(d.logo, xRight - w, y, w, h);
+		ctx.restore();
+		return;
+	}
+	const brand = d.brand;
 	if (!brand) return;
 	const px = unit * 0.032;
 	ctx.font = `800 ${px}px 'Segoe UI', system-ui, sans-serif`;

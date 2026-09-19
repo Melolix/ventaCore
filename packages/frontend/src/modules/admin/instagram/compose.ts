@@ -37,6 +37,7 @@ export function renderTemplate(
 	format: PostFormat,
 	content: PostContent,
 	bmp: ProductBitmap | null,
+	logoBmp?: ProductBitmap | null,
 ): void {
 	const { w, h } = FORMATS[format];
 	canvas.width = w;
@@ -49,6 +50,9 @@ export function renderTemplate(
 		img: bmp?.img ?? null,
 		imgW: bmp?.w ?? 0,
 		imgH: bmp?.h ?? 0,
+		logo: logoBmp?.img ?? null,
+		logoW: logoBmp?.w ?? 0,
+		logoH: logoBmp?.h ?? 0,
 	});
 }
 
