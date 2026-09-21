@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MercadoLibreModule } from '../mercadolibre/mercadolibre.module';
+import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { UsersModule } from '../users/users.module';
 import { FirebaseAuthGuard } from '../../common/auth/firebase-auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
@@ -29,9 +30,11 @@ import { MlMetricsService } from './ml-metrics.service';
 	imports: [
 		TypeOrmModule.forFeature([MlNotificationEntity, MlOrderEntity, MlQuestionEntity, ProductoEntity]),
 		MercadoLibreModule,
+		forwardRef(() => WhatsappModule),
 		UsersModule,
 	],
 	controllers: [MlWebhookController, MlOrdersController, MlQuestionsController, MlMetricsController],
 	providers: [MlNotificationsService, MlOrdersService, MlShipmentsService, MlQuestionsService, MlMetricsService, FirebaseAuthGuard, RolesGuard],
+	exports: [MlQuestionsService],
 })
 export class SalesModule {}

@@ -24,6 +24,82 @@
 		</div>
 
 		<template v-else>
+			<!-- Avisos por WhatsApp: a quién se le avisan las preguntas de este rubro -->
+			<div class="glass-card mb-4 rounded-2xl p-4">
+				<div class="flex flex-wrap items-start justify-between gap-3">
+					<div class="min-w-0">
+						<div class="flex items-center gap-2">
+							<i class="pi pi-whatsapp text-lg text-emerald-500" />
+							<span class="font-semibold text-surface-900 dark:text-surface-0">{{ $t('admin.ml.wa.title') }}</span>
+							<span
+								v-if="waRecipient"
+								class="rounded-full px-2 py-0.5 text-xs font-semibold"
+								:class="
+									waRecipient.active
+										? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+										: 'bg-surface-200 text-surface-500 dark:bg-surface-700 dark:text-surface-300'
+								"
+							>
+								{{ waRecipient.active ? $t('admin.ml.wa.active') : $t('admin.ml.wa.paused') }}
+							</span>
+						</div>
+						<p class="mt-1 text-sm text-surface-500">{{ $t('admin.ml.wa.subtitle') }}</p>
+					</div>
+				</div>
+
+				<!-- Sin destinatario o editando -->
+				<div v-if="!waRecipient || waEditing" class="mt-3 flex flex-wrap items-end gap-2">
+					<div class="min-w-0 flex-1" style="min-width: 220px">
+						<label class="mb-1 block text-xs font-medium text-surface-500">{{ $t('admin.ml.wa.phoneLabel') }}</label>
+						<input
+							v-model="waPhone"
+							type="tel"
+							placeholder="+5493511234567"
+							class="w-full rounded-lg border border-surface-300 bg-surface-0 p-2 text-sm text-surface-900 focus:border-emerald-500 focus:outline-none dark:border-surface-700 dark:bg-surface-900 dark:text-surface-0"
+							@keyup.enter="saveRecipient"
+						/>
+						<p class="mt-1 text-xs text-surface-400">{{ $t('admin.ml.wa.phoneHint') }}</p>
+					</div>
+					<div class="flex gap-2">
+						<Button
+							:label="$t('admin.ml.wa.save')"
+							icon="pi pi-check"
+							size="small"
+							:loading="waSaving"
+							:disabled="!waPhone.trim()"
+							@click="saveRecipient"
+						/>
+						<Button
+							v-if="waRecipient && waEditing"
+							:label="$t('common.cancel')"
+							size="small"
+							text
+							@click="cancelEditRecipient"
+						/>
+					</div>
+				</div>
+
+				<!-- Con destinatario -->
+				<div v-else class="mt-3 flex flex-wrap items-center justify-between gap-2">
+					<div class="flex items-center gap-2 text-sm text-surface-700 dark:text-surface-200">
+						<i class="pi pi-phone text-surface-400" />
+						<span class="font-medium">{{ waRecipient.phoneE164 }}</span>
+					</div>
+					<div class="flex gap-2">
+						<Button
+							:label="waRecipient.active ? $t('admin.ml.wa.pause') : $t('admin.ml.wa.resume')"
+							:icon="waRecipient.active ? 'pi pi-pause' : 'pi pi-play'"
+							size="small"
+							outlined
+							:loading="waSaving"
+							@click="toggleActive"
+						/>
+						<Button icon="pi pi-pencil" size="small" text @click="startEditRecipient" />
+						<Button icon="pi pi-trash" size="small" text severity="danger" :loading="waDeleting" @click="removeRecipient" />
+					</div>
+				</div>
+			</div>
+
 			<!-- Barra: filtro + sincronizar -->
 			<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
 				<div class="flex flex-wrap gap-1.5">
@@ -115,7 +191,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { MlQuestionView, Rubro } from '@base-template/shared';
+import type { MlQuestionView, Rubro, WhatsappRecipientView } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
@@ -135,6 +211,11 @@ export default defineComponent({
 			filter: 'unanswered' as QuestionFilter,
 			drafts: {} as Record<string, string>,
 			answering: null as string | null,
+			waRecipient: null as WhatsappRecipientView | null,
+			waPhone: '',
+			waEditing: false,
+			waSaving: false,
+			waDeleting: false,
 			filters: [
 				{ key: 'unanswered' as QuestionFilter, label: 'admin.ml.preguntas.filterUnanswered' },
 				{ key: 'all' as QuestionFilter, label: 'admin.ml.preguntas.filterAll' },
@@ -161,9 +242,15 @@ export default defineComponent({
 			try {
 				const state = await this.catalog.fetchMlState(this.rubro.id);
 				this.mlConnected = !!state.connection;
-				this.questions = this.mlConnected
-					? await this.catalog.fetchMlQuestions(this.rubro.id, this.filter === 'unanswered' ? 'UNANSWERED' : undefined)
-					: [];
+				if (this.mlConnected) {
+					this.questions = await this.catalog.fetchMlQuestions(
+						this.rubro.id,
+						this.filter === 'unanswered' ? 'UNANSWERED' : undefined,
+					);
+					await this.loadRecipient();
+				} else {
+					this.questions = [];
+				}
 			} catch (e) {
 				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.ml.preguntas.loadError')), life: 4000 });
 			} finally {
@@ -208,6 +295,74 @@ export default defineComponent({
 				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.ml.preguntas.answerError')), life: 5000 });
 			} finally {
 				this.answering = null;
+			}
+		},
+		// ── Destinatario de WhatsApp ──
+		async loadRecipient() {
+			if (!this.rubro) return;
+			try {
+				this.waRecipient = await this.catalog.fetchWhatsappRecipient(this.rubro.id);
+				this.waEditing = false;
+				this.waPhone = this.waRecipient?.phoneE164 ?? '';
+			} catch {
+				// No bloquear el panel de preguntas si esto falla.
+				this.waRecipient = null;
+			}
+		},
+		startEditRecipient() {
+			this.waPhone = this.waRecipient?.phoneE164 ?? '';
+			this.waEditing = true;
+		},
+		cancelEditRecipient() {
+			this.waEditing = false;
+			this.waPhone = this.waRecipient?.phoneE164 ?? '';
+		},
+		async saveRecipient() {
+			if (!this.rubro) return;
+			const phone = this.waPhone.trim();
+			if (!phone) return;
+			if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
+				this.$toast.add({ severity: 'warn', summary: this.$t('admin.ml.wa.invalidPhone'), life: 4000 });
+				return;
+			}
+			this.waSaving = true;
+			try {
+				this.waRecipient = await this.catalog.saveWhatsappRecipient(this.rubro.id, { phoneE164: phone });
+				this.waEditing = false;
+				this.$toast.add({ severity: 'success', summary: this.$t('admin.ml.wa.saved'), life: 3000 });
+			} catch (e) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.ml.wa.saveError')), life: 5000 });
+			} finally {
+				this.waSaving = false;
+			}
+		},
+		async toggleActive() {
+			if (!this.rubro || !this.waRecipient) return;
+			this.waSaving = true;
+			try {
+				this.waRecipient = await this.catalog.saveWhatsappRecipient(this.rubro.id, {
+					phoneE164: this.waRecipient.phoneE164,
+					active: !this.waRecipient.active,
+				});
+			} catch (e) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.ml.wa.saveError')), life: 5000 });
+			} finally {
+				this.waSaving = false;
+			}
+		},
+		async removeRecipient() {
+			if (!this.rubro || !this.waRecipient) return;
+			this.waDeleting = true;
+			try {
+				await this.catalog.deleteWhatsappRecipient(this.rubro.id);
+				this.waRecipient = null;
+				this.waPhone = '';
+				this.waEditing = false;
+				this.$toast.add({ severity: 'success', summary: this.$t('admin.ml.wa.removed'), life: 3000 });
+			} catch (e) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.ml.wa.saveError')), life: 5000 });
+			} finally {
+				this.waDeleting = false;
 			}
 		},
 		formatDate(iso: string | null): string {

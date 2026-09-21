@@ -704,6 +704,21 @@
 				"answerError": "Could not post the answer.",
 				"closed": "Question closed without an answer."
 			},
+			"wa": {
+				"title": "WhatsApp alerts",
+				"subtitle": "We'll ping you on WhatsApp when a new question comes in. Reply by quoting that message and we post the answer to Mercado Libre.",
+				"active": "Active",
+				"paused": "Paused",
+				"phoneLabel": "WhatsApp number",
+				"phoneHint": "International format, with + and country code. E.g. +54 9 351 123 4567.",
+				"save": "Save",
+				"saved": "Recipient saved.",
+				"saveError": "Could not save the recipient.",
+				"invalidPhone": "The number must be in international format (e.g. +5493511234567).",
+				"pause": "Pause",
+				"resume": "Resume",
+				"removed": "Recipient removed."
+			},
 			"ventas": {
 				"eyebrow": "Mercado Libre",
 				"pageTitle": "Completed sales",

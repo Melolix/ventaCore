@@ -26,7 +26,7 @@ export class MetaPostEntity {
 	productoId!: string | null;
 
 	/** Red donde se publicó. */
-	@Column()
+	@Column({ type: 'varchar' })
 	network!: MetaNetwork;
 
 	/** Imagen compuesta publicada (URL pública en Storage). */

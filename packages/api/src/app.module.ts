@@ -13,6 +13,7 @@ import { EspacioEntity } from './modules/spaces/entities/espacio.entity';
 import { SocialModule } from './modules/social/social.module';
 import { MetaConnectionEntity } from './modules/social/entities/meta-connection.entity';
 import { MetaTargetEntity } from './modules/social/entities/meta-target.entity';
+import { MetaPostEntity } from './modules/social/entities/meta-post.entity';
 import { MercadoLibreModule } from './modules/mercadolibre/mercadolibre.module';
 import { MlConnectionEntity } from './modules/mercadolibre/entities/ml-connection.entity';
 import { HandoffModule } from './modules/handoff/handoff.module';
@@ -26,6 +27,10 @@ import { SalesModule } from './modules/sales/sales.module';
 import { MlNotificationEntity } from './modules/sales/entities/ml-notification.entity';
 import { MlOrderEntity } from './modules/sales/entities/ml-order.entity';
 import { MlQuestionEntity } from './modules/sales/entities/ml-question.entity';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
+import { WhatsappRecipientEntity } from './modules/whatsapp/entities/whatsapp-recipient.entity';
+import { WhatsappNotificationEntity } from './modules/whatsapp/entities/whatsapp-notification.entity';
+import { WhatsappInboundEntity } from './modules/whatsapp/entities/whatsapp-inbound.entity';
 
 @Module({
 	imports: [
@@ -54,6 +59,10 @@ import { MlQuestionEntity } from './modules/sales/entities/ml-question.entity';
 				MlNotificationEntity,
 				MlOrderEntity,
 				MlQuestionEntity,
+				MetaPostEntity,
+				WhatsappRecipientEntity,
+				WhatsappNotificationEntity,
+				WhatsappInboundEntity,
 			],
 			synchronize: process.env.DB_SYNCHRONIZE === 'true',
 		}),
@@ -68,6 +77,7 @@ import { MlQuestionEntity } from './modules/sales/entities/ml-question.entity';
 		MediaModule,
 		PaymentsModule,
 		SalesModule,
+		WhatsappModule,
 	],
 })
 export class AppModule {}

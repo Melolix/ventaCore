@@ -25,6 +25,7 @@ import type {
 	MlOrdersSyncResult,
 	MlQuestionView,
 	MlQuestionsSyncResult,
+	WhatsappRecipientView,
 	MlMetrics,
 	PaymentProvider,
 	PaymentProviderConfigPublic,
@@ -394,6 +395,27 @@ export const useCatalogStore = defineStore('catalog', {
 		async syncMlQuestions(rubroId: string): Promise<MlQuestionsSyncResult> {
 			const { data } = await api.post<MlQuestionsSyncResult>(`/rubros/${rubroId}/ml/questions/sync`, {});
 			return data;
+		},
+
+		// ── Avisos de preguntas por WhatsApp (destinatario por rubro) ──
+		/** Destinatario de WhatsApp del rubro (null si no hay). */
+		async fetchWhatsappRecipient(rubroId: string): Promise<WhatsappRecipientView | null> {
+			const { data } = await api.get<WhatsappRecipientView | null>(`/rubros/${rubroId}/whatsapp/recipient`);
+			return data;
+		},
+
+		/** Crea o actualiza el destinatario de WhatsApp del rubro. */
+		async saveWhatsappRecipient(
+			rubroId: string,
+			payload: { phoneE164: string; role?: string; displayName?: string; active?: boolean },
+		): Promise<WhatsappRecipientView> {
+			const { data } = await api.put<WhatsappRecipientView>(`/rubros/${rubroId}/whatsapp/recipient`, payload);
+			return data;
+		},
+
+		/** Elimina el destinatario de WhatsApp del rubro. */
+		async deleteWhatsappRecipient(rubroId: string): Promise<void> {
+			await api.delete(`/rubros/${rubroId}/whatsapp/recipient`);
 		},
 
 		// ── Cobros / Suscripciones (por espacio y por rubro) ──

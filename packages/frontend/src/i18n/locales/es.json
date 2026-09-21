@@ -704,6 +704,21 @@
 				"answerError": "No se pudo publicar la respuesta.",
 				"closed": "Pregunta cerrada sin responder."
 			},
+			"wa": {
+				"title": "Avisos por WhatsApp",
+				"subtitle": "Te avisamos por WhatsApp cuando entra una pregunta nueva. Respondé citando ese mensaje y publicamos la respuesta en Mercado Libre.",
+				"active": "Activo",
+				"paused": "Pausado",
+				"phoneLabel": "Número de WhatsApp",
+				"phoneHint": "En formato internacional, con + y código de país. Ej: +54 9 351 123 4567.",
+				"save": "Guardar",
+				"saved": "Destinatario guardado.",
+				"saveError": "No se pudo guardar el destinatario.",
+				"invalidPhone": "El número debe estar en formato internacional (ej: +5493511234567).",
+				"pause": "Pausar",
+				"resume": "Reactivar",
+				"removed": "Destinatario eliminado."
+			},
 			"ventas": {
 				"eyebrow": "Mercado Libre",
 				"pageTitle": "Ventas concretadas",

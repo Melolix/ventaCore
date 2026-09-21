@@ -1,9 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import type { MlQuestionView, MlQuestionsSyncResult } from '@base-template/shared';
 import { MlConnectionService } from '../mercadolibre/ml-connection.service';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { MlQuestionEntity } from './entities/ml-question.entity';
 
 /** Forma cruda de una pregunta de Mercado Libre (solo lo que usamos). */
@@ -36,6 +37,8 @@ export class MlQuestionsService {
 		@InjectRepository(ProductoEntity)
 		private readonly productos: Repository<ProductoEntity>,
 		private readonly connections: MlConnectionService,
+		@Inject(forwardRef(() => WhatsappService))
+		private readonly whatsapp: WhatsappService,
 	) {}
 
 	// ── Entrada por webhook ──
@@ -48,7 +51,20 @@ export class MlQuestionsService {
 		const mlQuestionId = resource.split('/').filter(Boolean).pop() ?? '';
 		if (!mlQuestionId) throw new Error(`Resource de pregunta inválido: ${resource}`);
 		const raw = await this.fetchQuestion(owner.rubroId, owner.espacioId, mlQuestionId);
-		await this.upsertFromMl(owner.rubroId, owner.espacioId, raw);
+		const question = await this.upsertFromMl(owner.rubroId, owner.espacioId, raw);
+
+		// Aviso saliente por WhatsApp solo si la pregunta quedó sin responder. Es
+		// best-effort (no lanza) y dedupea por pregunta, así que no rompe ni duplica.
+		if (question.status === 'UNANSWERED') {
+			const prod = await this.productos.findOne({ where: { rubroId: owner.rubroId, mlItemId: question.mlItemId } });
+			await this.whatsapp.notifyNewQuestion({
+				questionId: question.id,
+				rubroId: owner.rubroId,
+				espacioId: owner.espacioId,
+				text: question.text,
+				itemTitle: prod?.nombre ?? null,
+			});
+		}
 	}
 
 	// ── Backfill ──
