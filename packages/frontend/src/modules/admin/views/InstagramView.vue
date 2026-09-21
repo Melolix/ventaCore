@@ -67,16 +67,16 @@
 				<div class="glass-card flex flex-col gap-3 rounded-2xl p-4">
 					<div class="flex gap-1.5">
 						<button
-							v-for="f in formats"
+							v-for="f in formatOptions"
 							:key="f.key"
 							type="button"
 							class="flex-1 rounded-lg border px-2 py-2 text-[13px] font-bold transition-colors"
 							:class="format === f.key
 								? 'border-transparent text-white ig-fill'
 								: 'border-surface-200 bg-surface-50 text-surface-600 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-300'"
-							@click="format = f.key"
+							@click="selectFormat(f.key)"
 						>
-							{{ f.label }}
+							{{ $t(f.label) }}
 						</button>
 					</div>
 					<div class="flex flex-1 items-center justify-center py-2">
@@ -86,11 +86,25 @@
 								class="max-h-[44vh] w-auto rounded-2xl shadow-xl"
 								:style="{ maxWidth: '100%', aspectRatio: aspect }"
 							/>
+							<!-- Guías de zona segura: lo que tapan el encabezado y la barra de responder. -->
+							<template v-if="format === 'story'">
+								<div
+									class="pointer-events-none absolute inset-x-0 top-0 rounded-t-2xl border-b border-dashed border-white/50 bg-black/25"
+									:style="{ height: safeTopPct }"
+								/>
+								<div
+									class="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-2xl border-t border-dashed border-white/50 bg-black/25"
+									:style="{ height: safeBottomPct }"
+								/>
+							</template>
 							<div v-if="imgLoading" class="absolute inset-0 flex items-center justify-center rounded-2xl bg-surface-900/30">
 								<i class="pi pi-spin pi-spinner text-2xl text-white" />
 							</div>
 						</div>
 					</div>
+					<p v-if="format === 'story'" class="-mt-1 text-center text-[11px] text-surface-400">
+						{{ $t('admin.estudio.safeAreaNote') }}
+					</p>
 
 					<!-- Imágenes del producto: elegí cuál queda mejor en la plantilla. -->
 					<div v-if="productImages.length > 1" class="flex flex-wrap justify-center gap-2">
@@ -127,12 +141,17 @@
 							</button>
 						</div>
 						<div class="px-4 pb-4">
-							<div class="mb-1.5 mt-1 flex items-center justify-between">
-								<label class="text-xs font-bold uppercase tracking-wide text-surface-400">{{ $t('admin.estudio.caption') }}</label>
-								<span class="text-[10px] tabular-nums" :class="caption.length > 2200 ? 'font-semibold text-red-500' : 'text-surface-400'">{{ caption.length }}/2200</span>
+							<div v-if="publishAs === 'story'" class="mt-3 flex items-start gap-2 rounded-lg border border-dashed border-surface-300 px-3 py-2 text-xs text-surface-400 dark:border-surface-600">
+								<i class="pi pi-info-circle mt-px" /> {{ $t('admin.estudio.storyNoCaption') }}
 							</div>
-							<Textarea v-model="caption" class="w-full !max-h-36 overflow-y-auto" rows="4" />
-							<div class="mt-2.5 flex items-center gap-2 rounded-lg border border-dashed border-surface-300 px-3 py-2 text-xs text-surface-400 dark:border-surface-600">
+							<template v-else>
+								<div class="mb-1.5 mt-1 flex items-center justify-between">
+									<label class="text-xs font-bold uppercase tracking-wide text-surface-400">{{ $t('admin.estudio.caption') }}</label>
+									<span class="text-[10px] tabular-nums" :class="caption.length > 2200 ? 'font-semibold text-red-500' : 'text-surface-400'">{{ caption.length }}/2200</span>
+								</div>
+								<Textarea v-model="caption" class="w-full !max-h-36 overflow-y-auto" rows="4" />
+							</template>
+							<div v-if="publishAs !== 'story'" class="mt-2.5 flex items-center gap-2 rounded-lg border border-dashed border-surface-300 px-3 py-2 text-xs text-surface-400 dark:border-surface-600">
 								<i class="pi pi-video" /> {{ $t('admin.estudio.videoSoon') }}
 								<span class="ml-auto rounded-full bg-surface-100 px-2 py-0.5 text-[10px] font-bold uppercase text-surface-400 dark:bg-surface-800">{{ $t('admin.estudio.optional') }}</span>
 							</div>
@@ -140,6 +159,23 @@
 					</div>
 
 					<div class="glass-card flex flex-col gap-2 rounded-2xl p-4">
+						<p class="text-xs font-bold uppercase tracking-wide text-surface-400">{{ $t('admin.estudio.publishAs') }}</p>
+						<div class="mb-1 flex gap-1.5">
+							<button
+								v-for="k in publishAsOptions"
+								:key="k"
+								type="button"
+								class="flex-1 rounded-lg border px-2 py-1.5 text-xs font-bold transition-colors"
+								:class="publishAs === k
+									? 'border-transparent text-white ig-fill'
+									: 'border-surface-200 bg-surface-50 text-surface-600 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-300'"
+								:disabled="k !== 'post' && !canPublishStories"
+								:title="k !== 'post' && !canPublishStories ? $t('admin.estudio.storyNeedsIg') : undefined"
+								@click="publishAs = k"
+							>
+								{{ $t('admin.estudio.kind.' + k) }}
+							</button>
+						</div>
 						<Button
 							:label="$t('admin.estudio.publishNow')"
 							icon="pi pi-send"
@@ -177,12 +213,15 @@
 						class="glass-card w-24 flex-none overflow-hidden rounded-xl transition-opacity"
 						:class="p.permalink ? 'cursor-pointer hover:opacity-90' : 'cursor-default'"
 					>
-						<div class="aspect-square bg-surface-100 dark:bg-surface-800">
+						<div class="bg-surface-100 dark:bg-surface-800" :class="p.kind === 'story' ? 'aspect-[9/16]' : 'aspect-square'">
 							<img :src="p.imageUrl" class="h-full w-full object-cover" alt="" />
 						</div>
 						<div class="px-1.5 py-1">
 							<p class="truncate text-[10px] font-medium text-surface-700 dark:text-surface-200" :title="p.productoNombre || ''">{{ p.productoNombre || '—' }}</p>
-							<span class="mt-0.5 inline-block rounded-full bg-emerald-500/15 px-1.5 py-px text-[8px] font-bold uppercase text-emerald-600 dark:text-emerald-400">{{ $t('admin.estudio.statusPublished') }}</span>
+							<span
+								class="mt-0.5 inline-block rounded-full px-1.5 py-px text-[8px] font-bold uppercase"
+								:class="postBadge(p).class"
+							>{{ postBadge(p).label }}</span>
 						</div>
 					</a>
 				</div>
@@ -193,12 +232,13 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { MetaPost, MetaRubroState, Producto, Rubro } from '@base-template/shared';
+import { STORY_TTL_HOURS } from '@base-template/shared';
+import type { MetaPost, MetaPostKind, MetaRubroState, Producto, Rubro } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
 import { uploadImage } from '@/shared/utils/image';
-import { TEMPLATES, FORMATS, formatPrice, type PostFormat } from '@/modules/admin/instagram/templates';
+import { TEMPLATES, FORMATS, SAFE_AREA, formatPrice, type PostFormat } from '@/modules/admin/instagram/templates';
 import { loadProductImage, renderTemplate, exportJpeg, type ProductBitmap, type PostContent } from '@/modules/admin/instagram/compose';
 
 /**
@@ -206,6 +246,10 @@ import { loadProductImage, renderTemplate, exportJpeg, type ProductBitmap, type 
  * publica en Instagram. La foto del producto se compone dentro de la plantilla
  * elegida en un canvas; al publicar, se exporta a JPEG, se sube a Storage y se
  * usa esa URL pública para publicar (reutiliza el publish de Meta ya existente).
+ *
+ * Se puede publicar en el feed, como Historia (9:16, sin texto, dura 24 h) o las
+ * dos cosas. Cada una es una publicación aparte: se compone y sube su propia
+ * imagen en su formato y se manda con su `kind`.
  */
 export default defineComponent({
 	name: 'InstagramView',
@@ -219,7 +263,12 @@ export default defineComponent({
 			search: '',
 			selectedId: '',
 			templateId: TEMPLATES[0].id,
-			format: 'square' as PostFormat,
+			/** Qué se publica: al feed, como Historia, o las dos. */
+			publishAs: 'post' as MetaPostKind | 'both',
+			/** Formato del post del feed (la Historia siempre es 9:16). */
+			feedFormat: 'square' as PostFormat,
+			/** Cuál de los dos se está viendo en la vista previa. */
+			previewKind: 'post' as MetaPostKind,
 			caption: '',
 			bmp: null as ProductBitmap | null,
 			logoBmp: null as ProductBitmap | null,
@@ -229,11 +278,7 @@ export default defineComponent({
 			imgLoading: false,
 			publishing: false,
 			templates: TEMPLATES,
-			formats: [
-				{ key: 'square' as PostFormat, label: 'Post 1:1' },
-				{ key: 'portrait' as PostFormat, label: 'Retrato 4:5' },
-				{ key: 'story' as PostFormat, label: 'Historia 9:16' },
-			],
+			publishAsOptions: ['post', 'story', 'both'] as (MetaPostKind | 'both')[],
 		};
 	},
 	computed: {
@@ -279,6 +324,33 @@ export default defineComponent({
 			const f = FORMATS[this.format];
 			return `${f.w} / ${f.h}`;
 		},
+		/** Formato que se está componiendo ahora (deriva de lo que se previsualiza). */
+		format(): PostFormat {
+			return this.previewKind === 'story' ? 'story' : this.feedFormat;
+		},
+		/** Formatos ofrecidos en la vista previa según lo que se vaya a publicar. */
+		formatOptions(): { key: PostFormat; label: string }[] {
+			const feed = [
+				{ key: 'square' as PostFormat, label: 'admin.estudio.fmtSquare' },
+				{ key: 'portrait' as PostFormat, label: 'admin.estudio.fmtPortrait' },
+			];
+			const story = { key: 'story' as PostFormat, label: 'admin.estudio.fmtStory' };
+			if (this.publishAs === 'story') return [story];
+			if (this.publishAs === 'both') return [...feed, story];
+			return feed;
+		},
+		/** Las Historias necesitan la cuenta de Instagram Business del destino. */
+		canPublishStories(): boolean {
+			const target = this.metaState?.connection?.targets.find(t => t.id === this.rubro?.metaTargetId);
+			return !!target?.igBusinessAccountId;
+		},
+		/** Alto de las guías de zona segura en la vista previa (porcentaje del alto). */
+		safeTopPct(): string {
+			return `${(SAFE_AREA.story.top / FORMATS.story.h) * 100}%`;
+		},
+		safeBottomPct(): string {
+			return `${(SAFE_AREA.story.bottom / FORMATS.story.h) * 100}%`;
+		},
 	},
 	watch: {
 		rubroId() {
@@ -294,6 +366,12 @@ export default defineComponent({
 		},
 		templateId() {
 			this.render();
+		},
+		publishAs(value: MetaPostKind | 'both') {
+			// Al elegir "solo Historia" pasamos la vista previa a 9:16, y al volver a
+			// "solo post" la traemos al formato del feed.
+			if (value === 'story') this.previewKind = 'story';
+			else if (value === 'post') this.previewKind = 'post';
 		},
 	},
 	async created() {
@@ -338,6 +416,15 @@ export default defineComponent({
 		money(n: number): string {
 			return formatPrice(n);
 		},
+		/** Cambia la vista previa: los formatos del feed o la Historia. */
+		selectFormat(key: PostFormat) {
+			if (key === 'story') {
+				this.previewKind = 'story';
+			} else {
+				this.feedFormat = key;
+				this.previewKind = 'post';
+			}
+		},
 		/** Elige otra imagen del producto para componer. */
 		selectImage(url: string) {
 			if (url === this.selectedImageUrl) return;
@@ -369,63 +456,117 @@ export default defineComponent({
 				}
 			});
 		},
-		/** Exporta el post compuesto a un Blob JPEG. */
-		async exportBlob(): Promise<Blob> {
+		/** Exporta el post compuesto a un Blob JPEG, en el formato pedido. */
+		async exportBlob(format: PostFormat): Promise<Blob> {
 			const tpl = this.templates.find(t => t.id === this.templateId) ?? this.templates[0];
 			// Renderizamos en un canvas offscreen a resolución completa del formato.
 			const canvas = document.createElement('canvas');
-			renderTemplate(canvas, tpl, this.format, this.content, this.bmp, this.logoBmp);
+			renderTemplate(canvas, tpl, format, this.content, this.bmp, this.logoBmp);
 			return exportJpeg(canvas);
 		},
+		/**
+		 * Publica lo elegido: post al feed, Historia, o las dos. Cada una compone y
+		 * sube su propia imagen (el feed en su formato, la Historia en 9:16) y va en
+		 * su propia llamada, así el historial queda con una fila por publicación.
+		 */
 		async publish() {
 			const prod = this.selectedProduct;
 			if (!prod) return;
+			const kinds: MetaPostKind[] = this.publishAs === 'both' ? ['post', 'story'] : [this.publishAs];
 			this.publishing = true;
+			const done: MetaPostKind[] = [];
+			const failed: { kind: MetaPostKind; error: string }[] = [];
 			try {
-				const blob = await this.exportBlob();
-				const imageUrl = await uploadImage(blob, 'instagram');
-				const results = await this.catalog.publishProducto(this.rubroId, prod.id, {
-					networks: ['instagram'],
-					caption: this.caption.trim() || undefined,
-					imageUrl,
-					story: this.format === 'story',
-				});
-				const ok = results.some(r => r.network === 'instagram' && r.ok);
-				if (ok) {
-					this.addLocalPost(imageUrl);
-					this.$toast.add({ severity: 'success', summary: this.$t('admin.estudio.published'), life: 4000 });
-				} else {
-					const err = results.find(r => r.network === 'instagram')?.error || '';
-					this.$toast.add({ severity: 'error', summary: this.$t('admin.publish.failed'), detail: err, life: 7000 });
+				for (const kind of kinds) {
+					const blob = await this.exportBlob(kind === 'story' ? 'story' : this.feedFormat);
+					const imageUrl = await uploadImage(blob, 'instagram');
+					const results = await this.catalog.publishProducto(this.rubroId, prod.id, {
+						networks: ['instagram'],
+						// Instagram ignora el texto en las Historias: no lo mandamos.
+						caption: kind === 'story' ? undefined : this.caption.trim() || undefined,
+						imageUrl,
+						kind,
+					});
+					const ig = results.find(r => r.network === 'instagram');
+					if (ig?.ok) {
+						this.addLocalPost(imageUrl, kind, ig.permalink ?? null);
+						done.push(kind);
+					} else {
+						failed.push({ kind, error: ig?.error || '' });
+					}
 				}
+				this.notifyPublish(done, failed);
 			} catch (e: unknown) {
 				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.publish.failed')), life: 6000 });
 			} finally {
 				this.publishing = false;
 			}
 		},
+		/** Un solo aviso con el resultado de todo lo que se intentó publicar. */
+		notifyPublish(done: MetaPostKind[], failed: { kind: MetaPostKind; error: string }[]) {
+			if (!failed.length) {
+				const summary =
+					done.length > 1
+						? this.$t('admin.estudio.publishedBoth')
+						: done[0] === 'story'
+							? this.$t('admin.estudio.publishedStory')
+							: this.$t('admin.estudio.published');
+				this.$toast.add({ severity: 'success', summary, life: 4000 });
+				return;
+			}
+			const detail = failed.map(f => `${this.$t('admin.estudio.kind.' + f.kind)}: ${f.error}`).join(' · ');
+			this.$toast.add({
+				severity: done.length ? 'warn' : 'error',
+				summary: this.$t('admin.publish.failed'),
+				detail,
+				life: 9000,
+			});
+		},
 		/** Prepend optimista al historial local (feedback inmediato tras publicar). */
-		addLocalPost(imageUrl: string) {
+		addLocalPost(imageUrl: string, kind: MetaPostKind, permalink: string | null) {
 			const prod = this.selectedProduct;
 			this.posts.unshift({
 				id: 'local-' + Date.now(),
 				network: 'instagram',
+				kind,
 				productoId: prod?.id ?? null,
 				productoNombre: prod?.nombre ?? null,
 				imageUrl,
-				caption: this.caption.trim() || null,
+				caption: kind === 'story' ? null : this.caption.trim() || null,
 				mediaId: null,
-				permalink: null,
+				permalink,
 				status: 'published',
 				createdAt: new Date().toISOString(),
 			});
 			if (this.posts.length > 30) this.posts.length = 30;
 		},
+		/**
+		 * Etiqueta del historial: los posts quedan publicados; las Historias viven
+		 * 24 h, así que mostramos lo que les queda y después que vencieron.
+		 */
+		postBadge(p: MetaPost): { label: string; class: string } {
+			if (p.kind !== 'story') {
+				return {
+					label: this.$t('admin.estudio.statusPublished'),
+					class: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+				};
+			}
+			const hoursLeft = Math.ceil((new Date(p.createdAt).getTime() + STORY_TTL_HOURS * 3600_000 - Date.now()) / 3600_000);
+			return hoursLeft > 0
+				? {
+						label: this.$t('admin.estudio.storyLeft', { h: hoursLeft }),
+						class: 'bg-pink-500/15 text-pink-600 dark:text-pink-400',
+					}
+				: {
+						label: this.$t('admin.estudio.storyExpired'),
+						class: 'bg-surface-500/15 text-surface-500',
+					};
+		},
 		async download() {
 			const prod = this.selectedProduct;
 			if (!prod) return;
 			try {
-				const blob = await this.exportBlob();
+				const blob = await this.exportBlob(this.format);
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement('a');
 				a.href = url;

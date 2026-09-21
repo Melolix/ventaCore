@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
-import type { MetaNetwork } from '@base-template/shared';
+import type { MetaNetwork, MetaPostKind } from '@base-template/shared';
 
 /**
  * Una publicación concretada en las redes de Meta (Instagram/Facebook). Se
@@ -28,6 +28,13 @@ export class MetaPostEntity {
 	/** Red donde se publicó. */
 	@Column()
 	network!: MetaNetwork;
+
+	/**
+	 * Post al feed o Historia. Las historias expiran a las 24 h: la fila queda
+	 * igual, pero el estudio la muestra como vencida a partir de `createdAt`.
+	 */
+	@Column({ default: 'post' })
+	kind!: MetaPostKind;
 
 	/** Imagen compuesta publicada (URL pública en Storage). */
 	@Column({ type: 'text' })

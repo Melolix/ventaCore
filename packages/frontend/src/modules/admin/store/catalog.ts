@@ -10,6 +10,7 @@ import type {
 	MetaRubroState,
 	MetaPost,
 	MetaNetwork,
+	MetaPostKind,
 	MetaPublishResult,
 	MlRubroState,
 	MlCategoryPrediction,
@@ -227,7 +228,7 @@ export const useCatalogStore = defineStore('catalog', {
 		async publishProducto(
 			rubroId: string,
 			productoId: string,
-			payload: { networks?: MetaNetwork[]; caption?: string; imageUrl?: string; story?: boolean } = {},
+			payload: { networks?: MetaNetwork[]; caption?: string; imageUrl?: string; kind?: MetaPostKind } = {},
 		): Promise<MetaPublishResult[]> {
 			const { data } = await api.post<MetaPublishResult[]>(
 				`/rubros/${rubroId}/productos/${productoId}/publish`,

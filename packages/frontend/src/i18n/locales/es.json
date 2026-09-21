@@ -256,6 +256,22 @@
 			"published": "¡Publicado en Instagram!",
 			"recent": "Publicaciones recientes",
 			"statusPublished": "Publicado",
+			"publishAs": "Qué publicar",
+			"kind": {
+				"post": "Post",
+				"story": "Historia",
+				"both": "Las dos"
+			},
+			"fmtSquare": "Post 1:1",
+			"fmtPortrait": "Retrato 4:5",
+			"fmtStory": "Historia 9:16",
+			"safeAreaNote": "Las franjas marcan lo que tapa Instagram (tu nombre arriba, responder abajo). No salen en la imagen.",
+			"storyNoCaption": "Las Historias no llevan texto: Instagram lo ignora. Todo lo que quieras decir tiene que estar en la imagen.",
+			"storyNeedsIg": "Para publicar Historias el negocio necesita una cuenta de Instagram Business vinculada.",
+			"publishedStory": "¡Historia publicada!",
+			"publishedBoth": "¡Publicado en el feed y en Historias!",
+			"storyLeft": "Historia · {h} h",
+			"storyExpired": "Historia vencida",
 			"tpl": {
 				"oferta": "Oferta",
 				"minimal": "Minimal",

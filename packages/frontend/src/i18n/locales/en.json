@@ -256,6 +256,22 @@
 			"published": "Published to Instagram!",
 			"recent": "Recent posts",
 			"statusPublished": "Published",
+			"publishAs": "What to publish",
+			"kind": {
+				"post": "Post",
+				"story": "Story",
+				"both": "Both"
+			},
+			"fmtSquare": "Post 1:1",
+			"fmtPortrait": "Portrait 4:5",
+			"fmtStory": "Story 9:16",
+			"safeAreaNote": "The bands show what Instagram covers (your name on top, the reply bar below). They are not part of the image.",
+			"storyNoCaption": "Stories carry no caption: Instagram ignores it. Anything you want to say has to be in the image.",
+			"storyNeedsIg": "Publishing Stories needs an Instagram Business account linked to the business.",
+			"publishedStory": "Story published!",
+			"publishedBoth": "Published to the feed and to Stories!",
+			"storyLeft": "Story · {h} h",
+			"storyExpired": "Story expired",
 			"tpl": {
 				"oferta": "Sale",
 				"minimal": "Minimal",

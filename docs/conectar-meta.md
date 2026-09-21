@@ -148,6 +148,28 @@ Meta **descarga la imagen desde una URL**, así que la foto debe estar en una
 
 ---
 
+## Historias de Instagram
+
+Desde el **Estudio de contenido** se elige si el producto va al *feed*, como
+*Historia*, o las dos cosas. Lo que conviene saber:
+
+- La Historia es **solo de Instagram** (Facebook queda afuera) y necesita la
+  cuenta de **Instagram Business** vinculada a la Página (ver paso 0). Las
+  cuentas de **Creador no pueden** publicar Historias por la API.
+- Alcanza con `instagram_content_publish`, el mismo permiso que el feed: no hay
+  que habilitar nada extra en la app.
+- **No llevan texto**: Instagram ignora el `caption` en `media_type=STORIES`, así
+  que todo lo que haya que decir tiene que estar en la imagen.
+- Se publican en **9:16 (1080×1920)** y **duran 24 h**. En el historial del
+  estudio aparecen con lo que les queda de vida y después como vencidas.
+- La interfaz de Instagram tapa los bordes (arriba el nombre de la cuenta, abajo
+  la barra de responder): las plantillas ya dejan marca, nombre y precio dentro
+  de la franja segura, y la vista previa la muestra sombreada.
+- Las Historias **no tienen link público**, así que en el historial no son
+  clickeables (los posts del feed sí, con su permalink).
+
+---
+
 ## Errores comunes y qué significan
 
 | Mensaje | Causa | Solución |
@@ -156,4 +178,6 @@ Meta **descarga la imagen desde una URL**, así que la foto debe estar en una
 | **(#200) `pages_manage_posts` are not available** | Falta el permiso de publicar en Página | Habilitar `pages_manage_posts` (paso 3) |
 | **Instagram: Only photo or video can be accepted as media type** | La imagen no es pública o no es JPEG | URL pública + JPEG (ver "Requisitos de la imagen") |
 | **No aparece Instagram como destino** | La cuenta de IG no es Business o no está vinculada a la Página | Ver paso 0 |
+| **Al publicar una Historia: permisos / media_type no soportado** | La cuenta es de Creador, no Business | Pasarla a Business y volver a vincularla (paso 0) |
+| **Instagram tardó demasiado en procesar la imagen** | Meta no llegó a bajar la imagen de la URL | Reintentar; si sigue, revisar que la URL sea pública y JPEG |
 | **redirect_uri no coincide** | El redirect en Meta ≠ el del servidor | Igualar la URL exacta (paso 4) |
