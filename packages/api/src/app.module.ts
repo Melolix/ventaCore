@@ -13,6 +13,7 @@ import { EspacioEntity } from './modules/spaces/entities/espacio.entity';
 import { SocialModule } from './modules/social/social.module';
 import { MetaConnectionEntity } from './modules/social/entities/meta-connection.entity';
 import { MetaTargetEntity } from './modules/social/entities/meta-target.entity';
+import { MetaPostEntity } from './modules/social/entities/meta-post.entity';
 import { MercadoLibreModule } from './modules/mercadolibre/mercadolibre.module';
 import { MlConnectionEntity } from './modules/mercadolibre/entities/ml-connection.entity';
 import { HandoffModule } from './modules/handoff/handoff.module';
@@ -46,6 +47,7 @@ import { MlQuestionEntity } from './modules/sales/entities/ml-question.entity';
 				EspacioEntity,
 				MetaConnectionEntity,
 				MetaTargetEntity,
+				MetaPostEntity,
 				MlConnectionEntity,
 				PaymentProviderConfigEntity,
 				SubscriptionPlanEntity,

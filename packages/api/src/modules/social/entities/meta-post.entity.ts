@@ -26,14 +26,14 @@ export class MetaPostEntity {
 	productoId!: string | null;
 
 	/** Red donde se publicó. */
-	@Column()
+	@Column({ type: 'varchar' })
 	network!: MetaNetwork;
 
 	/**
 	 * Post al feed o Historia. Las historias expiran a las 24 h: la fila queda
 	 * igual, pero el estudio la muestra como vencida a partir de `createdAt`.
 	 */
-	@Column({ default: 'post' })
+	@Column({ type: 'varchar', default: 'post' })
 	kind!: MetaPostKind;
 
 	/** Imagen compuesta publicada (URL pública en Storage). */
@@ -53,7 +53,7 @@ export class MetaPostEntity {
 	permalink!: string | null;
 
 	/** Estado de la publicación (por ahora siempre 'published'). */
-	@Column({ default: 'published' })
+	@Column({ type: 'varchar', default: 'published' })
 	status!: string;
 
 	@CreateDateColumn()
