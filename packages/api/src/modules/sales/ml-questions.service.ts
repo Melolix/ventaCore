@@ -4,6 +4,7 @@ import { In, Repository } from 'typeorm';
 import type { MlQuestionView, MlQuestionsSyncResult } from '@base-template/shared';
 import { MlConnectionService } from '../mercadolibre/ml-connection.service';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
+import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { MlQuestionEntity } from './entities/ml-question.entity';
 
@@ -36,6 +37,8 @@ export class MlQuestionsService {
 		private readonly questions: Repository<MlQuestionEntity>,
 		@InjectRepository(ProductoEntity)
 		private readonly productos: Repository<ProductoEntity>,
+		@InjectRepository(RubroEntity)
+		private readonly rubros: Repository<RubroEntity>,
 		private readonly connections: MlConnectionService,
 		@Inject(forwardRef(() => WhatsappService))
 		private readonly whatsapp: WhatsappService,
@@ -56,13 +59,17 @@ export class MlQuestionsService {
 		// Aviso saliente por WhatsApp solo si la pregunta quedó sin responder. Es
 		// best-effort (no lanza) y dedupea por pregunta, así que no rompe ni duplica.
 		if (question.status === 'UNANSWERED') {
-			const prod = await this.productos.findOne({ where: { rubroId: owner.rubroId, mlItemId: question.mlItemId } });
+			const [prod, rubro] = await Promise.all([
+				this.productos.findOne({ where: { rubroId: owner.rubroId, mlItemId: question.mlItemId } }),
+				this.rubros.findOne({ where: { id: owner.rubroId } }),
+			]);
 			await this.whatsapp.notifyNewQuestion({
 				questionId: question.id,
 				rubroId: owner.rubroId,
 				espacioId: owner.espacioId,
 				text: question.text,
 				itemTitle: prod?.nombre ?? null,
+				businessName: rubro?.nombre ?? null,
 			});
 		}
 	}

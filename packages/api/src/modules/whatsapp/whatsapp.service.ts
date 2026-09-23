@@ -14,6 +14,8 @@ export interface NewQuestionNotification {
 	text: string;
 	/** Nombre del producto preguntado (si se conoce). */
 	itemTitle?: string | null;
+	/** Nombre del negocio/rubro (para que el CM sepa de cuál es). */
+	businessName?: string | null;
 }
 
 /**
@@ -86,10 +88,10 @@ export class WhatsappService {
 			await this.notifications.save(notif);
 
 			const to = recipient.waId || recipient.phoneE164.replace(/\D/g, '');
-			const bodyText = this.buildBody(input);
+			const params = this.buildParams(input);
 
 			try {
-				const wamid = await this.sendTemplate(to, bodyText);
+				const wamid = await this.sendTemplate(to, params);
 				notif.waMessageId = wamid;
 				notif.status = 'sent';
 				await this.notifications.save(notif);
@@ -133,19 +135,29 @@ export class WhatsappService {
 		}
 	}
 
-	/** Arma el parámetro del cuerpo de la plantilla (pregunta + producto). */
-	private buildBody(input: NewQuestionNotification): string {
-		const q = (input.text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
-		const prod = input.itemTitle?.trim();
-		// WhatsApp no permite saltos de línea ni tabs en parámetros de plantilla.
-		return prod ? `${prod}: ${q}` : q;
+	/**
+	 * Arma los 3 parámetros del cuerpo de la plantilla: {{1}} negocio, {{2}}
+	 * producto, {{3}} pregunta. WhatsApp NO permite saltos de línea ni tabs en los
+	 * valores (la estructura/etiquetas van en el texto fijo de la plantilla), y no
+	 * acepta valores vacíos → cada uno colapsa espacios, recorta y tiene fallback.
+	 */
+	private buildParams(input: NewQuestionNotification): string[] {
+		const clean = (s: string | null | undefined, fallback: string, max: number): string => {
+			const v = (s || '').replace(/\s+/g, ' ').trim().slice(0, max);
+			return v || fallback;
+		};
+		return [
+			clean(input.businessName, 'Tu negocio', 60),
+			clean(input.itemTitle, 'Publicación', 100),
+			clean(input.text, '(sin texto)', 300),
+		];
 	}
 
 	/**
-	 * Envía la plantilla utility y devuelve el `wamid`. Un único parámetro de
-	 * cuerpo (`{{1}}`) con la pregunta. Lanza si Meta responde error.
+	 * Envía la plantilla utility y devuelve el `wamid`. `params` llena en orden los
+	 * `{{1}}`, `{{2}}`, `{{3}}` del cuerpo. Lanza si Meta responde error.
 	 */
-	private async sendTemplate(to: string, bodyText: string): Promise<string> {
+	private async sendTemplate(to: string, params: string[]): Promise<string> {
 		const { phoneId, token, template, lang, version } = this.config;
 		const res = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messages`, {
 			method: 'POST',
@@ -157,7 +169,7 @@ export class WhatsappService {
 				template: {
 					name: template,
 					language: { code: lang },
-					components: [{ type: 'body', parameters: [{ type: 'text', text: bodyText }] }],
+					components: [{ type: 'body', parameters: params.map(text => ({ type: 'text', text })) }],
 				},
 			}),
 		});

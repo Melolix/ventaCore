@@ -6,6 +6,7 @@ import { UsersModule } from '../users/users.module';
 import { FirebaseAuthGuard } from '../../common/auth/firebase-auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
+import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { MlNotificationEntity } from './entities/ml-notification.entity';
 import { MlOrderEntity } from './entities/ml-order.entity';
 import { MlQuestionEntity } from './entities/ml-question.entity';
@@ -28,7 +29,7 @@ import { MlMetricsService } from './ml-metrics.service';
  */
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([MlNotificationEntity, MlOrderEntity, MlQuestionEntity, ProductoEntity]),
+		TypeOrmModule.forFeature([MlNotificationEntity, MlOrderEntity, MlQuestionEntity, ProductoEntity, RubroEntity]),
 		MercadoLibreModule,
 		forwardRef(() => WhatsappModule),
 		UsersModule,
