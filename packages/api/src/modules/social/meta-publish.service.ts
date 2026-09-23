@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import type { MetaNetwork, MetaPost, MetaPublishResult } from '@base-template/shared';
+import type { MetaNetwork, MetaPost, MetaPostKind, MetaPublishResult } from '@base-template/shared';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
 import { MetaConnectionService, type ResolvedTarget } from './meta-connection.service';
 import { MetaPostEntity } from './entities/meta-post.entity';
@@ -10,7 +10,9 @@ import { MetaPostEntity } from './entities/meta-post.entity';
  * Publica un producto en las redes de Meta del rubro al que pertenece.
  *  - Facebook: una foto en el feed de la Página (1 paso).
  *  - Instagram: contenedor + publicación (2 pasos), usando la URL pública de la
- *    imagen (las imágenes ya viven en Firebase Storage con URL pública).
+ *    imagen (las imágenes ya viven en Firebase Storage con URL pública). Sirve
+ *    tanto para el feed (`kind: 'post'`) como para Historias (`kind: 'story'`,
+ *    `media_type=STORIES`, sin caption, expiran a las 24 h).
  *
  * Cada publicación exitosa se guarda en `meta_posts` para el historial del
  * estudio ("Publicaciones recientes").
@@ -36,7 +38,7 @@ export class MetaPublishService {
 		productoId: string,
 		rubroId: string,
 		espacioId: string,
-		opts: { networks?: MetaNetwork[]; caption?: string; imageUrl?: string; story?: boolean },
+		opts: { networks?: MetaNetwork[]; caption?: string; imageUrl?: string; kind?: MetaPostKind },
 	): Promise<MetaPublishResult[]> {
 		const producto = await this.productos.findOne({ where: { id: productoId, rubroId } });
 		if (!producto) throw new NotFoundException('Producto no encontrado');
@@ -49,20 +51,32 @@ export class MetaPublishService {
 
 		const target = await this.connections.resolveTargetForRubro(rubroId, espacioId);
 		const caption = opts.caption?.trim() || this.defaultCaption(producto);
+		const kind: MetaPostKind = opts.kind === 'story' ? 'story' : 'post';
 
 		// Redes pedidas (por defecto todas las posibles: FB siempre, IG si hay cuenta).
+		// Las Historias son exclusivas de Instagram: si piden una, Facebook queda afuera.
 		const wanted = opts.networks?.length ? opts.networks : (['facebook', 'instagram'] as MetaNetwork[]);
 		const results: MetaPublishResult[] = [];
 
-		if (wanted.includes('facebook')) {
+		if (kind === 'post' && wanted.includes('facebook')) {
 			results.push(await this.publishFacebook(target, imageUrl, caption));
 		}
 		if (wanted.includes('instagram') && target.igBusinessAccountId) {
-			results.push(await this.publishInstagram(target, imageUrl, caption, opts.story));
+			results.push(await this.publishInstagram(target, imageUrl, caption, kind));
+		}
+
+		// Token rechazado por Meta (code 190: vencido, revocado o contraseña cambiada):
+		// la conexión queda marcada para que el panel pida reconectar.
+		if (results.some(r => !r.ok && /\(code 190\b/.test(r.error ?? ''))) {
+			await this.connections.markExpired(rubroId);
 		}
 
 		if (!results.length) {
-			throw new BadRequestException('No hay ninguna red disponible para publicar en este rubro');
+			throw new BadRequestException(
+				kind === 'story'
+					? 'Para publicar Historias el rubro necesita una cuenta de Instagram Business vinculada'
+					: 'No hay ninguna red disponible para publicar en este rubro',
+			);
 		}
 
 		// Guardamos las publicaciones exitosas para el historial del estudio.
@@ -74,9 +88,13 @@ export class MetaPublishService {
 					espacioId,
 					productoId: producto.id,
 					network: r.network,
+					kind: r.kind,
 					imageUrl,
-					caption,
+					// En las Historias Instagram ignora el texto: no lo guardamos para no
+					// dar a entender en el historial que se publicó algo que no se ve.
+					caption: r.kind === 'story' ? null : caption,
 					mediaId: r.id ?? null,
+					permalink: r.permalink ?? null,
 					status: 'published',
 				}),
 			);
@@ -99,6 +117,7 @@ export class MetaPublishService {
 		return rows.map(r => ({
 			id: r.id,
 			network: r.network,
+			kind: r.kind ?? 'post',
 			productoId: r.productoId,
 			productoNombre: r.productoId ? (nombreById.get(r.productoId) ?? null) : null,
 			imageUrl: r.imageUrl,
@@ -119,9 +138,9 @@ export class MetaPublishService {
 				caption,
 				access_token: target.pageAccessToken,
 			});
-			return { network: 'facebook', ok: true, id: res.post_id || res.id };
+			return { network: 'facebook', kind: 'post', ok: true, id: res.post_id || res.id };
 		} catch (e) {
-			return { network: 'facebook', ok: false, error: (e as Error).message };
+			return { network: 'facebook', kind: 'post', ok: false, error: (e as Error).message };
 		}
 	}
 
@@ -131,23 +150,77 @@ export class MetaPublishService {
 		target: ResolvedTarget,
 		imageUrl: string,
 		caption: string,
-		story = false,
+		kind: MetaPostKind,
 	): Promise<MetaPublishResult> {
+		const igId = target.igBusinessAccountId!;
 		try {
-			const igId = target.igBusinessAccountId!;
 			// Historia (9:16) → media_type=STORIES y sin caption; feed → con caption.
 			const containerParams: Record<string, string> = { image_url: imageUrl, access_token: target.pageAccessToken };
-			if (story) containerParams.media_type = 'STORIES';
+			if (kind === 'story') containerParams.media_type = 'STORIES';
 			else containerParams.caption = caption;
+
 			const container = await this.graphPost<{ id: string }>(`/${igId}/media`, containerParams);
+			// Meta baja la imagen de la URL en segundo plano: si publicamos antes de
+			// que termine, falla. Esperamos a que el contenedor quede FINISHED.
+			await this.waitForContainer(container.id, target.pageAccessToken);
+
 			const published = await this.graphPost<{ id: string }>(`/${igId}/media_publish`, {
 				creation_id: container.id,
 				access_token: target.pageAccessToken,
 			});
-			return { network: 'instagram', ok: true, id: published.id };
+			// El permalink solo tiene sentido para el feed: la historia no deja link público.
+			const permalink = kind === 'story' ? null : await this.fetchPermalink(published.id, target.pageAccessToken);
+			return { network: 'instagram', kind, ok: true, id: published.id, permalink: permalink ?? undefined };
 		} catch (e) {
-			return { network: 'instagram', ok: false, error: (e as Error).message };
+			return { network: 'instagram', kind, ok: false, error: this.igErrorMessage(e as Error, kind) };
 		}
+	}
+
+	/**
+	 * Espera a que el contenedor de IG termine de procesarse (`status_code`):
+	 * FINISHED = listo para publicar, ERROR/EXPIRED = no va a salir.
+	 */
+	private async waitForContainer(containerId: string, accessToken: string, tries = 10): Promise<void> {
+		for (let i = 0; i < tries; i++) {
+			const { status_code, status } = await this.graphGet<{ status_code?: string; status?: string }>(
+				`/${containerId}`,
+				{ fields: 'status_code,status', access_token: accessToken },
+			);
+			if (!status_code || status_code === 'FINISHED') return;
+			if (status_code === 'ERROR' || status_code === 'EXPIRED') {
+				throw new Error(status || `Instagram no pudo procesar la imagen (${status_code})`);
+			}
+			// IN_PROGRESS → esperamos un poco y volvemos a preguntar.
+			await new Promise(r => setTimeout(r, 1500));
+		}
+		throw new Error('Instagram tardó demasiado en procesar la imagen. Probá de nuevo en un minuto.');
+	}
+
+	/** Link público del post recién publicado (best-effort: si falla, queda null). */
+	private async fetchPermalink(mediaId: string, accessToken: string): Promise<string | null> {
+		try {
+			const res = await this.graphGet<{ permalink?: string }>(`/${mediaId}`, {
+				fields: 'permalink',
+				access_token: accessToken,
+			});
+			return res.permalink ?? null;
+		} catch {
+			return null;
+		}
+	}
+
+	/**
+	 * Mensaje de error de Instagram con una pista útil cuando el motivo típico es
+	 * la cuenta: la API solo publica Historias desde cuentas **Business** (las de
+	 * Creador no pueden) y con `instagram_content_publish` concedido.
+	 */
+	private igErrorMessage(e: Error, kind: MetaPostKind): string {
+		const msg = e.message;
+		if (kind !== 'story') return msg;
+		const looksLikeAccountIssue = /permission|not supported|media_type|unsupported|business/i.test(msg);
+		return looksLikeAccountIssue
+			? `${msg} — para publicar Historias la cuenta de Instagram tiene que ser Business (las de Creador no pueden) y la app necesita el permiso instagram_content_publish.`
+			: msg;
 	}
 
 	private defaultCaption(producto: ProductoEntity): string {
@@ -165,9 +238,22 @@ export class MetaPublishService {
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: new URLSearchParams(params).toString(),
 		});
-		const body = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+		return this.graphResult<T>(res);
+	}
+
+	private async graphGet<T>(path: string, params: Record<string, string>): Promise<T> {
+		const res = await fetch(`${this.graphBase}${path}?${new URLSearchParams(params).toString()}`);
+		return this.graphResult<T>(res);
+	}
+
+	private async graphResult<T>(res: Response): Promise<T> {
+		const body = (await res.json().catch(() => ({}))) as {
+			error?: { message?: string; code?: number; error_subcode?: number };
+		};
 		if (!res.ok) {
-			throw new Error(body?.error?.message || res.statusText);
+			const err = body?.error;
+			const code = err?.code != null ? ` (code ${err.code}${err.error_subcode ? '/' + err.error_subcode : ''})` : '';
+			throw new Error(`${err?.message || res.statusText}${code}`);
 		}
 		return body as T;
 	}

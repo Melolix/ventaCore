@@ -9,13 +9,26 @@ import { createHmac, timingSafeEqual } from 'crypto';
  * Con los de acá alcanza para conectar, descubrir Páginas/IG y publicar en
  * Instagram. Para publicar en Facebook-Página, habilitar `pages_manage_posts`
  * en el caso de uso de Facebook Login y volver a agregarlo a esta lista.
+ *
+ * `business_management` hace falta cuando la Página del negocio vive dentro de
+ * un portfolio comercial: sin él, `/me/accounts` no la devuelve y el negocio
+ * queda "sin destinos".
  */
 const SCOPES = [
 	'pages_show_list',
 	'pages_read_engagement',
+	'business_management',
 	'instagram_basic',
 	'instagram_content_publish',
 ];
+
+/** Payload del `signed_request` que Meta manda a los callbacks de la app. */
+export interface MetaSignedRequest {
+	algorithm: string;
+	/** ID (app-scoped) del usuario de Meta: el mismo que guardamos en `metaUserId`. */
+	user_id: string;
+	issued_at?: number;
+}
 
 /** Payload firmado que viaja en el parámetro `state` del OAuth. */
 export interface MetaOAuthState {
@@ -136,6 +149,48 @@ export class MetaOauthService {
 
 	async getMe(userToken: string): Promise<{ id: string; name: string }> {
 		return this.graphGet<{ id: string; name: string }>('/me', { fields: 'id,name', access_token: userToken });
+	}
+
+	/** Permisos que el usuario efectivamente concedió (puede destildar algunos en el consentimiento). */
+	async getGrantedScopes(userToken: string): Promise<string[]> {
+		const res = await this.graphGet<{ data?: Array<{ permission: string; status: string }> }>('/me/permissions', {
+			access_token: userToken,
+		});
+		return (res.data ?? []).filter(p => p.status === 'granted').map(p => p.permission);
+	}
+
+	/** Permisos que pedimos y el usuario no concedió (vacío = todo en orden). */
+	missingScopes(granted: string[]): string[] {
+		return SCOPES.filter(s => !granted.includes(s));
+	}
+
+	// ── signed_request (callbacks de desautorización y borrado de datos) ──
+
+	/**
+	 * Valida y decodifica el `signed_request` que Meta firma con el App Secret
+	 * (HMAC-SHA256 del payload). Lanza si la firma no coincide.
+	 */
+	parseSignedRequest(signedRequest: string, appSecret: string): MetaSignedRequest {
+		const [sig, payload] = (signedRequest || '').split('.');
+		if (!sig || !payload) throw new BadRequestException('signed_request inválido');
+
+		const expected = createHmac('sha256', appSecret).update(payload).digest('base64url');
+		const a = Buffer.from(sig);
+		const b = Buffer.from(expected);
+		if (a.length !== b.length || !timingSafeEqual(a, b)) {
+			throw new BadRequestException('signed_request con firma inválida');
+		}
+
+		const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as MetaSignedRequest;
+		if (data.algorithm?.toUpperCase() !== 'HMAC-SHA256' || !data.user_id) {
+			throw new BadRequestException('signed_request inválido');
+		}
+		return data;
+	}
+
+	/** Origen público del API/panel (derivado del callback), para armar links de vuelta. */
+	get publicOrigin(): string {
+		return new URL(this.redirectUri).origin;
 	}
 
 	/** Páginas que administra el usuario + su cuenta de IG Business vinculada. */

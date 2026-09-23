@@ -17,6 +17,19 @@ export const FORMATS: Record<PostFormat, { w: number; h: number }> = {
 	story: { w: 1080, h: 1920 },
 };
 
+/**
+ * Márgenes (px, a resolución de exportación) que la propia interfaz de Instagram
+ * tapa: en las Historias, arriba van el avatar/nombre/cerrar y abajo la barra de
+ * "Enviar mensaje". La foto sigue yendo a sangre, pero marca, nombre y precio se
+ * dibujan SOLO dentro de la franja segura para que no queden ocultos.
+ * En el feed (1:1 y 4:5) no hay nada encima → 0.
+ */
+export const SAFE_AREA: Record<PostFormat, { top: number; bottom: number }> = {
+	square: { top: 0, bottom: 0 },
+	portrait: { top: 0, bottom: 0 },
+	story: { top: 250, bottom: 320 },
+};
+
 /** Datos que se componen sobre la plantilla. */
 export interface ComposeData {
 	img: CanvasImageSource | null;
@@ -29,6 +42,20 @@ export interface ComposeData {
 	logo?: CanvasImageSource | null;
 	logoW?: number;
 	logoH?: number;
+	/** Zona segura de arriba (px). Ver SAFE_AREA: en Historias, 0 en el feed. */
+	safeTop?: number;
+	/** Zona segura de abajo (px). Ver SAFE_AREA: en Historias, 0 en el feed. */
+	safeBottom?: number;
+}
+
+/** Primera Y utilizable para contenido (debajo del header de la Historia). */
+function top(d: ComposeData): number {
+	return d.safeTop ?? 0;
+}
+
+/** Última Y utilizable para contenido (encima de la barra de responder). */
+function bottom(H: number, d: ComposeData): number {
+	return H - (d.safeBottom ?? 0);
 }
 
 export interface StudioTemplate {
@@ -100,13 +127,21 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number, px: 
 	return size;
 }
 
-/** Gradiente de oscurecimiento inferior (para que el texto blanco se lea sobre la foto). */
-function scrim(ctx: CanvasRenderingContext2D, W: number, H: number, fromY: number): void {
-	const g = ctx.createLinearGradient(0, fromY, 0, H);
+/**
+ * Gradiente de oscurecimiento inferior (para que el texto blanco se lea sobre la
+ * foto). Llega al negro en `peakY` y de ahí para abajo queda parejo: así en las
+ * Historias el texto se lee aunque esté por encima de la zona segura.
+ */
+function scrim(ctx: CanvasRenderingContext2D, W: number, H: number, fromY: number, peakY = H): void {
+	const g = ctx.createLinearGradient(0, fromY, 0, peakY);
 	g.addColorStop(0, 'rgba(8,6,12,0)');
 	g.addColorStop(1, 'rgba(8,6,12,0.92)');
 	ctx.fillStyle = g;
-	ctx.fillRect(0, fromY, W, H - fromY);
+	ctx.fillRect(0, fromY, W, peakY - fromY);
+	if (peakY < H) {
+		ctx.fillStyle = 'rgba(8,6,12,0.92)';
+		ctx.fillRect(0, peakY, W, H - peakY);
+	}
 }
 
 function priceChip(ctx: CanvasRenderingContext2D, x: number, y: number, precio: number | null, unit: number): void {
@@ -169,13 +204,15 @@ const oferta: StudioTemplate = {
 	id_label: 'oferta',
 	render(ctx, W, H, d) {
 		const u = Math.min(W, H);
+		const T = top(d);
+		const B = bottom(H, d);
 		drawCover(ctx, d, 0, 0, W, H);
-		scrim(ctx, W, H, H * 0.5);
+		scrim(ctx, W, H, B - H * 0.5, B);
 		// Cinta diagonal en la esquina superior izquierda (banda centrada en la
 		// diagonal de la esquina, con el texto corriendo a lo largo).
 		ctx.save();
 		const cxy = u * 0.12; // centro de la cinta, a esta distancia de la esquina
-		ctx.translate(cxy, cxy);
+		ctx.translate(cxy, T + cxy);
 		ctx.rotate(-Math.PI / 4);
 		const bandW = u * 0.52; // más larga: las puntas se van fuera del cuadro y no se ve el corte
 		const bandH = u * 0.06;
@@ -191,15 +228,15 @@ const oferta: StudioTemplate = {
 		ctx.textBaseline = 'alphabetic';
 		// Marca arriba a la derecha
 		ctx.textAlign = 'right';
-		brandMarkRight(ctx, W - u * 0.05, u * 0.05, d, u);
+		brandMarkRight(ctx, W - u * 0.05, T + u * 0.05, d, u);
 		ctx.textAlign = 'left';
 		// Nombre + precio abajo
 		const pad = u * 0.06;
 		const namePx = fitText(ctx, d.nombre, W - pad * 2, u * 0.05, 700);
 		ctx.fillStyle = '#ffffff';
 		ctx.font = `700 ${namePx}px 'Segoe UI', system-ui, sans-serif`;
-		ctx.fillText(clip(ctx, d.nombre, W - pad * 2), pad, H - pad - u * 0.11);
-		priceChip(ctx, pad, H - pad - u * 0.085, d.precio, u);
+		ctx.fillText(clip(ctx, d.nombre, W - pad * 2), pad, B - pad - u * 0.11);
+		priceChip(ctx, pad, B - pad - u * 0.085, d.precio, u);
 	},
 };
 
@@ -209,28 +246,30 @@ const minimal: StudioTemplate = {
 	id_label: 'minimal',
 	render(ctx, W, H, d) {
 		const u = Math.min(W, H);
+		const T = top(d);
+		const B = bottom(H, d);
 		ctx.fillStyle = '#f4f2f6';
 		ctx.fillRect(0, 0, W, H);
 		const m = u * 0.06;
-		const photoH = H - m * 2 - u * 0.16;
+		const photoH = B - T - m * 2 - u * 0.16;
 		ctx.save();
-		roundRect(ctx, m, m, W - m * 2, photoH, u * 0.03);
+		roundRect(ctx, m, T + m, W - m * 2, photoH, u * 0.03);
 		ctx.clip();
-		drawCover(ctx, d, m, m, W - m * 2, photoH);
+		drawCover(ctx, d, m, T + m, W - m * 2, photoH);
 		ctx.restore();
 		// Marca arriba
-		brandMark(ctx, m, m + photoH + u * 0.03, d, u, true);
+		brandMark(ctx, m, T + m + photoH + u * 0.03, d, u, true);
 		// Nombre
 		ctx.fillStyle = '#151318';
 		const namePx = fitText(ctx, d.nombre, W - m * 2 - u * 0.28, u * 0.048, 700);
 		ctx.font = `700 ${namePx}px 'Segoe UI', system-ui, sans-serif`;
-		ctx.fillText(clip(ctx, d.nombre, W - m * 2 - u * 0.3), m, H - m - u * 0.02);
+		ctx.fillText(clip(ctx, d.nombre, W - m * 2 - u * 0.3), m, B - m - u * 0.02);
 		// Precio a la derecha, acento
 		if (d.precio != null) {
 			ctx.fillStyle = '#d62976';
 			ctx.font = `900 ${u * 0.06}px 'Segoe UI', system-ui, sans-serif`;
 			ctx.textAlign = 'right';
-			ctx.fillText(formatPrice(d.precio), W - m, H - m - u * 0.02);
+			ctx.fillText(formatPrice(d.precio), W - m, B - m - u * 0.02);
 			ctx.textAlign = 'left';
 		}
 	},
@@ -242,21 +281,25 @@ const precioGrande: StudioTemplate = {
 	id_label: 'precioGrande',
 	render(ctx, W, H, d) {
 		const u = Math.min(W, H);
-		const bandH = H * 0.34;
-		drawCover(ctx, d, 0, 0, W, H - bandH);
+		const T = top(d);
+		const B = bottom(H, d);
+		// La banda arranca dentro de la zona segura pero se dibuja a sangre hasta
+		// el borde: en la Historia queda detrás de la barra de responder.
+		const bandTop = B - (B - T) * 0.34;
+		drawCover(ctx, d, 0, 0, W, bandTop);
 		ctx.fillStyle = '#141118';
-		ctx.fillRect(0, H - bandH, W, bandH);
+		ctx.fillRect(0, bandTop, W, H - bandTop);
 		const pad = u * 0.06;
-		brandMark(ctx, pad, H - bandH + pad, d, u);
+		brandMark(ctx, pad, bandTop + pad, d, u);
 		ctx.fillStyle = '#b9b3c4';
 		const namePx = fitText(ctx, d.nombre, W - pad * 2, u * 0.04, 600);
 		ctx.font = `600 ${namePx}px 'Segoe UI', system-ui, sans-serif`;
-		ctx.fillText(clip(ctx, d.nombre, W - pad * 2), pad, H - bandH + pad + u * 0.09);
+		ctx.fillText(clip(ctx, d.nombre, W - pad * 2), pad, bandTop + pad + u * 0.09);
 		if (d.precio != null) {
 			ctx.fillStyle = '#ffffff';
 			const pPx = fitText(ctx, formatPrice(d.precio), W - pad * 2, u * 0.13, 900);
 			ctx.font = `900 ${pPx}px 'Segoe UI', system-ui, sans-serif`;
-			ctx.fillText(formatPrice(d.precio), pad, H - pad - u * 0.01);
+			ctx.fillText(formatPrice(d.precio), pad, B - pad - u * 0.01);
 		}
 	},
 };
@@ -267,27 +310,29 @@ const nuevo: StudioTemplate = {
 	id_label: 'nuevo',
 	render(ctx, W, H, d) {
 		const u = Math.min(W, H);
+		const T = top(d);
+		const B = bottom(H, d);
 		drawCover(ctx, d, 0, 0, W, H);
-		scrim(ctx, W, H, H * 0.55);
+		scrim(ctx, W, H, B - H * 0.45, B);
 		const pad = u * 0.06;
 		// Pastilla NUEVO
 		ctx.font = `800 ${u * 0.032}px 'Segoe UI', system-ui, sans-serif`;
 		const label = 'NUEVO INGRESO';
 		const tw = ctx.measureText(label).width;
 		ctx.fillStyle = '#10b981';
-		roundRect(ctx, pad, pad, tw + u * 0.05, u * 0.06, u * 0.03);
+		roundRect(ctx, pad, T + pad, tw + u * 0.05, u * 0.06, u * 0.03);
 		ctx.fill();
 		ctx.fillStyle = '#ffffff';
 		ctx.textBaseline = 'middle';
-		ctx.fillText(label, pad + u * 0.025, pad + u * 0.03);
+		ctx.fillText(label, pad + u * 0.025, T + pad + u * 0.03);
 		ctx.textBaseline = 'alphabetic';
-		brandMarkRight(ctx, W - pad, pad + u * 0.01, d, u);
+		brandMarkRight(ctx, W - pad, T + pad + u * 0.01, d, u);
 		// Nombre + precio
 		const namePx = fitText(ctx, d.nombre, W - pad * 2, u * 0.05, 700);
 		ctx.fillStyle = '#ffffff';
 		ctx.font = `700 ${namePx}px 'Segoe UI', system-ui, sans-serif`;
-		ctx.fillText(clip(ctx, d.nombre, W - pad * 2), pad, H - pad - u * 0.11);
-		priceChip(ctx, pad, H - pad - u * 0.085, d.precio, u);
+		ctx.fillText(clip(ctx, d.nombre, W - pad * 2), pad, B - pad - u * 0.11);
+		priceChip(ctx, pad, B - pad - u * 0.085, d.precio, u);
 	},
 };
 

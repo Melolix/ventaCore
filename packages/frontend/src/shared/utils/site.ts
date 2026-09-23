@@ -14,6 +14,7 @@ type EspacioLike = { slug: string; domain: string | null };
  *  - prod por IP pelada → la envolvemos con nip.io, porque una IP no tiene
  *    subdominios ({slug}.54.94.232.142.nip.io resuelve a la IP)
  *  - prod con dominio propio → ese dominio ({slug}.midominio.com)
+ *  - melolix.ar / www → ventacore.melolix.ar ({slug}.ventacore.melolix.ar)
  */
 export function subdomainBase(slug?: string): string {
 	let host = window.location.hostname;
@@ -21,6 +22,9 @@ export function subdomainBase(slug?: string): string {
 	// melolix.<base>/admin), sacamos ese primer label para no duplicarlo al
 	// reconstruir la URL ({slug}.{slug}.<base>).
 	if (slug && host.startsWith(`${slug}.`)) host = host.slice(slug.length + 1);
+	// En melolix.ar las vitrinas NO cuelgan del apex (no hay *.melolix.ar en DNS
+	// ni en el certificado) sino de ventacore.melolix.ar.
+	if (host === 'melolix.ar' || host === 'www.melolix.ar') return 'ventacore.melolix.ar';
 	const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
 	return isIp ? `${host}.nip.io` : host;
 }

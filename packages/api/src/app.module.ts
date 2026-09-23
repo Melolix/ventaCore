@@ -51,6 +51,7 @@ import { WhatsappInboundEntity } from './modules/whatsapp/entities/whatsapp-inbo
 				EspacioEntity,
 				MetaConnectionEntity,
 				MetaTargetEntity,
+				MetaPostEntity,
 				MlConnectionEntity,
 				PaymentProviderConfigEntity,
 				SubscriptionPlanEntity,

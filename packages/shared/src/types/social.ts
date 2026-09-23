@@ -27,12 +27,26 @@ export interface MetaRubroState {
 /** Redes de Meta a las que se puede publicar. */
 export type MetaNetwork = 'facebook' | 'instagram';
 
+/**
+ * Tipo de publicación en Instagram:
+ *  - 'post': va al feed, con texto (caption) y permalink permanente.
+ *  - 'story': historia 9:16, sin texto (Instagram lo ignora) y expira a las 24 h.
+ */
+export type MetaPostKind = 'post' | 'story';
+
+/** Cuántas horas vive una historia antes de expirar. */
+export const STORY_TTL_HOURS = 24;
+
 /** Resultado de publicar un producto en una red concreta. */
 export interface MetaPublishResult {
 	network: MetaNetwork;
+	/** Qué se publicó: post al feed o historia. */
+	kind: MetaPostKind;
 	ok: boolean;
 	/** ID del post/media publicado (si ok). */
 	id?: string;
+	/** Link público al post (solo feed: las historias no dejan link). */
+	permalink?: string;
 	/** Mensaje de error (si !ok). */
 	error?: string;
 }
@@ -45,6 +59,8 @@ export interface MetaPublishResult {
 export interface MetaPost {
 	id: string;
 	network: MetaNetwork;
+	/** Post al feed o historia (las historias expiran a las 24 h). */
+	kind: MetaPostKind;
 	/** Producto del que salió el post (para linkear), o null. */
 	productoId: string | null;
 	/** Nombre del producto (para el tooltip/label), o null. */

@@ -1,159 +1,153 @@
-# Conectar un negocio con Meta (Facebook + Instagram)
+# Instagram / Facebook en VentaCore
 
-Guía para dejar lista la **app de Meta de un negocio** y poder publicar en su
-Facebook e Instagram desde VentaCore.
+Hay **una sola app de Meta para toda la plataforma**: la app **VentaCore**
+(App ID `2447424345747180`), dentro del portfolio comercial **Melolix**. Cada
+negocio (rubro) solo autoriza su Página e Instagram con "Conectar con Meta"; no
+crea apps ni copia claves.
 
-> **Modelo BYO ("bring your own app"):** cada negocio (rubro) usa **su propia**
-> app de Meta. Ventaja: no depende de una aprobación central; el negocio publica
-> en sus propias páginas en **modo desarrollo**, sin App Review.
+La guía tiene dos partes:
 
----
-
-## 0. Requisitos previos (esto tiene que existir antes de empezar)
-
-1. **Una cuenta de Facebook** (personal) que sea **administradora** de la Página
-   del negocio.
-2. **Una Página de Facebook** del negocio (no un perfil personal).
-3. **Una cuenta de Instagram Business o Creator** (no personal) **vinculada a esa
-   Página de Facebook**.
-
-> ⚠️ Instagram **no** se puede usar con una cuenta personal. Tiene que ser
-> **Business** o **Creator**, y **estar vinculada a la Página**. Sin esto, se
-> puede conectar Facebook pero **no** aparece Instagram como destino.
-
-### Cómo dejar Instagram como Business y vincularlo a la Página
-
-- En la app de Instagram: **Configuración → Cuenta → Cambiar a cuenta
-  profesional** (elegir *Empresa*).
-- Vincular a la Página: desde la **Página de Facebook** → *Configuración →
-  Cuentas vinculadas → Instagram*, o desde Instagram → *Configuración → Cuenta
-  vinculada*.
+- **A. Plataforma**: se hace una vez (dueño de VentaCore).
+- **B. Cada negocio**: lo que hace un cliente para conectar su rubro.
 
 ---
 
-## 1. Crear la app en Meta for Developers
+## A. Plataforma (una sola vez)
 
-1. Entrar a **https://developers.facebook.com** e iniciar sesión con la cuenta de
-   Facebook del punto 0 (la que administra la Página).
-2. Arriba a la derecha: **Mis Apps → Crear app**.
-3. Elegir el tipo **Empresa** (*Business*).
-4. Ponerle un nombre (ej. "Redes NombreDelNegocio") y crear.
+### A1. Portfolio y app
 
----
+- Portfolio comercial: **Melolix** (business.facebook.com). Titular: Florencia
+  Cerquette, CUIT 23-35642353-4 (tiene que coincidir con ARCA para la
+  verificación).
+- App: **VentaCore**, tipo Empresa, asignada al portfolio Melolix.
+- La app vieja (`986366827416308`, portfolio Hugo Cerquette) queda solo para
+  WhatsApp: **no borrarla ni moverla**, su usuario del sistema
+  (VentacoreWhatsapp) genera el token de `WHATSAPP_TOKEN`.
 
-## 2. Agregar los productos / casos de uso
+### A2. Caso de uso y permisos
 
-En la app, menú izquierdo:
+Casos de uso → **API de Instagram** → *Configuración de la API con inicio de
+sesión con Facebook* (NO la de "inicio de sesión de Instagram") → **Add required
+content permissions**. Queda:
 
-1. **Inicio de sesión con Facebook** (*Facebook Login*): si no está, **Agregar
-   producto → Facebook Login → Web**. Es lo que habilita el OAuth.
-2. **Instagram**: **Agregar producto → Instagram** (o el caso de uso de Instagram
-   en *Casos de uso*). Es lo que habilita publicar en IG.
+| Permiso | Para qué |
+| --- | --- |
+| `pages_show_list` | Listar las Páginas del negocio |
+| `pages_read_engagement` | Leer la Página y su Instagram vinculado |
+| `business_management` | Ver Páginas que viven dentro de un portfolio comercial |
+| `instagram_basic` | Datos de la cuenta de IG |
+| `instagram_content_publish` | Publicar en el feed y en historias |
 
----
+Tienen que coincidir con `SCOPES` en
+`packages/api/src/modules/social/meta-oauth.service.ts`. `pages_manage_posts`
+(publicar en la Página de Facebook) está afuera a propósito; si se agrega, hay
+que pedirlo también en el App Review.
 
-## 3. Habilitar los permisos
+### A3. URLs en la app de Meta
 
-En **Casos de uso** (*Use cases*) → **Personalizar** (*Customize*) → **Permisos**,
-habilitar:
+**Inicio de sesión con Facebook para empresas → Configuración**:
 
-| Permiso | Para qué | Dónde vive |
-| --- | --- | --- |
-| `pages_show_list` | Listar las Páginas que administrás | Facebook Login |
-| `pages_read_engagement` | Leer datos de la Página | Facebook Login |
-| `instagram_basic` | Ver la cuenta de IG vinculada | Instagram |
-| `instagram_content_publish` | **Publicar en Instagram** | Instagram |
-| `pages_manage_posts` | **Publicar en el feed de la Página de FB** | Facebook Login / gestión de Páginas |
+- URI de redireccionamiento de OAuth válidos:
+  - `http://localhost:3000/api/meta/callback`
+  - `https://ventacore.melolix.ar/api/meta/callback`
+- URL de devolución de llamada para cancelar autorización:
+  `https://ventacore.melolix.ar/api/meta/deauthorize`
 
-> **Nota:** `pages_manage_posts` suele estar en un caso de uso **distinto** al de
-> Instagram (el de *Facebook Login for Business* / administración de Páginas). Si
-> al pedir el consentimiento aparece **"Invalid Scopes"** para algún permiso, es
-> que ese permiso todavía no está habilitado en el caso de uso correspondiente.
+**Configuración de la app → Básica**:
 
-> En **modo Desarrollo** estos permisos funcionan **sin App Review** para las
-> cuentas que tengan un **rol** en la app (administrador / desarrollador /
-> tester). Como el dueño de la app es admin, puede publicar en **sus** páginas
-> directamente.
+| Campo | Valor |
+| --- | --- |
+| Dominios de la app | `melolix.ar` |
+| Política de privacidad | `https://melolix.ar/privacidad` |
+| Condiciones del servicio | `https://melolix.ar/terminos` |
+| Eliminación de datos | *URL de devolución de llamada* → `https://ventacore.melolix.ar/api/meta/data-deletion` |
+| Categoría | Negocios y páginas |
+| Ícono | 1024×1024 |
 
----
+Las páginas legales son globales (módulo `packages/frontend/src/modules/legal`):
+funcionan en cualquier dominio. Los datos del titular están en `titular.ts`.
 
-## 4. Configurar el redirect URI (una sola vez)
+### A4. Servidor (`.env.production`)
 
-En **Inicio de sesión con Facebook → Configuración**, en **URI de
-redireccionamiento de OAuth válidos**, agregar **exactamente** la URL del
-callback de VentaCore:
+```
+META_APP_ID=2447424345747180
+META_APP_SECRET=<Configuración → Básica → Clave secreta>
+META_REDIRECT_URI=https://ventacore.melolix.ar/api/meta/callback
+META_POST_CONNECT_REDIRECT=https://ventacore.melolix.ar/admin/configuraciones
+META_TOKEN_ENC_KEY=<no cambiarla: si cambia, hay que reconectar todo>
+```
 
-- **Desarrollo (local):**
-  ```
-  http://localhost:3000/api/meta/callback
-  ```
-- **Producción:**
-  ```
-  https://TU_DOMINIO/api/meta/callback
-  ```
+### A5. Verificación y App Review (para abrirlo a cualquier cliente)
 
-Dejar activados *"Inicio de sesión de OAuth con el cliente"* y *"Inicio de sesión
-de OAuth web"*. Guardar.
+Mientras la app esté en **modo Desarrollo**, solo pueden conectar cuentas con
+rol en la app (Roles de la app → agregar como *tester*; la persona acepta en
+developers.facebook.com/requests). Para que cualquier negocio se conecte solo:
 
-> Tiene que coincidir **carácter por carácter** con el `META_REDIRECT_URI` del
-> servidor de VentaCore, si no Meta rechaza la conexión.
-
----
-
-## 5. Copiar las credenciales (App ID y App Secret)
-
-Menú izquierdo: **Configuración → Básica** (*Settings → Basic*):
-
-- **Identificador de la app** (*App ID*) → es público.
-- **Clave secreta de la app** (*App Secret*) → botón **"Mostrar"** (pide la
-  contraseña de Facebook).
-
-Estos dos valores son los que se cargan en VentaCore.
-
----
-
-## 6. Cargar y conectar en VentaCore
-
-1. Entrar al panel del negocio (**/admin**) → abrir el rubro → botón **"Redes"**.
-2. Cargar **App ID** y **App Secret** → **Guardar credenciales**.
-3. **Conectar con Meta** → aceptar los permisos en la ventana de Meta.
-4. Elegir la **Página / Instagram** de destino → **Guardar destino**.
-5. Listo: desde cada **producto** se puede **Publicar**.
+1. **Verificación del negocio** de Melolix (business.facebook.com → Centro de
+   seguridad). Documentos: constancia de ARCA + factura o servicio con el
+   domicilio. Contacto por `contacto@melolix.ar`.
+2. **App Review**: un video por permiso mostrando el flujo en VentaCore
+   (conectar → elegir destino → publicar).
+3. Pasar la app a **modo Live**.
 
 ---
 
-## Modo Desarrollo vs. Producción (App Review)
+## B. Cada negocio (lo que hace el cliente)
 
-- **Hoy (modo Desarrollo):** la app publica en **las páginas del propio dueño de
-  la app**, sin App Review. Perfecto para que cada negocio maneje **lo suyo**.
-- **Si en el futuro** una sola app tuviera que publicar en nombre de **terceros
-  que no tienen rol en la app**, ahí sí Meta exige **App Review** + verificación
-  de negocio. Con el modelo BYO (una app por negocio) **no hace falta**.
+### B1. Requisitos del lado de Meta
+
+1. Una **Página de Facebook** del negocio, de la que sea administrador.
+2. Un **Instagram profesional de tipo Empresa** (Instagram → Configuración →
+   Tipo de cuenta). Las cuentas de Creador publican en el feed pero **no** pueden
+   publicar historias por la API.
+3. El Instagram **vinculado a la Página** (Página → Configuración → Cuentas
+   vinculadas → Instagram).
+4. *Solo mientras la app esté en modo Desarrollo*: rol de tester en la app.
+
+### B2. Conectar
+
+1. Panel del negocio → **Configuraciones** → elegir el rubro → **Conectar con Meta**.
+2. En la ventana de Meta: iniciar sesión, **marcar la Página del negocio** y
+   dejar todos los permisos tildados.
+3. Elegir el destino (Página + Instagram) → **Guardar destino**.
+4. Listo: se publica desde el **Estudio de Instagram** de cada producto.
+
+---
+
+## Mantenimiento de la conexión
+
+- Si Meta rechaza el token al publicar (contraseña cambiada, permisos quitados),
+  la conexión pasa a **vencida** y el panel muestra **Reconectar con Meta**.
+- Si el negocio quita VentaCore desde Facebook, Meta llama a
+  `/api/meta/deauthorize` y la conexión pasa a **revocada**.
+- Si pide borrar sus datos desde Facebook, Meta llama a
+  `/api/meta/data-deletion`: se borra la conexión con sus tokens y Meta muestra
+  el código de confirmación (`/eliminar-datos?codigo=...`).
+- Si al conectar destildó permisos, el panel avisa cuáles faltan.
 
 ---
 
 ## Requisitos de la imagen al publicar
 
-Meta **descarga la imagen desde una URL**, así que la foto debe estar en una
-**URL pública de internet** (no `localhost`). Además:
+Meta **descarga la imagen desde una URL pública** (no `localhost`) y
+**Instagram solo acepta JPEG**, con relación de aspecto aprox. entre 4:5 y
+1.91:1. En desarrollo local las imágenes viven en el emulador, que Meta no
+alcanza: para probar se usa *"usar otra imagen"* con una URL JPEG pública.
 
-- **Instagram solo acepta JPEG.**
-- La imagen no debe superar los límites de tamaño/relación de aspecto de IG
-  (aprox. entre 4:5 y 1.91:1).
+## Historias de Instagram
 
-> En **desarrollo local** las imágenes viven en el emulador (`127.0.0.1`), que
-> Meta **no puede alcanzar** → para probar se usa el campo *"usar otra imagen"*
-> con una URL JPEG pública. En **producción** (Firebase Storage real) las
-> imágenes ya quedan con URL pública y se publican directo.
+- Solo Instagram (no Facebook) y solo cuentas **Empresa** vinculadas a la Página.
+- Mismo permiso que el feed (`instagram_content_publish`).
+- **Sin texto**: Instagram ignora el `caption` en `media_type=STORIES`.
+- 9:16 (1080×1920), duran 24 h y no tienen link público.
 
----
-
-## Errores comunes y qué significan
+## Errores comunes
 
 | Mensaje | Causa | Solución |
 | --- | --- | --- |
-| **Invalid Scopes: `<permiso>`** | Ese permiso no está habilitado en la app | Habilitarlo en el caso de uso correspondiente (paso 3) |
-| **(#200) `pages_manage_posts` are not available** | Falta el permiso de publicar en Página | Habilitar `pages_manage_posts` (paso 3) |
-| **Instagram: Only photo or video can be accepted as media type** | La imagen no es pública o no es JPEG | URL pública + JPEG (ver "Requisitos de la imagen") |
-| **No aparece Instagram como destino** | La cuenta de IG no es Business o no está vinculada a la Página | Ver paso 0 |
-| **redirect_uri no coincide** | El redirect en Meta ≠ el del servidor | Igualar la URL exacta (paso 4) |
+| **Invalid Scopes: `<permiso>`** | El permiso no está agregado en el caso de uso | Paso A2 |
+| **No llegó ninguna Página** | No se marcó la Página en la ventana de Meta, o la cuenta no la administra | Desconectar, reconectar y marcar la Página |
+| **No aparece Instagram como destino** | IG no es Empresa o no está vinculado a la Página | Paso B1 |
+| **La app no está disponible / no se puede iniciar sesión** | App en modo Desarrollo y la cuenta no tiene rol | Agregarla como tester (A5) |
+| **Only photo or video can be accepted as media type** | Imagen no pública o no JPEG | Ver "Requisitos de la imagen" |
+| **redirect_uri no coincide** | El callback en Meta ≠ `META_REDIRECT_URI` | Paso A3 / A4 |

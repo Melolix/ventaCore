@@ -7,7 +7,7 @@
  * mismo origen y el canvas NO queda "tainted" (si no, `toBlob` falla por CORS).
  */
 import { api } from '@/shared/services/api';
-import { FORMATS, type PostFormat, type StudioTemplate, type ComposeData } from './templates';
+import { FORMATS, SAFE_AREA, type PostFormat, type StudioTemplate, type ComposeData } from './templates';
 
 export interface ProductBitmap {
 	img: ImageBitmap;
@@ -45,6 +45,7 @@ export function renderTemplate(
 	const ctx = canvas.getContext('2d');
 	if (!ctx) return;
 	ctx.clearRect(0, 0, w, h);
+	const safe = SAFE_AREA[format];
 	tpl.render(ctx, w, h, {
 		...content,
 		img: bmp?.img ?? null,
@@ -53,6 +54,10 @@ export function renderTemplate(
 		logo: logoBmp?.img ?? null,
 		logoW: logoBmp?.w ?? 0,
 		logoH: logoBmp?.h ?? 0,
+		// En Historias, la interfaz de Instagram tapa los bordes: la plantilla
+		// mantiene marca, nombre y precio dentro de esta franja.
+		safeTop: safe.top,
+		safeBottom: safe.bottom,
 	});
 }
 

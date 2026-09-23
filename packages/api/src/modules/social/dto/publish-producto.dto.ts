@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
-import type { MetaNetwork } from '@base-template/shared';
+import { IsArray, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import type { MetaNetwork, MetaPostKind } from '@base-template/shared';
 
 /** Opciones al publicar un producto en las redes del rubro. */
 export class PublishProductoDto {
@@ -27,8 +27,15 @@ export class PublishProductoDto {
 	@MaxLength(1000)
 	imageUrl?: string;
 
-	@ApiProperty({ required: false, description: 'Si true, publica como Historia (9:16, media_type=STORIES, sin caption).' })
+	@ApiProperty({
+		required: false,
+		enum: ['post', 'story'],
+		default: 'post',
+		description:
+			'Qué se publica: "post" va al feed (con caption y permalink), "story" publica una Historia ' +
+			'(media_type=STORIES, 9:16, sin caption, expira a las 24 h). Las Historias son solo de Instagram.',
+	})
 	@IsOptional()
-	@IsBoolean()
-	story?: boolean;
+	@IsIn(['post', 'story'])
+	kind?: MetaPostKind;
 }

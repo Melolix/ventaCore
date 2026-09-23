@@ -65,7 +65,9 @@ export default defineConfig(({ mode }) => {
 					cleanupOutdatedCaches: true,
 					clientsClaim: true,
 					skipWaiting: true,
-					navigateFallbackDenylist: [/^\/__\/auth\//],
+					// /api/ no es del SPA: los callbacks OAuth (Meta, Mercado Libre) llegan
+					// como navegación y tienen que ir al servidor, no a index.html.
+					navigateFallbackDenylist: [/^\/__\/auth\//, /^\/api\//],
 				},
 				devOptions: {
 					enabled: false,

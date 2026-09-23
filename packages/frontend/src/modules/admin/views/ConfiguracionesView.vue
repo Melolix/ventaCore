@@ -75,7 +75,27 @@
 				<div v-else class="flex flex-col gap-4">
 					<template v-if="!metaState.connection">
 						<p class="text-sm text-surface-500">{{ $t('admin.meta.notConnected') }}</p>
+						<!-- Requisitos del lado de Meta: sin esto la conexión vuelve "sin destinos". -->
+						<div class="rounded-lg bg-surface-100 p-4 text-sm text-surface-600 dark:bg-surface-800 dark:text-surface-300">
+							<p class="mb-2 font-semibold">{{ $t('admin.meta.checklistTitle') }}</p>
+							<ul class="space-y-1.5">
+								<li v-for="key in ['igBusiness', 'fbPage', 'linked', 'pickPage']" :key="key" class="flex gap-2">
+									<i class="pi pi-check mt-0.5 text-xs text-primary" />
+									<span>{{ $t(`admin.meta.checklist.${key}`) }}</span>
+								</li>
+							</ul>
+						</div>
 						<Button :label="$t('admin.meta.connect')" icon="pi pi-facebook" :loading="metaConnecting" class="self-start" @click="startMetaConnect" />
+					</template>
+					<!-- Token vencido o revocado: la conexión existe pero no sirve para publicar. -->
+					<template v-else-if="metaState.connection.status !== 'connected'">
+						<p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+							<i class="pi pi-exclamation-triangle" /> {{ $t(`admin.meta.status.${metaState.connection.status}`) }}
+						</p>
+						<div class="flex flex-wrap gap-2">
+							<Button :label="$t('admin.meta.reconnect')" icon="pi pi-refresh" :loading="metaConnecting" @click="startMetaConnect" />
+							<Button :label="$t('admin.meta.disconnect')" icon="pi pi-times" severity="danger" text size="small" @click="disconnectMeta" />
+						</div>
 					</template>
 					<template v-else>
 						<div class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
@@ -345,7 +365,15 @@ export default defineComponent({
 		},
 		handleMetaReturn() {
 			const q = this.$route.query;
-			if (q.meta === 'connected') {
+			if (q.meta === 'connected' && q.missing) {
+				// Conectó, pero destildó permisos en la ventana de Meta: no va a poder publicar.
+				this.$toast.add({
+					severity: 'warn',
+					summary: this.$t('admin.meta.missingScopesToast', { scopes: String(q.missing).split(',').join(', ') }),
+					life: 10000,
+				});
+				void this.$router.replace({ query: {} });
+			} else if (q.meta === 'connected') {
 				this.$toast.add({ severity: 'success', summary: this.$t('admin.meta.connectedToast'), life: 4000 });
 				void this.$router.replace({ query: {} });
 			} else if (q.meta === 'error') {
