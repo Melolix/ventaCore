@@ -661,9 +661,22 @@
 			"targetSaved": "Destino guardado",
 			"connectedToast": "Cuenta de Meta conectada",
 			"errorToast": "No se pudo conectar con Meta: {reason}",
-			"noTargets": "Esta cuenta no tiene Páginas disponibles. Verificá que seas administrador de una Página de Facebook con Instagram vinculado.",
+			"noTargets": "No llegó ninguna Página. Lo más común: en la ventana de Meta no se marcó la Página del negocio, o la cuenta no es administradora de una Página. Tocá Desconectar, volvé a Conectar y marcá tu Página.",
 			"ready": "Listo para publicar",
-			"pickPending": "Falta elegir dónde publicar"
+			"pickPending": "Falta elegir dónde publicar",
+			"checklistTitle": "Antes de conectar, verificá:",
+			"checklist": {
+				"igBusiness": "Tu Instagram es una cuenta profesional de tipo Empresa (en Instagram: Configuración → Tipo de cuenta).",
+				"fbPage": "Tenés una Página de Facebook del negocio y sos administrador.",
+				"linked": "El Instagram está vinculado a esa Página (Página de Facebook → Configuración → Cuentas vinculadas).",
+				"pickPage": "En la ventana de Meta, marcá la Página del negocio cuando te pregunte a cuáles dar acceso."
+			},
+			"status": {
+				"expired": "La conexión con Meta venció o Meta rechazó el acceso (por ejemplo, si cambiaste la contraseña de Facebook). Reconectá para seguir publicando.",
+				"revoked": "Se quitó VentaCore desde la configuración de Facebook. Reconectá para seguir publicando."
+			},
+			"reconnect": "Reconectar con Meta",
+			"missingScopesToast": "Conectado, pero faltan permisos ({scopes}). Sin ellos no se puede publicar: reconectá y dejá todos los permisos marcados."
 		},
 		"ml": {
 			"tabs": {

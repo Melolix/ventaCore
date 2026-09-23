@@ -65,6 +65,12 @@ export class MetaPublishService {
 			results.push(await this.publishInstagram(target, imageUrl, caption, kind));
 		}
 
+		// Token rechazado por Meta (code 190: vencido, revocado o contraseña cambiada):
+		// la conexión queda marcada para que el panel pida reconectar.
+		if (results.some(r => !r.ok && /\(code 190\b/.test(r.error ?? ''))) {
+			await this.connections.markExpired(rubroId);
+		}
+
 		if (!results.length) {
 			throw new BadRequestException(
 				kind === 'story'

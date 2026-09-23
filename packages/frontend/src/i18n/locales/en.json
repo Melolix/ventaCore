@@ -661,9 +661,22 @@
 			"targetSaved": "Destination saved",
 			"connectedToast": "Meta account connected",
 			"errorToast": "Couldn't connect to Meta: {reason}",
-			"noTargets": "This account has no available Pages. Make sure you are an admin of a Facebook Page with a linked Instagram.",
+			"noTargets": "No Pages came back. Most likely the business Page wasn't selected in the Meta window, or the account isn't a Page admin. Disconnect, connect again and select your Page.",
 			"ready": "Ready to publish",
-			"pickPending": "Pick where to publish"
+			"pickPending": "Pick where to publish",
+			"checklistTitle": "Before connecting, check:",
+			"checklist": {
+				"igBusiness": "Your Instagram is a professional Business account (Instagram: Settings → Account type).",
+				"fbPage": "You have a Facebook Page for the business and you are its admin.",
+				"linked": "The Instagram is linked to that Page (Facebook Page → Settings → Linked accounts).",
+				"pickPage": "In the Meta window, select the business Page when asked which ones to share."
+			},
+			"status": {
+				"expired": "The Meta connection expired or Meta rejected access (e.g. after a Facebook password change). Reconnect to keep publishing.",
+				"revoked": "VentaCore was removed from your Facebook settings. Reconnect to keep publishing."
+			},
+			"reconnect": "Reconnect to Meta",
+			"missingScopesToast": "Connected, but some permissions are missing ({scopes}). Publishing won't work: reconnect and keep all permissions checked."
 		},
 		"ml": {
 			"tabs": {

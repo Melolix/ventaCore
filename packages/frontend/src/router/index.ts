@@ -7,6 +7,7 @@ import LoginForm from '@/modules/auth/components/LoginForm.vue';
 import superadminRoutes from '@/modules/superadmin/routes';
 import adminRoutes from '@/modules/admin/routes';
 import appRoutes from '@/modules/app/routes';
+import legalRoutes from '@/modules/legal/routes';
 
 declare module 'vue-router' {
 	interface RouteMeta {
@@ -38,6 +39,9 @@ const routes: RouteRecordRaw[] = [
 		name: 'handoff-mobile-upload',
 		component: () => import('@/modules/app/views/MobileUploadView.vue'),
 	},
+
+	// Páginas legales globales (privacidad, términos, eliminación de datos).
+	...legalRoutes,
 
 	// appRoutes define la raíz '/' (vitrina pública del negocio del dominio).
 	...appRoutes,

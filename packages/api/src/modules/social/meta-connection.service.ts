@@ -128,6 +128,33 @@ export class MetaConnectionService {
 		}
 	}
 
+	/**
+	 * Borra todas las conexiones de un usuario de Meta (pedido de eliminación de
+	 * datos desde Facebook). Limpia el destino de los rubros afectados. Devuelve
+	 * cuántas conexiones se borraron.
+	 */
+	async deleteByMetaUser(metaUserId: string): Promise<number> {
+		const conns = await this.connections.find({ where: { metaUserId } });
+		for (const conn of conns) {
+			await this.connections.delete({ id: conn.id });
+			await this.rubros.update({ id: conn.rubroId }, { metaTargetId: null });
+		}
+		return conns.length;
+	}
+
+	/** El usuario quitó la app desde Facebook: sus conexiones quedan revocadas. */
+	async revokeByMetaUser(metaUserId: string): Promise<void> {
+		await this.connections.update({ metaUserId }, { status: MetaConnectionStatus.REVOKED });
+	}
+
+	/** Meta rechazó el token al publicar (vencido o revocado): hay que reconectar. */
+	async markExpired(rubroId: string): Promise<void> {
+		await this.connections.update(
+			{ rubroId, status: MetaConnectionStatus.CONNECTED },
+			{ status: MetaConnectionStatus.EXPIRED },
+		);
+	}
+
 	/** Elige a qué Página/IG publica el rubro. Valida que el target sea de su conexión. */
 	async setTarget(rubroId: string, espacioId: string, metaTargetId: string): Promise<MetaConnection> {
 		const rubro = await this.assertRubro(rubroId, espacioId);
@@ -149,6 +176,10 @@ export class MetaConnectionService {
 		const rubro = await this.assertRubro(rubroId, espacioId);
 		if (!rubro.metaTargetId) {
 			throw new BadRequestException('El rubro no tiene una cuenta de Meta lista para publicar');
+		}
+		const connection = await this.connections.findOne({ where: { rubroId } });
+		if (connection && connection.status !== MetaConnectionStatus.CONNECTED) {
+			throw new BadRequestException('La conexión con Meta se cortó; reconectá la cuenta desde Configuraciones');
 		}
 		const target = await this.targets.findOne({ where: { id: rubro.metaTargetId } });
 		if (!target) throw new BadRequestException('El destino de Meta del rubro ya no existe; reconectá la cuenta');
