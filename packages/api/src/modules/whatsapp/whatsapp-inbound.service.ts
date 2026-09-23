@@ -6,6 +6,7 @@ import { MlQuestionsService } from '../sales/ml-questions.service';
 import { WhatsappNotificationEntity } from './entities/whatsapp-notification.entity';
 import { WhatsappInboundEntity } from './entities/whatsapp-inbound.entity';
 import { WhatsappService } from './whatsapp.service';
+import { WhatsappRecipientsService } from './whatsapp-recipients.service';
 
 /** Forma (parcial) del webhook de WhatsApp Cloud API que nos interesa. */
 interface WaWebhook {
@@ -120,6 +121,11 @@ export class WhatsappInboundService {
 			raw: msg as unknown as Record<string, unknown>,
 		});
 
+		// Meta puede devolver el número CON el "9" (549…), pero la cuenta suele estar
+		// en formato canónico SIN el 9 (54…). Normalizamos el destino de la respuesta
+		// para que coincida (mismo criterio que el destinatario saliente).
+		const replyTo = WhatsappRecipientsService.toWaId(row.fromWaId);
+
 		try {
 			if (msg.type !== 'text' || !row.text?.trim()) {
 				row.status = 'ignored';
@@ -132,7 +138,7 @@ export class WhatsappInboundService {
 				row.error = 'respuesta sin cita';
 				await this.save(row);
 				await this.whatsapp.sendText(
-					row.fromWaId,
+					replyTo,
 					'Para publicar la respuesta necesito que la mandes *citando* (respondiendo a) el mensaje del aviso.',
 				);
 				return;
@@ -149,7 +155,7 @@ export class WhatsappInboundService {
 				row.status = 'ignored';
 				row.error = 'la pregunta ya fue respondida';
 				await this.save(row);
-				await this.whatsapp.sendText(row.fromWaId, 'Esa pregunta ya estaba respondida. 👍');
+				await this.whatsapp.sendText(replyTo, 'Esa pregunta ya estaba respondida. 👍');
 				return;
 			}
 
@@ -160,13 +166,13 @@ export class WhatsappInboundService {
 			await this.notifications.save(notif);
 			row.status = 'processed';
 			await this.save(row);
-			await this.whatsapp.sendText(row.fromWaId, '✅ Respuesta publicada en Mercado Libre.');
+			await this.whatsapp.sendText(replyTo, '✅ Respuesta publicada en Mercado Libre.');
 		} catch (e) {
 			row.status = 'failed';
 			row.error = (e as Error).message;
 			await this.save(row);
 			this.logger.error(`Error procesando respuesta ${wamid}: ${row.error}`);
-			await this.whatsapp.sendText(row.fromWaId, `❌ No se pudo publicar la respuesta: ${row.error}`);
+			await this.whatsapp.sendText(replyTo, `❌ No se pudo publicar la respuesta: ${row.error}`);
 		}
 	}
 
