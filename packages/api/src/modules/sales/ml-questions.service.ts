@@ -134,12 +134,17 @@ export class MlQuestionsService {
 		const question = await this.questions.findOne({ where: { id: questionId, rubroId, espacioId } });
 		if (!question) throw new NotFoundException('Pregunta no encontrada');
 		if (question.status === 'ANSWERED') throw new BadRequestException('Esa pregunta ya fue respondida');
+		// Las preguntas simuladas (seed/demo) no tienen id numérico de ML → no se pueden publicar.
+		if (!/^\d+$/.test(question.mlQuestionId)) {
+			throw new BadRequestException('La pregunta no tiene un id válido de Mercado Libre (¿es una pregunta simulada?)');
+		}
 
 		const { accessToken } = await this.connections.getValidAccessToken(rubroId, espacioId);
 		const res = await fetch(`${this.apiHost}/answers`, {
 			method: 'POST',
 			headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json', accept: 'application/json' },
-			body: JSON.stringify({ question_id: question.mlQuestionId, text: clean }),
+			// ML espera question_id numérico (no string) o rechaza con "Error unmarshaling json body".
+			body: JSON.stringify({ question_id: Number(question.mlQuestionId), text: clean }),
 		});
 		const body = (await res.json().catch(() => ({}))) as { message?: string };
 		if (!res.ok) throw new BadRequestException(`Mercado Libre no aceptó la respuesta: ${body.message || res.statusText}`);
