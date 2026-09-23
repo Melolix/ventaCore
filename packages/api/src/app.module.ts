@@ -60,7 +60,6 @@ import { WhatsappInboundEntity } from './modules/whatsapp/entities/whatsapp-inbo
 				MlNotificationEntity,
 				MlOrderEntity,
 				MlQuestionEntity,
-				MetaPostEntity,
 				WhatsappRecipientEntity,
 				WhatsappNotificationEntity,
 				WhatsappInboundEntity,
