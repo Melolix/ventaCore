@@ -31,6 +31,8 @@ import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 import { WhatsappRecipientEntity } from './modules/whatsapp/entities/whatsapp-recipient.entity';
 import { WhatsappNotificationEntity } from './modules/whatsapp/entities/whatsapp-notification.entity';
 import { WhatsappInboundEntity } from './modules/whatsapp/entities/whatsapp-inbound.entity';
+import { InstagramModule } from './modules/instagram/instagram.module';
+import { InstagramMessageEntity } from './modules/instagram/entities/instagram-message.entity';
 
 @Module({
 	imports: [
@@ -63,6 +65,7 @@ import { WhatsappInboundEntity } from './modules/whatsapp/entities/whatsapp-inbo
 				WhatsappRecipientEntity,
 				WhatsappNotificationEntity,
 				WhatsappInboundEntity,
+				InstagramMessageEntity,
 			],
 			synchronize: process.env.DB_SYNCHRONIZE === 'true',
 		}),
@@ -78,6 +81,7 @@ import { WhatsappInboundEntity } from './modules/whatsapp/entities/whatsapp-inbo
 		PaymentsModule,
 		SalesModule,
 		WhatsappModule,
+		InstagramModule,
 	],
 })
 export class AppModule {}

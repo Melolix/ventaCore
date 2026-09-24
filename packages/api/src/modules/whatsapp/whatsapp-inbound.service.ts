@@ -159,8 +159,14 @@ export class WhatsappInboundService {
 				return;
 			}
 
-			// Publica en ML reutilizando la lógica del panel (POST /answers).
-			await this.questions.answer(notif.rubroId, notif.espacioId, notif.questionId, row.text.trim());
+			// Despacha la respuesta según el origen del aviso.
+			if (notif.kind === 'ml_question') {
+				// Publica en ML reutilizando la lógica del panel (POST /answers).
+				await this.questions.answer(notif.rubroId, notif.espacioId, notif.sourceId, row.text.trim());
+			} else {
+				// 'ig_dm' y otros se implementan en el paso siguiente.
+				throw new Error(`Tipo de aviso no soportado aún: ${notif.kind}`);
+			}
 
 			notif.status = 'answered';
 			await this.notifications.save(notif);

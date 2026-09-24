@@ -68,7 +68,7 @@ export class WhatsappService {
 
 			// Dedupe: ¿ya hay un aviso no-fallido para esta pregunta?
 			const existing = await this.notifications.findOne({
-				where: { questionId: input.questionId, status: Not('failed') },
+				where: { kind: 'ml_question', sourceId: input.questionId, status: Not('failed') },
 			});
 			if (existing) return;
 
@@ -81,7 +81,8 @@ export class WhatsappService {
 			const notif = this.notifications.create({
 				rubroId: input.rubroId,
 				espacioId: input.espacioId,
-				questionId: input.questionId,
+				kind: 'ml_question',
+				sourceId: input.questionId,
 				recipientId: recipient.id,
 				status: 'pending',
 			});

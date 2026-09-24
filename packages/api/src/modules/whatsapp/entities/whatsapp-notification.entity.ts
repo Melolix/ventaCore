@@ -1,11 +1,12 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 /**
- * Un aviso saliente de WhatsApp: "tenés una pregunta nueva en ML". Es la pieza
- * central del RUTEO: guardamos el `waMessageId` (wamid) que devuelve Meta al
- * enviar, y cuando el destinatario RESPONDE citando ese mensaje, el entrante trae
- * `context.id === waMessageId` → así resolvemos a qué pregunta/rubro pertenece la
- * respuesta, sin depender del número (un CM comparte celular entre varios rubros).
+ * Un aviso saliente de WhatsApp: "tenés algo nuevo para responder" (una pregunta
+ * de Mercado Libre o un DM de Instagram). Es la pieza central del RUTEO: guardamos
+ * el `waMessageId` (wamid) que devuelve Meta al enviar, y cuando el destinatario
+ * RESPONDE citando ese mensaje, el entrante trae `context.id === waMessageId` → así
+ * resolvemos a qué origen/rubro pertenece la respuesta, sin depender del número (un
+ * CM comparte celular entre varios rubros).
  *
  * `waMessageId` es UNIQUE → idempotencia y lookup de ruteo O(1).
  */
@@ -14,7 +15,7 @@ export class WhatsappNotificationEntity {
 	@PrimaryGeneratedColumn('uuid')
 	id!: string;
 
-	/** Rubro dueño de la pregunta avisada. */
+	/** Rubro dueño del origen avisado. */
 	@Index()
 	@Column('uuid')
 	rubroId!: string;
@@ -24,10 +25,17 @@ export class WhatsappNotificationEntity {
 	@Column('uuid')
 	espacioId!: string;
 
-	/** Pregunta de ML (uuid interno) que originó el aviso. */
+	/** Tipo de origen del aviso: 'ml_question' | 'ig_dm'. Decide a dónde va la respuesta. */
+	@Column({ default: 'ml_question' })
+	kind!: string;
+
+	/**
+	 * Id interno (uuid) del origen: `ml_questions.id` para 'ml_question' o
+	 * `instagram_messages.id` para 'ig_dm'. Con `kind` se despacha la respuesta.
+	 */
 	@Index()
 	@Column('uuid')
-	questionId!: string;
+	sourceId!: string;
 
 	/** Destinatario al que se le mandó (uuid de whatsapp_recipients). */
 	@Column('uuid')
