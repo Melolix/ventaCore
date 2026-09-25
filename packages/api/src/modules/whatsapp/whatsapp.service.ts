@@ -18,15 +18,30 @@ export interface NewQuestionNotification {
 	businessName?: string | null;
 }
 
+/** Lo mínimo que el envío necesita saber de un DM nuevo de Instagram. */
+export interface NewDmNotification {
+	/** Id interno (uuid) del DM (`instagram_messages.id`). Clave de dedupe del aviso. */
+	dmId: string;
+	rubroId: string;
+	espacioId: string;
+	/** Texto del DM del cliente. */
+	text: string;
+	/** Nombre del negocio/rubro (para que el CM sepa de cuál es). */
+	businessName?: string | null;
+	/** Quién escribió (usuario de IG), si se conoce. */
+	senderName?: string | null;
+}
+
 /**
- * Envío SALIENTE de WhatsApp (F1): avisa por WhatsApp cuando entra una pregunta
- * nueva de Mercado Libre. Usa la Cloud API con una plantilla *utility* aprobada.
+ * Envío SALIENTE de WhatsApp: avisa al destinatario del rubro cuando entra algo
+ * para responder — una pregunta de Mercado Libre o un DM de Instagram. Usa la Cloud
+ * API con una plantilla *utility* aprobada (una por tipo).
  *
  * Es **best-effort**: si WhatsApp no está configurado (falta env) o el rubro no
- * tiene destinatario, loguea y sigue — nunca rompe la ingesta de preguntas.
+ * tiene destinatario, loguea y sigue — nunca rompe la ingesta.
  *
- * Al enviar, guarda el `wamid` que devuelve Meta en `whatsapp_notifications`: esa
- * es la clave con la que después se rutea la respuesta citada (F2).
+ * Al enviar, guarda el `wamid` que devuelve Meta en `whatsapp_notifications` con su
+ * `kind`+`sourceId`: esa es la clave con la que después se rutea la respuesta citada.
  */
 @Injectable()
 export class WhatsappService {
@@ -42,9 +57,13 @@ export class WhatsappService {
 		return {
 			phoneId: process.env.WHATSAPP_PHONE_ID?.trim(),
 			token: process.env.WHATSAPP_TOKEN?.trim(),
-			template: process.env.WHATSAPP_TEMPLATE_NAME?.trim() || 'pregunta_ml',
-			lang: process.env.WHATSAPP_TEMPLATE_LANG?.trim() || 'es_AR',
 			version: process.env.WHATSAPP_GRAPH_VERSION?.trim() || 'v21.0',
+			// Plantilla de preguntas de ML.
+			qTemplate: process.env.WHATSAPP_TEMPLATE_NAME?.trim() || 'pregunta_ml',
+			qLang: process.env.WHATSAPP_TEMPLATE_LANG?.trim() || 'es_AR',
+			// Plantilla de DMs de Instagram.
+			dmTemplate: process.env.WHATSAPP_DM_TEMPLATE_NAME?.trim() || 'dm_instagram',
+			dmLang: process.env.WHATSAPP_DM_TEMPLATE_LANG?.trim() || 'es_AR',
 		};
 	}
 
@@ -55,44 +74,82 @@ export class WhatsappService {
 	}
 
 	/**
-	 * Avisa una pregunta nueva al destinatario del rubro. Idempotente por
-	 * `questionId` (si ya se avisó, no reenvía). No lanza: los errores se loguean
-	 * y se guardan en la notificación.
+	 * Avisa una pregunta nueva de ML. Idempotente por la pregunta; best-effort.
 	 */
 	async notifyNewQuestion(input: NewQuestionNotification): Promise<void> {
+		await this.dispatchNotification({
+			rubroId: input.rubroId,
+			espacioId: input.espacioId,
+			kind: 'ml_question',
+			sourceId: input.questionId,
+			params: this.buildQuestionParams(input),
+			template: this.config.qTemplate,
+			lang: this.config.qLang,
+			label: `pregunta ${input.questionId}`,
+		});
+	}
+
+	/**
+	 * Avisa un DM nuevo de Instagram. Idempotente por el DM; best-effort.
+	 */
+	async notifyNewDm(input: NewDmNotification): Promise<void> {
+		await this.dispatchNotification({
+			rubroId: input.rubroId,
+			espacioId: input.espacioId,
+			kind: 'ig_dm',
+			sourceId: input.dmId,
+			params: this.buildDmParams(input),
+			template: this.config.dmTemplate,
+			lang: this.config.dmLang,
+			label: `DM ${input.dmId}`,
+		});
+	}
+
+	/**
+	 * Crea la notificación y manda la plantilla al destinatario del rubro. Idempotente
+	 * por (kind, sourceId). No lanza: los errores se loguean y se guardan.
+	 */
+	private async dispatchNotification(opts: {
+		rubroId: string;
+		espacioId: string;
+		kind: string;
+		sourceId: string;
+		params: string[];
+		template: string;
+		lang: string;
+		label: string;
+	}): Promise<void> {
 		try {
 			if (!this.configured) {
-				this.logger.log(`WhatsApp no configurado; se omite aviso de la pregunta ${input.questionId}`);
+				this.logger.log(`WhatsApp no configurado; se omite aviso de ${opts.label}`);
 				return;
 			}
 
-			// Dedupe: ¿ya hay un aviso no-fallido para esta pregunta?
+			// Dedupe: ¿ya hay un aviso no-fallido para este origen?
 			const existing = await this.notifications.findOne({
-				where: { kind: 'ml_question', sourceId: input.questionId, status: Not('failed') },
+				where: { kind: opts.kind, sourceId: opts.sourceId, status: Not('failed') },
 			});
 			if (existing) return;
 
-			const recipient = await this.recipients.findEntity(input.rubroId, input.espacioId);
+			const recipient = await this.recipients.findEntity(opts.rubroId, opts.espacioId);
 			if (!recipient || !recipient.active) {
-				this.logger.log(`Rubro ${input.rubroId} sin destinatario activo; se omite aviso`);
+				this.logger.log(`Rubro ${opts.rubroId} sin destinatario activo; se omite aviso`);
 				return;
 			}
 
 			const notif = this.notifications.create({
-				rubroId: input.rubroId,
-				espacioId: input.espacioId,
-				kind: 'ml_question',
-				sourceId: input.questionId,
+				rubroId: opts.rubroId,
+				espacioId: opts.espacioId,
+				kind: opts.kind,
+				sourceId: opts.sourceId,
 				recipientId: recipient.id,
 				status: 'pending',
 			});
 			await this.notifications.save(notif);
 
 			const to = recipient.waId || recipient.phoneE164.replace(/\D/g, '');
-			const params = this.buildParams(input);
-
 			try {
-				const wamid = await this.sendTemplate(to, params);
+				const wamid = await this.sendTemplate(to, opts.params, opts.template, opts.lang);
 				notif.waMessageId = wamid;
 				notif.status = 'sent';
 				await this.notifications.save(notif);
@@ -100,11 +157,11 @@ export class WhatsappService {
 				notif.status = 'failed';
 				notif.error = (e as Error).message;
 				await this.notifications.save(notif);
-				this.logger.error(`Falló el envío de WhatsApp para la pregunta ${input.questionId}: ${notif.error}`);
+				this.logger.error(`Falló el envío de WhatsApp para ${opts.label}: ${notif.error}`);
 			}
 		} catch (e) {
-			// Nunca propagar: la ingesta de preguntas no debe romperse por WhatsApp.
-			this.logger.error(`Error inesperado avisando la pregunta ${input.questionId}: ${(e as Error).message}`);
+			// Nunca propagar: la ingesta no debe romperse por WhatsApp.
+			this.logger.error(`Error inesperado avisando ${opts.label}: ${(e as Error).message}`);
 		}
 	}
 
@@ -136,30 +193,36 @@ export class WhatsappService {
 		}
 	}
 
-	/**
-	 * Arma los 3 parámetros del cuerpo de la plantilla: {{1}} negocio, {{2}}
-	 * producto, {{3}} pregunta. WhatsApp NO permite saltos de línea ni tabs en los
-	 * valores (la estructura/etiquetas van en el texto fijo de la plantilla), y no
-	 * acepta valores vacíos → cada uno colapsa espacios, recorta y tiene fallback.
-	 */
-	private buildParams(input: NewQuestionNotification): string[] {
-		const clean = (s: string | null | undefined, fallback: string, max: number): string => {
-			const v = (s || '').replace(/\s+/g, ' ').trim().slice(0, max);
-			return v || fallback;
-		};
+	/** Colapsa espacios/saltos de línea, recorta y aplica fallback (WhatsApp no acepta vacíos ni saltos en params). */
+	private clean(s: string | null | undefined, fallback: string, max: number): string {
+		const v = (s || '').replace(/\s+/g, ' ').trim().slice(0, max);
+		return v || fallback;
+	}
+
+	/** Params de la plantilla de preguntas: {{1}} negocio, {{2}} producto, {{3}} pregunta. */
+	private buildQuestionParams(input: NewQuestionNotification): string[] {
 		return [
-			clean(input.businessName, 'Tu negocio', 60),
-			clean(input.itemTitle, 'Publicación', 100),
-			clean(input.text, '(sin texto)', 300),
+			this.clean(input.businessName, 'Tu negocio', 60),
+			this.clean(input.itemTitle, 'Publicación', 100),
+			this.clean(input.text, '(sin texto)', 300),
+		];
+	}
+
+	/** Params de la plantilla de DMs: {{1}} negocio, {{2}} de quién, {{3}} mensaje. */
+	private buildDmParams(input: NewDmNotification): string[] {
+		return [
+			this.clean(input.businessName, 'Tu negocio', 60),
+			this.clean(input.senderName, 'un cliente', 60),
+			this.clean(input.text, '(sin texto)', 300),
 		];
 	}
 
 	/**
 	 * Envía la plantilla utility y devuelve el `wamid`. `params` llena en orden los
-	 * `{{1}}`, `{{2}}`, `{{3}}` del cuerpo. Lanza si Meta responde error.
+	 * `{{1}}`, `{{2}}`… del cuerpo. Lanza si Meta responde error.
 	 */
-	private async sendTemplate(to: string, params: string[]): Promise<string> {
-		const { phoneId, token, template, lang, version } = this.config;
+	private async sendTemplate(to: string, params: string[], template: string, lang: string): Promise<string> {
+		const { phoneId, token, version } = this.config;
 		const res = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messages`, {
 			method: 'POST',
 			headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

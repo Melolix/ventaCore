@@ -193,6 +193,29 @@ export class MetaConnectionService {
 		};
 	}
 
+	/**
+	 * Resuelve el rubro/destino a partir del ID de la cuenta de Instagram del negocio
+	 * (lo que trae el webhook de DMs de IG). Devuelve el rubro + el Page token
+	 * descifrado para poder responder. null si ninguna conexión tiene esa cuenta.
+	 */
+	async resolveTargetByIgAccount(igAccountId: string): Promise<
+		(ResolvedTarget & { rubroId: string; espacioId: string }) | null
+	> {
+		const target = await this.targets.findOne({ where: { igBusinessAccountId: igAccountId } });
+		if (!target) return null;
+		const connection = await this.connections.findOne({ where: { id: target.connectionId } });
+		if (!connection) return null;
+		return {
+			rubroId: connection.rubroId,
+			espacioId: connection.espacioId,
+			pageId: target.pageId,
+			pageName: target.pageName,
+			pageAccessToken: this.crypto.decrypt(target.pageAccessToken),
+			igBusinessAccountId: target.igBusinessAccountId,
+			igUsername: target.igUsername,
+		};
+	}
+
 	// ── Helpers ──
 
 	private async assertRubro(rubroId: string, espacioId: string): Promise<RubroEntity> {
