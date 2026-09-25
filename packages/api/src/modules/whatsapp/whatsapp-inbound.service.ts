@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { MlQuestionsService } from '../sales/ml-questions.service';
+import { InstagramService } from '../instagram/instagram.service';
 import { WhatsappNotificationEntity } from './entities/whatsapp-notification.entity';
 import { WhatsappInboundEntity } from './entities/whatsapp-inbound.entity';
 import { WhatsappService } from './whatsapp.service';
@@ -52,6 +53,8 @@ export class WhatsappInboundService {
 		private readonly whatsapp: WhatsappService,
 		@Inject(forwardRef(() => MlQuestionsService))
 		private readonly questions: MlQuestionsService,
+		@Inject(forwardRef(() => InstagramService))
+		private readonly instagram: InstagramService,
 	) {}
 
 	/**
@@ -160,25 +163,30 @@ export class WhatsappInboundService {
 			}
 
 			// Despacha la respuesta según el origen del aviso.
+			let okMsg: string;
 			if (notif.kind === 'ml_question') {
 				// Publica en ML reutilizando la lógica del panel (POST /answers).
 				await this.questions.answer(notif.rubroId, notif.espacioId, notif.sourceId, row.text.trim());
+				okMsg = '✅ Respuesta publicada en Mercado Libre.';
+			} else if (notif.kind === 'ig_dm') {
+				// Envía la respuesta de vuelta al DM de Instagram.
+				await this.instagram.sendReply(notif.sourceId, row.text.trim());
+				okMsg = '✅ Respuesta enviada por Instagram.';
 			} else {
-				// 'ig_dm' y otros se implementan en el paso siguiente.
-				throw new Error(`Tipo de aviso no soportado aún: ${notif.kind}`);
+				throw new Error(`Tipo de aviso no soportado: ${notif.kind}`);
 			}
 
 			notif.status = 'answered';
 			await this.notifications.save(notif);
 			row.status = 'processed';
 			await this.save(row);
-			await this.whatsapp.sendText(replyTo, '✅ Respuesta publicada en Mercado Libre.');
+			await this.whatsapp.sendText(replyTo, okMsg);
 		} catch (e) {
 			row.status = 'failed';
 			row.error = (e as Error).message;
 			await this.save(row);
 			this.logger.error(`Error procesando respuesta ${wamid}: ${row.error}`);
-			await this.whatsapp.sendText(replyTo, `❌ No se pudo publicar la respuesta: ${row.error}`);
+			await this.whatsapp.sendText(replyTo, `❌ No se pudo enviar la respuesta: ${row.error}`);
 		}
 	}
 

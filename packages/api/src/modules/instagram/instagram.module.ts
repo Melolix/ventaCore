@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SocialModule } from '../social/social.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { InstagramMessageEntity } from './entities/instagram-message.entity';
 import { InstagramInboundService } from './instagram-inbound.service';
+import { InstagramService } from './instagram.service';
 import { InstagramWebhookController } from './instagram-webhook.controller';
 
 /**
@@ -22,10 +23,10 @@ import { InstagramWebhookController } from './instagram-webhook.controller';
 	imports: [
 		TypeOrmModule.forFeature([InstagramMessageEntity, RubroEntity]),
 		SocialModule,
-		WhatsappModule,
+		forwardRef(() => WhatsappModule),
 	],
 	controllers: [InstagramWebhookController],
-	providers: [InstagramInboundService],
-	exports: [],
+	providers: [InstagramInboundService, InstagramService],
+	exports: [InstagramService],
 })
 export class InstagramModule {}

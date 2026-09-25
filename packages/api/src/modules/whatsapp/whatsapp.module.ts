@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from '../users/users.module';
 import { SalesModule } from '../sales/sales.module';
+import { InstagramModule } from '../instagram/instagram.module';
 import { FirebaseAuthGuard } from '../../common/auth/firebase-auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
 import { WhatsappRecipientEntity } from './entities/whatsapp-recipient.entity';
@@ -33,6 +34,7 @@ import { WhatsappWebhookController } from './whatsapp-webhook.controller';
 		TypeOrmModule.forFeature([WhatsappRecipientEntity, WhatsappNotificationEntity, WhatsappInboundEntity]),
 		UsersModule,
 		forwardRef(() => SalesModule),
+		forwardRef(() => InstagramModule),
 	],
 	controllers: [WhatsappRecipientsController, WhatsappWebhookController],
 	providers: [WhatsappRecipientsService, WhatsappService, WhatsappInboundService, FirebaseAuthGuard, RolesGuard],

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { createHmac, timingSafeEqual } from 'crypto';
@@ -39,6 +39,7 @@ export class InstagramInboundService {
 		@InjectRepository(RubroEntity)
 		private readonly rubros: Repository<RubroEntity>,
 		private readonly meta: MetaConnectionService,
+		@Inject(forwardRef(() => WhatsappService))
 		private readonly whatsapp: WhatsappService,
 	) {}
 
