@@ -735,7 +735,7 @@
 			},
 			"wa": {
 				"title": "WhatsApp alerts",
-				"subtitle": "We'll ping you on WhatsApp when a new question comes in. Reply by quoting that message and we post the answer to Mercado Libre.",
+				"subtitle": "We'll ping you on WhatsApp when a Mercado Libre question or an Instagram message comes in. Reply by quoting that message and we send your answer.",
 				"active": "Active",
 				"paused": "Paused",
 				"phoneLabel": "WhatsApp number",

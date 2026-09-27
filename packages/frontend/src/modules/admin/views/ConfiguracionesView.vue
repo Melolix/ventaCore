@@ -114,6 +114,9 @@
 				</div>
 			</section>
 
+			<!-- ── Avisos por WhatsApp (destinatario de preguntas de ML + DMs de IG) ── -->
+			<WhatsappRecipientCard v-if="mlEnabled || igEnabled" :rubro-id="rubro.id" />
+
 			<!-- ── Cobros y suscripciones ── -->
 			<section class="glass-card rounded-2xl p-6">
 				<div class="mb-4 flex items-center gap-3">
@@ -153,9 +156,11 @@ import { defineComponent } from 'vue';
 import { channelEnabled, type Rubro, type MetaRubroState, type MlRubroState } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
+import WhatsappRecipientCard from '@/modules/admin/components/WhatsappRecipientCard.vue';
 
 export default defineComponent({
 	name: 'ConfiguracionesView',
+	components: { WhatsappRecipientCard },
 	data() {
 		return {
 			catalog: useCatalogStore(),

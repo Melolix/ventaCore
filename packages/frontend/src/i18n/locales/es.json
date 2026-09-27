@@ -735,7 +735,7 @@
 			},
 			"wa": {
 				"title": "Avisos por WhatsApp",
-				"subtitle": "Te avisamos por WhatsApp cuando entra una pregunta nueva. Respondé citando ese mensaje y publicamos la respuesta en Mercado Libre.",
+				"subtitle": "Te avisamos por WhatsApp cuando entra una pregunta de Mercado Libre o un mensaje de Instagram. Respondé citando ese mensaje y lo contestamos por vos.",
 				"active": "Activo",
 				"paused": "Pausado",
 				"phoneLabel": "Número de WhatsApp",
