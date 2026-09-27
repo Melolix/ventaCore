@@ -162,8 +162,14 @@
 						class="glass-card flex flex-col gap-6 rounded-2xl border-l-4 p-6 md:flex-row md:items-center"
 						:class="rubro.status === 'active' ? 'border-l-primary' : 'border-l-surface-300'"
 					>
+						<!-- Slot cuadrado → va el LOGO (1:1); si no hay, caemos a la portada. -->
 						<div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-surface-100 dark:bg-surface-800">
-							<img v-if="rubro.imageUrl" :src="rubro.imageUrl" class="h-full w-full object-cover" :alt="rubro.nombre" />
+							<img
+								v-if="rubro.logoUrl || rubro.imageUrl"
+								:src="rubro.logoUrl || rubro.imageUrl"
+								class="h-full w-full object-cover"
+								:alt="rubro.nombre"
+							/>
 							<div v-else class="flex h-full w-full items-center justify-center text-surface-400">
 								<i class="pi pi-box text-2xl" />
 							</div>
