@@ -7,6 +7,17 @@
 			<h1 class="mx-auto mt-3 max-w-3xl text-4xl font-extrabold leading-tight text-surface-900 dark:text-surface-0 md:text-5xl">
 				{{ espacio?.aboutHeadline || $t('public.about.defaultHeadline', { nombre: espacio?.nombre || '' }) }}
 			</h1>
+			<!-- CTA principal en el hero: siempre visible en la pantalla inicial
+			     (antes estaba al final del scroll). Único lugar para la acción. -->
+			<a
+				v-if="espacio?.instagramUrl"
+				:href="espacio.instagramUrl"
+				target="_blank"
+				rel="noopener"
+				class="primary-gradient mt-6 inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold text-white shadow-lg transition hover:brightness-110"
+			>
+				<i class="pi pi-instagram" /> {{ $t('public.about.instagram') }}
+			</a>
 		</header>
 
 		<!-- Historia + imagen -->
@@ -34,18 +45,9 @@
 					{{ $t('public.about.empty') }}
 				</p>
 
-				<!-- clear-both: el botón baja debajo de todo (texto + imagen flotante). -->
-				<div class="clear-both">
-					<a
-						v-if="espacio?.instagramUrl"
-						:href="espacio.instagramUrl"
-						target="_blank"
-						rel="noopener"
-						class="primary-gradient mt-8 inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold text-white shadow-lg transition hover:brightness-110"
-					>
-						<i class="pi pi-instagram" /> {{ $t('public.about.instagram') }}
-					</a>
-				</div>
+				<!-- clear-both: cierra el float de la imagen para que la sección
+				     envuelva bien su alto. El CTA ahora vive en el hero. -->
+				<div class="clear-both" />
 			</template>
 
 			<!-- SIN imagen: texto centrado. -->
@@ -59,16 +61,6 @@
 				<p v-else class="mt-4 text-lg leading-relaxed text-surface-600 dark:text-surface-100">
 					{{ $t('public.about.empty') }}
 				</p>
-
-				<a
-					v-if="espacio?.instagramUrl"
-					:href="espacio.instagramUrl"
-					target="_blank"
-					rel="noopener"
-					class="primary-gradient mt-8 inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold text-white shadow-lg transition hover:brightness-110"
-				>
-					<i class="pi pi-instagram" /> {{ $t('public.about.instagram') }}
-				</a>
 			</div>
 		</section>
 	</div>
@@ -103,7 +95,12 @@ export default defineComponent({
 	   resto de las palabras envuelven enteras. */
 	hyphens: auto;
 }
-:global(.p-dark) .about-prose {
+/* Ojo: NO usar `:global(.p-dark) .about-prose` acá. El compilador de estilos
+   scoped de Vue descarta esa combinación (el selector nunca llega al CSS) y el
+   texto queda con el color base tenue. Escribiéndolo así, Vue le agrega el
+   atributo de scope al `.about-prose` → `.p-dark .about-prose[data-v-xxx]`
+   (más específico que la regla base) y el color oscuro sí gana. */
+.p-dark .about-prose {
 	/* surface-100 = color de texto principal del tema oscuro (bien legible;
 	   surface-200/300 quedaban casi iguales entre sí y muy tenues). */
 	color: var(--p-surface-100);
