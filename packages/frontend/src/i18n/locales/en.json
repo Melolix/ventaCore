@@ -123,6 +123,7 @@
 		"generateAd": "Publish",
 		"noInstagram": "Set this category's Instagram (Categories → edit)",
 		"consultWhatsapp": "Ask on WhatsApp",
+		"consultPrice": "Ask for price",
 		"whatsappMsg": "Hi! I wanted to ask about {producto}.",
 		"download": {
 			"android": "Android",

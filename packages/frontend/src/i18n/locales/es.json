@@ -123,6 +123,7 @@
 		"generateAd": "Publicar",
 		"noInstagram": "Configurá el Instagram de este rubro (Rubros → editar)",
 		"consultWhatsapp": "Consultar por WhatsApp",
+		"consultPrice": "Consultar precio",
 		"whatsappMsg": "¡Hola! Quería consultar sobre {producto}.",
 		"download": {
 			"android": "Android",

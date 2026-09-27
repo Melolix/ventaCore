@@ -15,14 +15,17 @@
 				/>
 			</div>
 			<div class="relative flex h-full flex-col justify-center gap-3 p-8 md:p-12">
+				<!-- En modo "home" (negocio de un solo rubro) esta vista ES la vitrina:
+				     no hay a dónde "volver" ni sentido en la etiqueta de sector. -->
 				<Button
+					v-if="!isHome"
 					:label="$t('public.back')"
 					icon="pi pi-arrow-left"
 					text
 					class="w-fit !text-white"
 					@click="goBack"
 				/>
-				<span class="flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 backdrop-blur-md">
+				<span v-if="!isHome" class="flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 backdrop-blur-md">
 					<i :class="isApps ? 'pi pi-th-large' : 'pi pi-tag'" class="text-sm text-white" />
 					<span class="text-xs font-bold uppercase tracking-wide text-white">{{ isApps ? $t('public.app') : $t('public.sector') }}</span>
 				</span>
@@ -131,22 +134,35 @@
 									@click="openLightbox(producto)"
 								/>
 							</template>
-							<!-- Catálogo: la foto llena la card (object-cover). -->
-							<img
-								v-else
-								:src="producto.imageUrl"
-								:alt="producto.nombre"
-								class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-							/>
+							<!-- Catálogo: la foto entra ENTERA (contain) sobre un fondo borroso de
+							     sí misma. Las fotos que cargan los clientes vienen con cualquier
+							     relación de aspecto (collages, verticales, con carteles): así no se
+							     recorta nada y el marco queda uniforme entre todas las cards. -->
+							<template v-else>
+								<div
+									class="absolute inset-0 scale-110 bg-cover bg-center opacity-40 blur-2xl"
+									:style="{ backgroundImage: `url('${producto.imageUrl}')` }"
+								/>
+								<img
+									:src="producto.imageUrl"
+									:alt="producto.nombre"
+									class="relative h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+								/>
+							</template>
 						</template>
 						<div v-else class="flex h-full w-full items-center justify-center text-surface-400">
 							<i :class="isApps ? 'pi pi-image' : 'pi pi-shopping-bag'" class="text-4xl" />
 						</div>
+						<!-- Precio siempre presente para que todas las cards alineen igual:
+						     si el producto no tiene precio, mostramos "Consultar precio". -->
 						<span
-							v-if="!isApps && producto.precio != null"
-							class="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 font-bold text-primary shadow-sm backdrop-blur-sm dark:bg-surface-900/80"
+							v-if="!isApps"
+							class="absolute right-4 top-4 rounded-full px-3 py-1 shadow-sm backdrop-blur-sm"
+							:class="producto.precio != null
+								? 'bg-white/90 font-bold text-primary dark:bg-surface-900/80'
+								: 'bg-surface-900/70 text-xs font-semibold text-white/90'"
 						>
-							{{ formatPrice(producto.precio) }}
+							{{ producto.precio != null ? formatPrice(producto.precio) : $t('public.consultPrice') }}
 						</span>
 						<!-- Apps: hint de "ampliar" (abre el lightbox) -->
 						<button
@@ -160,7 +176,11 @@
 						</button>
 					</div>
 					<div class="flex flex-1 flex-col p-6">
-						<h3 class="mb-2 text-lg font-bold text-surface-900 dark:text-surface-0">{{ producto.nombre }}</h3>
+						<!-- line-clamp-2: los títulos largos (típicos de import de ML) se cortan
+						     en 2 líneas con "…" → cards parejas. El texto completo, en el title. -->
+						<h3 class="mb-2 line-clamp-2 text-lg font-bold text-surface-900 dark:text-surface-0" :title="producto.nombre">
+							{{ producto.nombre }}
+						</h3>
 						<p class="flex-1 text-sm text-surface-500" :class="isApps ? 'line-clamp-4' : 'mb-4 line-clamp-2'">
 							{{ producto.descripcion || '' }}
 						</p>
@@ -240,6 +260,13 @@ interface Download {
 
 export default defineComponent({
 	name: 'RubroDetailView',
+	props: {
+		/** Rubro a mostrar cuando se reusa fuera de la ruta (negocio de un solo rubro).
+		 *  Si viene vacío, se toma el `:id` de la URL. */
+		forcedRubroId: { type: String, default: '' },
+		/** Modo vitrina: esta vista es la home del negocio (oculta "Volver" y la etiqueta). */
+		isHome: { type: Boolean, default: false },
+	},
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -253,7 +280,7 @@ export default defineComponent({
 	},
 	computed: {
 		rubroId(): string {
-			return this.$route.params.id as string;
+			return this.forcedRubroId || (this.$route.params.id as string);
 		},
 		/** Secciones/pestañas distintas de las capturas, en orden de aparición. */
 		secciones(): string[] {
@@ -342,7 +369,8 @@ export default defineComponent({
 			if (this.showTabs) this.activeSeccion = this.secciones[0];
 		} catch {
 			// Rubro inexistente o en borrador → volver a la vitrina del negocio.
-			this.goBack();
+			// (En modo home no redirigimos: esta vista ya ES la vitrina.)
+			if (!this.isHome) this.goBack();
 		} finally {
 			this.loading = false;
 		}
