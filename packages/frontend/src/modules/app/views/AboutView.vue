@@ -10,7 +10,7 @@
 		</header>
 
 		<!-- Historia + imagen -->
-		<section class="mb-12">
+		<section class="mb-12" lang="es">
 			<!-- CON imagen: la imagen flota a la derecha (desde sm) y el texto la envuelve,
 			     aprovechando todo el ancho con cualquier largo. En móvil va arriba, full width. -->
 			<template v-if="espacio?.aboutImageUrl">
@@ -27,10 +27,10 @@
 				<span class="block text-xs font-bold uppercase tracking-widest text-primary">{{ $t('public.about.storyEyebrow') }}</span>
 				<div
 					v-if="aboutHtml"
-					class="about-prose mt-4 break-words text-lg leading-relaxed text-surface-600 dark:text-surface-200"
+					class="about-prose mt-4 text-lg leading-relaxed text-surface-600 dark:text-surface-100"
 					v-html="aboutHtml"
 				/>
-				<p v-else class="mt-4 text-lg leading-relaxed text-surface-600 dark:text-surface-200">
+				<p v-else class="mt-4 text-lg leading-relaxed text-surface-600 dark:text-surface-100">
 					{{ $t('public.about.empty') }}
 				</p>
 
@@ -53,10 +53,10 @@
 				<span class="text-xs font-bold uppercase tracking-widest text-primary">{{ $t('public.about.storyEyebrow') }}</span>
 				<div
 					v-if="aboutHtml"
-					class="about-prose mt-4 break-words text-lg leading-relaxed text-surface-600 dark:text-surface-200"
+					class="about-prose mt-4 text-lg leading-relaxed text-surface-600 dark:text-surface-100"
 					v-html="aboutHtml"
 				/>
-				<p v-else class="mt-4 text-lg leading-relaxed text-surface-600 dark:text-surface-200">
+				<p v-else class="mt-4 text-lg leading-relaxed text-surface-600 dark:text-surface-100">
 					{{ $t('public.about.empty') }}
 				</p>
 
@@ -98,13 +98,15 @@ export default defineComponent({
    —no solo con clases Tailwind— para ganarle en especificidad al v-html. */
 .about-prose {
 	color: var(--p-surface-600);
-	/* El texto pegado por el usuario puede traer palabras/urls largas: que corte
-	   y nunca desborde el ancho de su columna (evita el "colapso" del layout). */
-	overflow-wrap: break-word;
+	/* Corta SOLO las palabras demasiado largas (y con guion real, gracias a
+	   lang="es"), en vez de partir cualquier palabra a la mitad sin guion. El
+	   resto de las palabras envuelven enteras. */
+	hyphens: auto;
 }
 :global(.p-dark) .about-prose {
-	/* Más claro que surface-300 → legible sobre el fondo oscuro. */
-	color: var(--p-surface-200);
+	/* surface-100 = color de texto principal del tema oscuro (bien legible;
+	   surface-200/300 quedaban casi iguales entre sí y muy tenues). */
+	color: var(--p-surface-100);
 }
 .about-prose :deep(p) {
 	margin-bottom: 1rem;
