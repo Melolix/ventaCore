@@ -24,34 +24,50 @@
 		</div>
 
 		<template v-else>
-			<!-- Barra: filtros + buscador + importar -->
-			<div class="mb-4 flex flex-wrap items-center gap-3">
-				<div class="flex flex-wrap gap-1.5">
+			<!-- Barra: filtros + buscador + importar. En mobile los filtros van en una
+			     fila deslizable y "Bajar de ML" queda como ícono al lado del buscador. -->
+			<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+				<!-- En mobile: 3 botones iguales (número arriba, texto abajo), sin scroll
+				     horizontal. Desde sm: pastillas en fila. -->
+				<div class="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap">
 					<button
 						v-for="f in filters"
 						:key="f.key"
 						type="button"
-						class="rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
+						class="flex min-w-0 flex-col items-center rounded-xl px-1 py-1.5 font-medium transition-colors sm:flex-row sm:gap-1 sm:rounded-full sm:px-3 sm:text-sm"
 						:class="activeFilter === f.key
 							? 'bg-amber-500 text-white'
 							: 'bg-surface-100 text-surface-600 hover:bg-surface-200 dark:bg-surface-800 dark:text-surface-300'"
 						@click="activeFilter = f.key"
 					>
-						{{ $t(f.label) }} <span class="opacity-70">{{ counts[f.key] }}</span>
+						<span class="text-sm font-semibold sm:order-last sm:font-normal sm:opacity-70">{{ counts[f.key] }}</span>
+						<span class="max-w-full truncate text-[11px] sm:text-sm">{{ $t(f.label) }}</span>
 					</button>
 				</div>
-				<IconField class="ml-auto w-full sm:w-64">
-					<InputIcon class="pi pi-search" />
-					<InputText v-model="search" :placeholder="$t('admin.ml.searchPlaceholder')" class="w-full" />
-				</IconField>
-				<Button
-					:label="$t('admin.carga.importMl.button')"
-					icon="pi pi-cloud-download"
-					size="small"
-					outlined
-					:loading="importing"
-					@click="importListings"
-				/>
+				<div class="flex items-center gap-2 sm:ml-auto">
+					<IconField class="min-w-0 flex-1 sm:w-64 sm:flex-none">
+						<InputIcon class="pi pi-search" />
+						<InputText v-model="search" :placeholder="$t('admin.ml.searchPlaceholder')" class="w-full" />
+					</IconField>
+					<Button
+						:label="$t('admin.carga.importMl.button')"
+						icon="pi pi-cloud-download"
+						size="small"
+						outlined
+						:loading="importing"
+						class="!hidden sm:!inline-flex"
+						@click="importListings"
+					/>
+					<Button
+						icon="pi pi-cloud-download"
+						outlined
+						:loading="importing"
+						:aria-label="$t('admin.carga.importMl.button')"
+						:title="$t('admin.carga.importMl.button')"
+						class="shrink-0 sm:!hidden"
+						@click="importListings"
+					/>
+				</div>
 			</div>
 
 			<!-- Lista vacía -->
@@ -61,18 +77,25 @@
 
 			<!-- Lista de productos -->
 			<div v-else class="space-y-2">
+				<!-- Fila compacta: toda la fila abre el editor. En mobile, una sola línea de
+				     estado (punto de color + lo que falta) y sin tag ni botones repetidos. -->
 				<div
 					v-for="p in filtered"
 					:key="p.id"
-					class="glass-card flex flex-wrap items-center gap-4 rounded-2xl p-3.5"
+					class="glass-card flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition-colors hover:bg-surface-50/60 sm:gap-4 sm:p-3.5 dark:hover:bg-surface-800/30"
+					@click="openEditor(p)"
 				>
-					<div class="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-100 dark:bg-surface-800">
+					<div class="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-surface-100 sm:h-14 sm:w-14 dark:bg-surface-800">
 						<img v-if="p.imageUrl" :src="p.imageUrl" class="h-full w-full object-cover" alt="" />
 						<div v-else class="flex h-full w-full items-center justify-center text-surface-400"><i class="pi pi-image" /></div>
 					</div>
 					<div class="min-w-0 flex-1">
-						<p class="truncate font-semibold text-surface-900 dark:text-surface-0">{{ p.nombre }}</p>
-						<div class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-surface-500">
+						<p class="truncate text-sm font-semibold text-surface-900 sm:text-base dark:text-surface-0">{{ p.nombre }}</p>
+						<p class="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-surface-500 sm:hidden">
+							<span class="h-2 w-2 shrink-0 rounded-full" :class="rowDot(p)" />
+							<span class="truncate">{{ rowSummary(p) }}</span>
+						</p>
+						<div class="mt-0.5 hidden flex-wrap items-center gap-2 text-xs text-surface-500 sm:flex">
 							<span v-if="p.mlCategoryName" class="inline-flex items-center gap-1"><i class="pi pi-tag" /> {{ p.mlCategoryName }}</span>
 							<span v-else class="text-amber-600 dark:text-amber-400">{{ $t('admin.ml.noCategoryShort') }}</span>
 							<span>·</span>
@@ -81,9 +104,9 @@
 							<span :class="p.stock === 0 ? 'font-semibold text-red-500' : ''">{{ $t('admin.ml.stockN', { n: p.stock ?? '—' }) }}</span>
 						</div>
 					</div>
-					<div class="text-right">
-						<p class="text-[11px] uppercase tracking-wide text-surface-400">{{ $t('admin.ml.colMl') }}</p>
-						<p class="font-semibold text-surface-800 dark:text-surface-100">{{ mlPriceLabel(p) }}</p>
+					<div class="shrink-0 text-right">
+						<p class="hidden text-[11px] uppercase tracking-wide text-surface-400 sm:block">{{ $t('admin.ml.colMl') }}</p>
+						<p class="text-sm font-semibold text-surface-800 sm:text-base dark:text-surface-100">{{ mlPriceLabel(p) }}</p>
 						<!-- Beneficio real (tras comisión y envío) sobre el costo. Deja ver de un vistazo si el precio está mal. -->
 						<p v-if="benefit[p.id]" class="text-[11px] font-semibold" :class="benefitClass(benefit[p.id])">
 							{{ benefitLabel(benefit[p.id]) }}
@@ -93,19 +116,23 @@
 								:title="$t('admin.ml.benefitNoShipping')"
 							/>
 						</p>
-						<p v-if="benefit[p.id] && benefit[p.id].shippingUnknown" class="text-[10px] leading-tight text-amber-500">
+						<p v-if="benefit[p.id] && benefit[p.id].shippingUnknown" class="hidden text-[10px] leading-tight text-amber-500 sm:block">
 							{{ $t('admin.ml.benefitNoShippingShort') }}
 						</p>
-						<p v-else-if="p.precioCosto == null" class="text-[11px] text-surface-300 dark:text-surface-600">{{ $t('admin.ml.noCostHint') }}</p>
+						<p v-else-if="p.precioCosto == null" class="hidden text-[11px] text-surface-300 sm:block dark:text-surface-600">{{ $t('admin.ml.noCostHint') }}</p>
 					</div>
-					<!-- Estado real en ML si está publicada; si no, el estado de la app. -->
-					<Tag
-						v-if="p.mlItemId && p.mlStatus"
-						:value="$t('admin.ml.mlState.' + p.mlStatus)"
-						:severity="statusSeverity(p.mlStatus)"
-					/>
-					<Tag v-else :value="$t('admin.ml.state.' + stateOf(p))" :severity="stateSeverity(stateOf(p))" />
-					<div class="flex items-center gap-1">
+					<!-- Estado real en ML si está publicada; si no, el estado de la app.
+					     Solo desde sm (en mobile va el punto de color de arriba). Envuelto en
+					     span porque `hidden` directo sobre un componente PrimeVue no lo oculta. -->
+					<span class="hidden sm:inline-flex">
+						<Tag
+							v-if="p.mlItemId && p.mlStatus"
+							:value="$t('admin.ml.mlState.' + p.mlStatus)"
+							:severity="statusSeverity(p.mlStatus)"
+						/>
+						<Tag v-else :value="$t('admin.ml.state.' + stateOf(p))" :severity="stateSeverity(stateOf(p))" />
+					</span>
+					<div class="hidden items-center gap-1 sm:flex">
 						<a
 							v-if="p.mlPermalink"
 							:href="p.mlPermalink"
@@ -113,15 +140,17 @@
 							rel="noopener"
 							class="inline-flex h-9 w-9 items-center justify-center rounded-full text-emerald-500 hover:bg-emerald-500/10"
 							:title="$t('admin.carga.pub.view')"
+							@click.stop
 						><i class="pi pi-external-link" /></a>
-						<Button :label="$t('admin.ml.editBtn')" icon="pi pi-sliders-h" size="small" text @click="openEditor(p)" />
+						<Button :label="$t('admin.ml.editBtn')" icon="pi pi-sliders-h" size="small" text @click.stop="openEditor(p)" />
 					</div>
+					<span class="sm:hidden"><i class="pi pi-chevron-right text-xs text-surface-400" /></span>
 				</div>
 			</div>
 		</template>
 
 		<!-- Editor + calculadora -->
-		<Drawer v-model:visible="editorVisible" position="right" :style="{ width: 'min(44rem, 100vw)' }">
+		<Drawer v-model:visible="editorVisible" position="right" block-scroll :style="{ width: 'min(44rem, 100vw)' }">
 			<template #container="{ closeCallback }">
 				<div class="flex h-full flex-col">
 					<!-- Cabecera del drawer -->
@@ -171,164 +200,46 @@
 					/>
 				</div>
 
-				<!-- ── Precio y rentabilidad ── -->
-				<section class="space-y-4">
-					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secPricing') }}</h4>
-
-					<!-- Tipo de publicación -->
-					<div class="space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.listingTypeLabel') }}</label>
-						<SelectButton
-							v-model="edit.mlListingType"
-							:options="listingTypeOptions"
-							option-label="label"
-							option-value="value"
-							:allow-empty="false"
-							@update:model-value="refreshFee"
-						/>
-					</div>
-
-					<!-- Costo + margen -->
-					<div class="grid grid-cols-2 gap-3">
-						<div class="space-y-1.5">
-							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.cost') }}</label>
-							<InputNumber v-model="edit.precioCosto" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onCostChange" />
+				<!-- Resumen fijo: lo que importa para decidir (precio en ML y cuánto ganás)
+				     queda siempre a la vista, y los pasos muestran qué falta completar. -->
+				<!-- -top-5 compensa el py-5 del contenedor: así se pega al borde real y no
+				     asoma texto por encima al scrollear. -->
+				<div class="sticky -top-5 z-10 -mx-5 space-y-3 border-b border-surface-200 bg-surface-0 px-5 pb-3 pt-3 dark:border-surface-700 dark:bg-surface-900">
+					<div class="grid grid-cols-2 gap-2">
+						<div class="rounded-xl bg-surface-100 px-3 py-2 dark:bg-surface-800">
+							<p class="truncate text-[11px] text-surface-500">{{ $t('admin.ml.mlPriceShort') }}</p>
+							<p class="text-lg font-bold text-surface-900 dark:text-surface-0">{{ edit.precioMl ? money(edit.precioMl) : '—' }}</p>
 						</div>
-						<div class="space-y-1.5">
-							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.margin') }}</label>
-							<InputNumber v-model="margenPct" fluid suffix=" %" :min="0" :max="900" @update:model-value="applyMargin" />
-						</div>
-					</div>
-
-					<!-- Barrita de margen: arrastrá el punto para ajustar cuánto querés ganar;
-					     el precio de tienda y el desglose de abajo se recalculan en vivo. -->
-					<div class="px-1 pt-0.5">
-						<Slider :model-value="margenPct ?? 0" :min="0" :max="300" @update:model-value="onMarginSlide" />
-					</div>
-
-					<!-- Precio tienda (neto objetivo) -->
-					<div class="space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.storePrice') }}</label>
-						<InputNumber v-model="edit.precio" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="syncMargin" />
-						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.storePriceHint') }}</p>
-					</div>
-
-					<!-- Dimensiones del paquete (para cotizar el envío de Mercado Libre).
-					     Van ANTES del precio ML para que "Calcular" ya conozca el envío. -->
-					<div class="space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.shippingDims') }}</label>
-						<div class="grid grid-cols-4 gap-2">
-							<div>
-								<InputNumber v-model="edit.alto" fluid suffix=" cm" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
-								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimAlto') }}</p>
-							</div>
-							<div>
-								<InputNumber v-model="edit.ancho" fluid suffix=" cm" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
-								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimAncho') }}</p>
-							</div>
-							<div>
-								<InputNumber v-model="edit.largo" fluid suffix=" cm" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
-								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimLargo') }}</p>
-							</div>
-							<div>
-								<InputNumber v-model="edit.peso" fluid suffix=" g" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
-								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimPeso') }}</p>
-							</div>
-						</div>
-						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.shippingHint') }}</p>
-					</div>
-
-					<!-- Precio ML + calcular -->
-					<div class="space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.mlPrice') }}</label>
-						<div class="flex gap-2">
-							<InputNumber v-model="edit.precioMl" class="flex-1" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onMlPriceChange" />
-							<Button :label="$t('admin.ml.calcBtn')" icon="pi pi-calculator" :loading="calculating" :disabled="!canCalc" @click="calcMlPrice" />
-						</div>
-					</div>
-
-					<!-- Desglose en vivo -->
-					<div class="rounded-xl border border-surface-200 p-4 dark:border-surface-700">
-						<div v-if="feeLoading" class="py-2 text-center text-surface-500"><i class="pi pi-spin pi-spinner" /></div>
-						<div v-else-if="!edit.mlCategoryId" class="text-center text-xs text-surface-400">{{ $t('admin.ml.needCategory') }}</div>
-						<div v-else-if="!edit.precioMl" class="text-center text-xs text-surface-400">{{ $t('admin.ml.needMlPrice') }}</div>
-						<div v-else-if="fee" class="space-y-3">
-							<div class="flex h-3 overflow-hidden rounded-full">
-								<div class="bg-surface-400" :style="{ width: pct(costPart) + '%' }" :title="$t('admin.ml.cost')" />
-								<div class="bg-emerald-500" :style="{ width: pct(gainPart) + '%' }" :title="$t('admin.ml.gain')" />
-								<div class="bg-amber-500" :style="{ width: pct(fee.saleFeeAmount) + '%' }" :title="$t('admin.ml.commission')" />
-								<div v-if="envioCost > 0" class="bg-sky-500" :style="{ width: pct(envioCost) + '%' }" :title="$t('admin.ml.shipping')" />
-							</div>
-							<div class="grid grid-cols-3 gap-2 text-center text-xs">
-								<div>
-									<p class="text-surface-400">{{ $t('admin.ml.cost') }}</p>
-									<p class="font-semibold text-surface-600 dark:text-surface-300">{{ costPart != null ? money(costPart) : '—' }}</p>
-								</div>
-								<div>
-									<p class="text-surface-400">{{ $t('admin.ml.gain') }}</p>
-									<p class="font-semibold" :class="loss ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'">
-										{{ gainPart != null ? money(gainPart) : '—' }}
-										<span v-if="gainPct != null" class="text-[11px]">({{ gainPct >= 0 ? '+' : '' }}{{ gainPct }}%)</span>
-									</p>
-								</div>
-								<div>
-									<p class="text-surface-400">{{ $t('admin.ml.commission') }} ({{ fee.percentageFee }}%)</p>
-									<p class="font-semibold text-amber-600 dark:text-amber-400">{{ money(fee.saleFeeAmount) }}</p>
-								</div>
-							</div>
-							<!-- Envío -->
-							<div class="text-xs">
-								<span v-if="shippingLoading" class="text-surface-400"><i class="pi pi-spin pi-spinner" /> {{ $t('admin.ml.shippingCalc') }}</span>
-								<span v-else-if="!hasDims" class="text-surface-400">{{ $t('admin.ml.shippingNeedDims') }}</span>
-								<span v-else-if="shipping && shipping.mandatory" class="flex items-center gap-1.5 text-sky-600 dark:text-sky-400"><i class="pi pi-truck" /> {{ $t('admin.ml.shippingFree', { cost: money(shipping.cost) }) }}</span>
-								<span v-else-if="shipping" class="flex items-center gap-1.5 text-surface-500"><i class="pi pi-truck" /> {{ $t('admin.ml.shippingBuyer') }}</span>
-							</div>
-							<p v-if="loss" class="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400">
-								<i class="pi pi-exclamation-triangle" /> {{ $t('admin.ml.lossWarn') }}
+						<div class="rounded-xl bg-surface-100 px-3 py-2 dark:bg-surface-800">
+							<p class="truncate text-[11px] text-surface-500">{{ $t('admin.ml.youEarn') }}</p>
+							<p v-if="gainPart != null" class="text-lg font-bold" :class="loss ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'">
+								{{ money(gainPart) }}<span v-if="gainPct != null" class="ml-1 text-xs font-semibold">{{ gainPct >= 0 ? '+' : '' }}{{ gainPct }}%</span>
+							</p>
+							<p v-else class="pt-1 text-xs leading-tight text-surface-400">
+								{{ edit.mlCategoryId ? $t('admin.ml.needMlPrice') : $t('admin.ml.earnNeedsCategory') }}
 							</p>
 						</div>
 					</div>
-				</section>
-
-				<!-- ── Datos ── -->
-				<section class="space-y-4 border-t border-surface-200 pt-5 dark:border-surface-700">
-					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secData') }}</h4>
-
-					<!-- Título -->
-					<div class="space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.fieldTitle') }}</label>
-						<InputText v-model="edit.nombre" class="w-full" />
+					<!-- Pasos. En mobile se ve uno a la vez; en desktop se ven todos y esto salta a la sección. -->
+					<div class="grid grid-cols-4 gap-1">
+						<button
+							v-for="s in steps"
+							:key="s.key"
+							type="button"
+							class="flex min-w-0 items-center justify-center gap-0.5 rounded-lg border px-0.5 py-1.5 text-[11px] font-semibold transition-colors sm:gap-1 sm:px-1 sm:text-xs"
+							:class="step === s.key
+								? 'border-primary bg-primary/10 text-primary'
+								: 'border-surface-200 text-surface-500 hover:bg-surface-100 dark:border-surface-700 dark:hover:bg-surface-800'"
+							@click="goStep(s.key)"
+						>
+							<span class="truncate">{{ $t(s.label) }}</span>
+							<i class="pi shrink-0 text-[9px] sm:text-[10px]" :class="stepDone[s.key] ? 'pi-check-circle text-emerald-500' : 'pi-exclamation-circle text-amber-500'" />
+						</button>
 					</div>
-
-					<!-- Descripción -->
-					<div class="space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.fieldDescription') }}</label>
-						<Textarea v-model="edit.descripcion" class="w-full" rows="4" auto-resize />
-						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.descSyncHint') }}</p>
-					</div>
-
-					<!-- Stock + EAN -->
-					<div class="grid grid-cols-2 gap-3">
-						<div class="space-y-1.5">
-							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.stock') }}</label>
-							<InputNumber v-model="edit.stock" fluid :min="0" :placeholder="'—'" />
-							<p class="text-[11px] text-surface-400">{{ $t('admin.ml.stockHint') }}</p>
-						</div>
-						<div class="space-y-1.5">
-							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.placeholders.ean') }}</label>
-							<InputText v-model="edit.gtin" class="w-full" />
-						</div>
-					</div>
-
-					<!-- SKU -->
-					<div class="max-w-[14rem] space-y-1.5">
-						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">SKU</label>
-						<InputText v-model="edit.sku" class="w-full" />
-					</div>
-				</section>
+				</div>
 
 				<!-- ── Ficha de Mercado Libre (categoría + atributos) ── -->
-				<section class="space-y-4 border-t border-surface-200 pt-5 dark:border-surface-700">
+				<section ref="sec-ficha" class="scroll-mt-44 space-y-4" :class="stepCls('ficha')">
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secFicha') }}</h4>
 
 					<!-- Buscar en el catálogo de ML (autocompleta categoría + atributos) -->
@@ -400,7 +311,7 @@
 				</section>
 
 				<!-- ── Imágenes ── -->
-				<section class="space-y-3 border-t border-surface-200 pt-5 dark:border-surface-700">
+				<section class="scroll-mt-44 space-y-4 md:border-t md:border-surface-200 md:pt-5 md:dark:border-surface-700" :class="stepCls('ficha')">
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secImages') }}</h4>
 					<div class="grid grid-cols-3 gap-3 sm:grid-cols-4">
 						<div
@@ -424,14 +335,179 @@
 					<div><HandoffButton @photos="onHandoffPhotos" /></div>
 					<p class="text-[11px] text-surface-400">{{ $t('admin.ml.imagesHint') }}</p>
 					</section>
+
+				<!-- ── Envío (medidas del paquete: cotizan el envío que entra en el precio) ── -->
+				<section ref="sec-envio" class="scroll-mt-44 space-y-4 md:border-t md:border-surface-200 md:pt-5 md:dark:border-surface-700" :class="stepCls('envio')">
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secShipping') }}</h4>
+					<!-- Dimensiones del paquete (para cotizar el envío de Mercado Libre).
+					     Van ANTES del precio ML para que "Calcular" ya conozca el envío. -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.shippingDims') }}</label>
+						<div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+							<div>
+								<InputNumber v-model="edit.alto" fluid suffix=" cm" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
+								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimAlto') }}</p>
+							</div>
+							<div>
+								<InputNumber v-model="edit.ancho" fluid suffix=" cm" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
+								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimAncho') }}</p>
+							</div>
+							<div>
+								<InputNumber v-model="edit.largo" fluid suffix=" cm" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
+								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimLargo') }}</p>
+							</div>
+							<div>
+								<InputNumber v-model="edit.peso" fluid suffix=" g" :min="0" :max-fraction-digits="0" :input-class="'text-right'" @update:model-value="scheduleFee" />
+								<p class="mt-0.5 text-center text-[10px] text-surface-400">{{ $t('admin.ml.dimPeso') }}</p>
+							</div>
+						</div>
+						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.shippingHint') }}</p>
+					</div>
+				</section>
+
+				<!-- ── Precio y rentabilidad ── -->
+				<section ref="sec-precio" class="scroll-mt-44 space-y-4 md:border-t md:border-surface-200 md:pt-5 md:dark:border-surface-700" :class="stepCls('precio')">
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secPricing') }}</h4>
+
+					<!-- Tipo de publicación -->
+					<div class="space-y-1.5">
+						<!-- block: si no, el label (inline) y el SelectButton quedaban en la misma
+						     línea y el selector se encimaba con el título de la sección. -->
+						<label class="block text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.listingTypeLabel') }}</label>
+						<SelectButton
+							v-model="edit.mlListingType"
+							:options="listingTypeOptions"
+							option-label="label"
+							option-value="value"
+							:allow-empty="false"
+							@update:model-value="refreshFee"
+						/>
+					</div>
+
+					<!-- Costo + margen -->
+					<div class="grid grid-cols-2 gap-3">
+						<div class="space-y-1.5">
+							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.cost') }}</label>
+							<InputNumber v-model="edit.precioCosto" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onCostChange" />
+						</div>
+						<div class="space-y-1.5">
+							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.margin') }}</label>
+							<InputNumber v-model="margenPct" fluid suffix=" %" :min="0" :max="900" @update:model-value="applyMargin" />
+						</div>
+					</div>
+
+					<!-- Barrita de margen: arrastrá el punto para ajustar cuánto querés ganar;
+					     el precio de tienda y el desglose de abajo se recalculan en vivo. -->
+					<div class="px-1 pt-0.5">
+						<Slider :model-value="margenPct ?? 0" :min="0" :max="300" @update:model-value="onMarginSlide" />
+					</div>
+
+					<!-- Precio tienda (neto objetivo) -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.storePrice') }}</label>
+						<InputNumber v-model="edit.precio" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="syncMargin" />
+						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.storePriceHint') }}</p>
+					</div>
+
+
+					<!-- Precio ML + calcular -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.mlPrice') }}</label>
+						<div class="flex gap-2">
+							<InputNumber v-model="edit.precioMl" class="flex-1" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onMlPriceChange" />
+							<Button :label="$t('admin.ml.calcBtn')" icon="pi pi-calculator" :loading="calculating" :disabled="!canCalc" @click="calcMlPrice" />
+						</div>
+					</div>
+
+					<!-- Desglose en vivo -->
+					<div class="rounded-xl border border-surface-200 p-4 dark:border-surface-700">
+						<div v-if="feeLoading" class="py-2 text-center text-surface-500"><i class="pi pi-spin pi-spinner" /></div>
+						<div v-else-if="!edit.mlCategoryId" class="text-center text-xs text-surface-400">{{ $t('admin.ml.needCategory') }}</div>
+						<div v-else-if="!edit.precioMl" class="text-center text-xs text-surface-400">{{ $t('admin.ml.needMlPrice') }}</div>
+						<div v-else-if="fee" class="space-y-3">
+							<div class="flex h-3 overflow-hidden rounded-full">
+								<div class="bg-surface-400" :style="{ width: pct(costPart) + '%' }" :title="$t('admin.ml.cost')" />
+								<div class="bg-emerald-500" :style="{ width: pct(gainPart) + '%' }" :title="$t('admin.ml.gain')" />
+								<div class="bg-amber-500" :style="{ width: pct(fee.saleFeeAmount) + '%' }" :title="$t('admin.ml.commission')" />
+								<div v-if="envioCost > 0" class="bg-sky-500" :style="{ width: pct(envioCost) + '%' }" :title="$t('admin.ml.shipping')" />
+							</div>
+							<div class="grid grid-cols-3 gap-2 text-center text-xs">
+								<div>
+									<p class="text-surface-400">{{ $t('admin.ml.cost') }}</p>
+									<p class="font-semibold text-surface-600 dark:text-surface-300">{{ costPart != null ? money(costPart) : '—' }}</p>
+								</div>
+								<div>
+									<p class="text-surface-400">{{ $t('admin.ml.gain') }}</p>
+									<p class="font-semibold" :class="loss ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'">
+										{{ gainPart != null ? money(gainPart) : '—' }}
+										<span v-if="gainPct != null" class="text-[11px]">({{ gainPct >= 0 ? '+' : '' }}{{ gainPct }}%)</span>
+									</p>
+								</div>
+								<div>
+									<p class="text-surface-400">{{ $t('admin.ml.commission') }} ({{ fee.percentageFee }}%)</p>
+									<p class="font-semibold text-amber-600 dark:text-amber-400">{{ money(fee.saleFeeAmount) }}</p>
+								</div>
+							</div>
+							<!-- Envío -->
+							<div class="text-xs">
+								<span v-if="shippingLoading" class="text-surface-400"><i class="pi pi-spin pi-spinner" /> {{ $t('admin.ml.shippingCalc') }}</span>
+								<span v-else-if="!hasDims" class="text-surface-400">{{ $t('admin.ml.shippingNeedDims') }}</span>
+								<span v-else-if="shipping && shipping.mandatory" class="flex items-center gap-1.5 text-sky-600 dark:text-sky-400"><i class="pi pi-truck" /> {{ $t('admin.ml.shippingFree', { cost: money(shipping.cost) }) }}</span>
+								<span v-else-if="shipping" class="flex items-center gap-1.5 text-surface-500"><i class="pi pi-truck" /> {{ $t('admin.ml.shippingBuyer') }}</span>
+							</div>
+							<p v-if="loss" class="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400">
+								<i class="pi pi-exclamation-triangle" /> {{ $t('admin.ml.lossWarn') }}
+							</p>
+						</div>
+					</div>
+				</section>
+
+				<!-- ── Datos ── -->
+				<section ref="sec-datos" class="scroll-mt-44 space-y-4 md:border-t md:border-surface-200 md:pt-5 md:dark:border-surface-700" :class="stepCls('datos')">
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secData') }}</h4>
+
+					<!-- Título -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.fieldTitle') }}</label>
+						<InputText v-model="edit.nombre" class="w-full" />
+					</div>
+
+					<!-- Descripción -->
+					<div class="space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.fieldDescription') }}</label>
+						<Textarea v-model="edit.descripcion" class="w-full" rows="4" auto-resize />
+						<p class="text-[11px] text-surface-400">{{ $t('admin.ml.descSyncHint') }}</p>
+					</div>
+
+					<!-- Stock + EAN -->
+					<div class="grid grid-cols-2 gap-3">
+						<div class="space-y-1.5">
+							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.stock') }}</label>
+							<InputNumber v-model="edit.stock" fluid :min="0" :placeholder="'—'" />
+							<p class="text-[11px] text-surface-400">{{ $t('admin.ml.stockHint') }}</p>
+						</div>
+						<div class="space-y-1.5">
+							<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.placeholders.ean') }}</label>
+							<InputText v-model="edit.gtin" class="w-full" />
+						</div>
+					</div>
+
+					<!-- SKU -->
+					<div class="max-w-[14rem] space-y-1.5">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-500">SKU</label>
+						<InputText v-model="edit.sku" class="w-full" />
+					</div>
+				</section>
+
 					</div>
 
 					<!-- Footer pegado abajo -->
 					<div v-if="edit" class="flex items-center justify-end gap-2 border-t border-surface-200 bg-surface-0 px-5 py-3 dark:border-surface-700 dark:bg-surface-900">
-						<Button :label="$t('common.cancel')" text @click="editorVisible = false" />
+						<Button :label="$t('common.cancel')" text class="whitespace-nowrap" @click="editorVisible = false" />
 						<Button
 							:label="edit.mlItemId ? $t('admin.ml.saveBtn') : $t('admin.ml.savePublishBtn')"
 							icon="pi pi-check"
+							class="whitespace-nowrap"
 							:loading="saving"
 							:disabled="loss"
 							@click="saveEditor"
@@ -465,6 +541,9 @@ import HandoffButton from '@/shared/components/HandoffButton.vue';
 
 type FilterKey = 'all' | 'published' | 'ready' | 'missing';
 type ProductState = 'published' | 'ready' | 'missing';
+/** Pasos del editor, en orden de dependencia: la ficha (categoría) define la
+ *  comisión y el envío (medidas) su costo; los dos alimentan el precio. */
+type EditorStep = 'ficha' | 'envio' | 'precio' | 'datos';
 
 /** Copia editable de un producto dentro del editor de ML. */
 interface EditState {
@@ -518,6 +597,14 @@ export default defineComponent({
 			] as { key: FilterKey; label: string }[],
 			// Editor
 			editorVisible: false,
+			// Paso visible del editor en mobile (en desktop se ven todos).
+			step: 'ficha' as EditorStep,
+			steps: [
+				{ key: 'ficha', label: 'admin.ml.steps.ficha' },
+				{ key: 'envio', label: 'admin.ml.steps.envio' },
+				{ key: 'precio', label: 'admin.ml.steps.precio' },
+				{ key: 'datos', label: 'admin.ml.steps.datos' },
+			] as { key: EditorStep; label: string }[],
 			edit: null as EditState | null,
 			margenPct: null as number | null,
 			saving: false,
@@ -604,6 +691,18 @@ export default defineComponent({
 			return this.neto < this.edit.precioCosto;
 		},
 		/** % de beneficio real (ganancia sobre el costo) al precio de ML actual. */
+		/** Qué pasos del editor están completos (tilde verde vs. aviso ámbar). */
+		stepDone(): Record<EditorStep, boolean> {
+			const e = this.edit;
+			if (!e) return { ficha: false, envio: false, precio: false, datos: false };
+			return {
+				ficha: !!e.mlCategoryId && this.mlAttrs.every(a => this.attrFilled(a)) && e.imagenes.length > 0,
+				envio: this.hasDims,
+				// Sin comisión calculada (falta categoría o precio) no se sabe si conviene.
+				precio: !!e.precioMl && !!this.fee && !this.loss,
+				datos: !!e.nombre?.trim() && e.stock != null,
+			};
+		},
 		gainPct(): number | null {
 			if (this.gainPart == null || !this.edit?.precioCosto) return null;
 			return Math.round((this.gainPart / this.edit.precioCosto) * 100);
@@ -613,7 +712,10 @@ export default defineComponent({
 		await this.reload();
 	},
 	watch: {
-		'ctx.currentRubroId'() {
+		// Se mira el rubro RESUELTO, no el id: en carga directa el id ya viene
+		// persistido y lo que llega tarde es la lista de rubros (si no, quedaba
+		// "ML no conectado" hasta cambiar de pestaña).
+		'rubro.id'() {
 			void this.reload();
 		},
 	},
@@ -778,9 +880,40 @@ export default defineComponent({
 			this.margenPct = this.deriveMargin();
 			this.fee = null;
 			this.shipping = null;
+			// Arranca en el primer paso que falta (en el orden de dependencia).
+			this.step = !this.edit.mlCategoryId ? 'ficha' : !this.hasDims ? 'envio' : 'precio';
 			this.editorVisible = true;
 			if (this.edit.precioMl) this.refreshFee();
 			if (p.mlCategoryId && !this.attrsByCategory[p.mlCategoryId]) void this.loadAttrs(p.mlCategoryId);
+		},
+		/** Clase de una sección del editor: en mobile solo se ve el paso activo. */
+		stepCls(key: EditorStep): string {
+			return this.step === key ? '' : 'hidden md:block';
+		},
+		/** Va a un paso: en mobile lo muestra; en desktop (todas visibles) salta a la sección. */
+		goStep(key: EditorStep) {
+			this.step = key;
+			this.$nextTick(() => {
+				(this.$refs['sec-' + key] as HTMLElement | undefined)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			});
+		},
+		/** Punto de color del estado del producto en la lista (mobile). */
+		rowDot(p: Producto): string {
+			const sev = p.mlItemId && p.mlStatus ? this.statusSeverity(p.mlStatus) : this.stateSeverity(this.stateOf(p));
+			return { success: 'bg-emerald-500', warn: 'bg-amber-500', info: 'bg-sky-500', danger: 'bg-red-500' }[sev] ?? 'bg-surface-400';
+		},
+		/** Resumen de una línea para la lista en mobile: estado + lo que falta o el stock. */
+		rowSummary(p: Producto): string {
+			const stock = this.$t('admin.ml.stockN', { n: p.stock ?? '—' });
+			if (p.mlItemId && p.mlStatus) return `${this.$t('admin.ml.mlState.' + p.mlStatus)} · ${stock}`;
+			if (this.stateOf(p) === 'ready') return `${this.$t('admin.ml.rowReady')} · ${stock}`;
+			const faltan: string[] = [];
+			if (!p.mlCategoryId) faltan.push(this.$t('admin.ml.missing.category'));
+			if (p.stock == null) faltan.push(this.$t('admin.ml.missing.stock'));
+			if (p.precioMl == null && p.precio == null) faltan.push(this.$t('admin.ml.missing.price'));
+			if (!p.nombre?.trim()) faltan.push(this.$t('admin.ml.missing.title'));
+			const list = new Intl.ListFormat(this.$i18n.locale, { type: 'conjunction' }).format(faltan);
+			return this.$t('admin.ml.rowMissing', { campos: list });
 		},
 		/** Color del tag de estado real en ML. */
 		statusSeverity(status: string): string {

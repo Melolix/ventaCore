@@ -11,7 +11,7 @@
 			<i class="pi pi-spin pi-spinner text-2xl" />
 		</div>
 
-		<form v-else class="glass-card space-y-6 rounded-3xl p-8" @submit.prevent="save">
+		<form v-else class="glass-card space-y-6 rounded-3xl p-5 sm:p-8" @submit.prevent="save">
 			<div class="space-y-2">
 				<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 					{{ $t('admin.about.fields.headline') }}

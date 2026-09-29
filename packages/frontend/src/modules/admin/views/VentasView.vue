@@ -44,9 +44,53 @@
 				<p class="text-xs">{{ $t('admin.ml.ventas.emptyHint') }}</p>
 			</div>
 
-			<!-- Tabla de ventas -->
-			<div v-else class="glass-card overflow-x-auto rounded-2xl">
-				<table class="w-full text-sm">
+			<template v-else>
+			<!-- Mobile: una tarjeta por venta (la tabla de 9 columnas no entra y se cortaba
+			     en "Cantidad"). Arriba lo que se vendió y cuánto; abajo estado y envío. -->
+			<div class="space-y-2 md:hidden">
+				<div v-for="o in orders" :key="o.id" class="glass-card rounded-2xl p-3">
+					<div class="flex items-start justify-between gap-3">
+						<div class="min-w-0">
+							<p class="truncate text-sm font-semibold text-surface-900 dark:text-surface-0">{{ firstTitle(o) }}</p>
+							<p class="text-xs text-surface-500">
+								{{ formatDate(o.dateCreated) }} · {{ $t('admin.ml.ventas.qtyShort', { n: totalQty(o) }) }}
+								<template v-if="o.items.length > 1"> · {{ $t('admin.ml.ventas.moreItems', { n: o.items.length - 1 }) }}</template>
+							</p>
+						</div>
+						<div class="shrink-0 text-right">
+							<p class="text-sm font-semibold text-surface-900 dark:text-surface-0">{{ money(o.totalAmount, o.currencyId) }}</p>
+							<p class="text-[11px] text-surface-500">{{ $t('admin.ml.ventas.colNet') }} {{ money(o.neto, o.currencyId) }}</p>
+						</div>
+					</div>
+					<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-surface-500">
+						<span class="rounded-full px-2 py-0.5 font-semibold" :class="statusClass(o.status)">{{ statusLabel(o.status) }}</span>
+						<span><i class="pi pi-truck text-[11px]" /> {{ shipmentLabel(o.shipmentStatus) }}</span>
+						<span v-if="o.buyerNickname" class="min-w-0 truncate"><i class="pi pi-user text-[11px]" /> {{ o.buyerNickname }}</span>
+						<div v-if="o.shippingId" class="ml-auto flex gap-1">
+							<Button
+								icon="pi pi-print"
+								size="small"
+								text
+								:title="$t('admin.ml.ventas.labelPdf')"
+								:loading="busyLabel === o.id + ':pdf'"
+								@click="printLabel(o, 'pdf')"
+							/>
+							<Button
+								label="ZPL"
+								size="small"
+								text
+								:title="$t('admin.ml.ventas.labelZpl')"
+								:loading="busyLabel === o.id + ':zpl'"
+								@click="printLabel(o, 'zpl')"
+							/>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Tabla de ventas (desde md) -->
+			<div class="glass-card hidden overflow-x-auto rounded-2xl md:block">
+				<table class="w-full min-w-[720px] text-sm">
 					<thead class="border-b border-surface-200 text-left text-xs uppercase tracking-wide text-surface-500 dark:border-surface-700">
 						<tr>
 							<th class="px-4 py-3">{{ $t('admin.ml.ventas.colDate') }}</th>
@@ -108,6 +152,7 @@
 					</tbody>
 				</table>
 			</div>
+			</template>
 		</template>
 	</div>
 </template>
@@ -141,7 +186,10 @@ export default defineComponent({
 		await this.reload();
 	},
 	watch: {
-		'ctx.currentRubroId'() {
+		// Se mira el rubro RESUELTO, no el id: en carga directa el id ya viene
+		// persistido y lo que llega tarde es la lista de rubros (si no, quedaba
+		// "ML no conectado" hasta cambiar de pestaña).
+		'rubro.id'() {
 			void this.reload();
 		},
 	},

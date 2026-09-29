@@ -47,7 +47,16 @@
 				</nav>
 
 				<!-- Acciones -->
-				<div class="flex items-center gap-3 justify-self-end">
+				<div class="flex items-center gap-2 justify-self-end sm:gap-3">
+					<!-- Hamburguesa: despliega la nav en mobile (en md+ la nav va inline). -->
+					<button
+						type="button"
+						class="flex h-9 w-9 items-center justify-center rounded-lg text-surface-600 transition-colors hover:bg-surface-100 md:hidden dark:text-surface-300 dark:hover:bg-surface-800"
+						:aria-label="$t('public.nav.menu')"
+						@click="mobileNavOpen = !mobileNavOpen"
+					>
+						<i :class="mobileNavOpen ? 'pi pi-times' : 'pi pi-bars'" class="text-lg" />
+					</button>
 					<Button
 						:icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
 						severity="secondary"
@@ -89,6 +98,32 @@
 					/>
 				</div>
 			</div>
+
+			<!-- Nav mobile: se despliega bajo la barra al tocar la hamburguesa. -->
+			<nav
+				v-if="mobileNavOpen"
+				class="mx-auto flex max-w-7xl flex-col gap-1 border-t border-surface-200/70 px-4 py-2 md:hidden dark:border-surface-700/70"
+			>
+				<router-link
+					to="/"
+					class="rounded-lg px-3 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-100 dark:text-surface-200 dark:hover:bg-surface-800"
+					exact-active-class="!text-primary"
+					@click="mobileNavOpen = false"
+				>{{ $t('public.nav.home') }}</router-link>
+				<router-link
+					v-if="hasSubscriptions"
+					to="/suscripciones"
+					class="rounded-lg px-3 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-100 dark:text-surface-200 dark:hover:bg-surface-800"
+					active-class="!text-primary"
+					@click="mobileNavOpen = false"
+				>{{ $t('public.nav.subscriptions') }}</router-link>
+				<router-link
+					to="/nosotros"
+					class="rounded-lg px-3 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-100 dark:text-surface-200 dark:hover:bg-surface-800"
+					active-class="!text-primary"
+					@click="mobileNavOpen = false"
+				>{{ $t('public.about.nav') }}</router-link>
+			</nav>
 		</header>
 
 		<main class="mx-auto max-w-7xl p-6">
@@ -117,6 +152,8 @@ export default defineComponent({
 			catalog: useCatalogStore(),
 			ready: false,
 			unavailable: false,
+			// Menú de nav desplegable en mobile (en md+ la nav va inline).
+			mobileNavOpen: false,
 			/** Origen del panel del que venimos (para "Volver al panel"). '' = no aplica. */
 			panelReturn: '',
 		};
@@ -131,6 +168,12 @@ export default defineComponent({
 		/** El tab de suscripciones aparece solo si algún rubro las tiene habilitadas. */
 		hasSubscriptions(): boolean {
 			return this.catalog.publicRubros.some(r => r.subscriptionsEnabled);
+		},
+	},
+	watch: {
+		// Cerrar el menú mobile al navegar.
+		$route() {
+			this.mobileNavOpen = false;
 		},
 	},
 	async created() {

@@ -1,5 +1,7 @@
 {
 	"common": {
+		"darkMode": "Modo oscuro",
+		"lightMode": "Modo claro",
 		"login": "Iniciar sesión",
 		"logout": "Cerrar sesión",
 		"email": "Email",
@@ -74,7 +76,8 @@
 		"business": "Negocio",
 		"nav": {
 			"home": "Inicio",
-			"subscriptions": "Suscripciones"
+			"subscriptions": "Suscripciones",
+			"menu": "Menú"
 		},
 		"about": {
 			"nav": "Sobre Nosotros",
@@ -168,7 +171,7 @@
 			"empty": "Todavía no hay espacios creados.",
 			"active": "Activo",
 			"suspended": "Suspendido",
-			"rubros": "{n} rubros",
+			"rubros": "{n} rubro | {n} rubros",
 			"suspend": "Suspender",
 			"activate": "Activar",
 			"createTitle": "Crear Espacio",
@@ -209,6 +212,7 @@
 		"panelSubtitle": "Gestión VentaCore",
 		"soon": "Próximamente",
 		"viewSite": "Ver el sitio",
+		"menu": "Menú",
 		"sidebar": {
 			"general": "General"
 		},
@@ -244,6 +248,8 @@
 			"product": "Producto",
 			"searchProduct": "Buscar producto…",
 			"noPrice": "Sin precio",
+			"change": "Cambiar",
+			"pickerDone": "Listo",
 			"template": "Plantilla",
 			"caption": "Texto del posteo",
 			"videoSoon": "Subir un video y recortarlo",
@@ -390,6 +396,11 @@
 			"delete": "No se pudo eliminar"
 		},
 		"carga": {
+			"selectedOfShort": "{sel} de {total}",
+			"addMenu": {
+				"button": "Agregar",
+				"manual": "Producto a mano"
+			},
 			"eyebrow": "Carga masiva",
 			"title": "Cargar productos",
 			"subtitle": "Traé tus productos y publicalos en lote. El sistema completa lo que puede solo.",
@@ -414,7 +425,17 @@
 			},
 			"addRow": "Agregar fila",
 			"selectedOf": "{sel} seleccionados de {total}",
-			"searchPlaceholder": "Buscar por nombre, marca, EAN…",
+			"searchPlaceholder": "Buscar…",
+			"searchHint": "Buscar por nombre, marca, EAN…",
+			"sheet": {
+				"title": "Editar producto",
+				"untitled": "Sin nombre",
+				"noCost": "Sin costo",
+				"cost": "Costo {costo}",
+				"costMargin": "Costo {costo} · margen {margen}%",
+				"save": "Guardar",
+				"publish": "Publicar en ML"
+			},
 			"searchNoResults": "No hay productos que coincidan con «{q}».",
 			"cols": {
 				"producto": "Producto",
@@ -486,7 +507,6 @@
 			"mlNotConnected": "ML sin conectar",
 			"mlConnectHint": "Conectá ML para publicar",
 			"needName": "Poné un nombre a cada producto seleccionado.",
-			"saveAll": "Guardar todo",
 			"saveRow": "Guardar esta fila",
 			"saveSelected": "Guardar ({n})",
 			"unsavedN": "{n} sin guardar",
@@ -500,7 +520,7 @@
 			},
 			"nothingSelected": "No hay filas seleccionadas.",
 			"noRubros": "Primero creá al menos un rubro para poder cargar productos.",
-			"saved": "Se guardaron {n} productos",
+			"saved": "Se guardó 1 producto | Se guardaron {n} productos",
 			"savedSynced": "Guardado y sincronizado con Mercado Libre",
 			"savedSyncedN": "{n} guardados · {synced} sincronizados con Mercado Libre",
 			"savedPartial": "{ok} guardados · {fail} con error",
@@ -680,6 +700,7 @@
 			"missingScopesToast": "Conectado, pero faltan permisos ({scopes}). Sin ellos no se puede publicar: reconectá y dejá todos los permisos marcados."
 		},
 		"ml": {
+			"mlPriceShort": "Precio en ML",
 			"tabs": {
 				"publicaciones": "Publicaciones",
 				"ventas": "Ventas",
@@ -750,6 +771,7 @@
 				"removed": "Destinatario eliminado."
 			},
 			"ventas": {
+				"qtyShort": "{n} u.",
 				"eyebrow": "Mercado Libre",
 				"pageTitle": "Ventas concretadas",
 				"pageSubtitle": "Las ventas pagadas de este negocio en Mercado Libre.",
@@ -837,13 +859,30 @@
 			"storePriceHint": "Costo + margen. Es lo que querés ganar por unidad.",
 			"mlPrice": "Precio en Mercado Libre",
 			"calcBtn": "Calcular",
-			"needCategory": "Asigná una categoría de ML arriba para calcular la comisión.",
+			"needCategory": "Asigná la categoría (en Ficha) para calcular la comisión.",
 			"noCostHint": "Poné el costo",
 			"benefitNoShipping": "No incluye el envío. Cargá alto, ancho, largo y peso del producto para calcular la ganancia real.",
 			"benefitNoShippingShort": "falta envío",
 			"secPricing": "Precio y rentabilidad",
 			"secData": "Datos",
 			"secFicha": "Ficha de Mercado Libre",
+			"secShipping": "Envío",
+			"youEarn": "Ganás",
+			"earnNeedsCategory": "Elegí la categoría para calcularlo",
+			"steps": {
+				"ficha": "Ficha",
+				"envio": "Envío",
+				"precio": "Precio",
+				"datos": "Datos"
+			},
+			"rowReady": "Lista para publicar",
+			"rowMissing": "Falta {campos}",
+			"missing": {
+				"category": "categoría",
+				"stock": "stock",
+				"price": "precio",
+				"title": "título"
+			},
 			"pause": "Pausar",
 			"activate": "Activar",
 			"pausedToast": "Publicación pausada",

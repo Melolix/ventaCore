@@ -13,20 +13,28 @@
 		<div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
 			<!-- Crear nuevo rubro -->
 			<section class="flex flex-col gap-6 lg:col-span-5">
-				<div class="glass-card rounded-3xl p-8 shadow-sm">
-					<div class="mb-8 flex items-center gap-3">
-						<div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+				<div class="glass-card rounded-3xl p-5 shadow-sm sm:p-8">
+					<!-- En mobile el formulario arranca colapsado (se abre tocando este
+					     encabezado) para que la lista de rubros quede a la vista.
+					     Desde lg siempre está abierto. -->
+					<div
+						class="flex cursor-pointer items-center gap-3 lg:mb-8 lg:cursor-default"
+						:class="{ 'mb-8': showCreate }"
+						@click="createOpen = !createOpen"
+					>
+						<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
 							<i class="pi pi-plus-circle text-2xl" />
 						</div>
-						<div>
+						<div class="min-w-0 flex-1">
 							<h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0">
 								{{ $t('admin.rubros.createTitle') }}
 							</h3>
 							<p class="text-xs text-surface-500">{{ $t('admin.rubros.createSubtitle') }}</p>
 						</div>
+						<span class="lg:hidden"><i class="pi text-surface-400" :class="showCreate ? 'pi-chevron-up' : 'pi-chevron-down'" /></span>
 					</div>
 
-					<form class="space-y-6" @submit.prevent="submitCreate">
+					<form class="space-y-6" :class="showCreate ? '' : 'hidden lg:block'" @submit.prevent="submitCreate">
 						<div class="space-y-2">
 							<label class="px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 								{{ $t('admin.rubros.fields.name') }}
@@ -133,8 +141,8 @@
 
 			<!-- Rubros existentes -->
 			<section class="space-y-6 lg:col-span-7">
-				<div class="flex items-center justify-between">
-					<h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0">
+				<div class="flex flex-wrap items-center justify-between gap-2">
+					<h3 class="text-lg font-semibold text-surface-900 sm:text-xl dark:text-surface-0">
 						{{ $t('admin.rubros.existingTitle') }}
 					</h3>
 					<div class="flex gap-2">
@@ -159,14 +167,15 @@
 					<div
 						v-for="rubro in catalog.rubros"
 						:key="rubro.id"
-						class="glass-card flex flex-col gap-6 rounded-2xl border-l-4 p-6 md:flex-row md:items-center"
+						class="glass-card flex flex-wrap items-start gap-4 rounded-2xl border-l-4 p-5 sm:p-6 md:flex-nowrap md:items-center md:gap-6"
 						:class="rubro.status === 'active' ? 'border-l-primary' : 'border-l-surface-300'"
 					>
-						<!-- Slot cuadrado → va el LOGO (1:1); si no hay, caemos a la portada. -->
-						<div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-surface-100 dark:bg-surface-800">
+						<!-- Slot cuadrado → va el LOGO (1:1); si no hay, caemos a la portada.
+						     En mobile queda al lado del nombre (no en una fila propia). -->
+						<div class="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-surface-100 sm:h-16 sm:w-16 dark:bg-surface-800">
 							<img
 								v-if="rubro.logoUrl || rubro.imageUrl"
-								:src="rubro.logoUrl || rubro.imageUrl"
+								:src="rubro.logoUrl || rubro.imageUrl || undefined"
 								class="h-full w-full object-cover"
 								:alt="rubro.nombre"
 							/>
@@ -175,7 +184,7 @@
 							</div>
 						</div>
 
-						<div class="flex-1">
+						<div class="min-w-0 flex-1">
 							<div class="mb-1 flex flex-wrap items-center gap-2">
 								<h4 class="text-lg font-bold text-surface-900 dark:text-surface-0">{{ rubro.nombre }}</h4>
 								<Tag
@@ -199,7 +208,8 @@
 							</div>
 						</div>
 
-						<div class="flex flex-row gap-2 md:flex-col">
+						<!-- En mobile los botones van en su propia fila, a todo el ancho. -->
+						<div class="flex w-full flex-row gap-2 md:w-auto md:flex-col">
 							<Button
 								:label="$t('admin.rubros.configure')"
 								icon="pi pi-cog"
@@ -299,6 +309,8 @@ export default defineComponent({
 		return {
 			catalog: useCatalogStore(),
 			ctx: useAdminContext(),
+			// Form "Crear nuevo rubro" desplegado en mobile (desde lg siempre visible).
+			createOpen: false,
 			loading: false,
 			saving: false,
 			savingEdit: false,
@@ -333,6 +345,11 @@ export default defineComponent({
 		};
 	},
 	computed: {
+		/** Form de crear visible en mobile: si lo abrió, o si todavía no hay rubros
+		 *  (en ese caso crear es lo único que puede hacer). */
+		showCreate(): boolean {
+			return this.createOpen || !this.catalog.rubros.length;
+		},
 		statusOptions(): { label: string; value: RubroStatus }[] {
 			return [
 				{ label: this.$t('admin.status.active'), value: RubroStatus.ACTIVE },

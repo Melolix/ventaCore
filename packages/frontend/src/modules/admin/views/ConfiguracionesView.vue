@@ -25,7 +25,7 @@
 			<!-- ── Mercado Libre (solo si el espacio tiene el canal habilitado) ── -->
 			<section v-if="mlEnabled" class="glass-card rounded-2xl p-6">
 				<div class="mb-4 flex items-center gap-3">
-					<div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
+					<div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
 						<i class="pi pi-shopping-cart text-xl" />
 					</div>
 					<div>
@@ -46,9 +46,11 @@
 					</template>
 					<template v-else>
 						<div class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
-							<i class="pi pi-check-circle text-green-500" />
-							<span>{{ $t('admin.ml.connectedAs', { name: mlState.connection.mlNickname || '—' }) }}</span>
-							<Tag v-if="mlState.connection.siteId" :value="mlState.connection.siteId" severity="secondary" />
+							<i class="pi pi-check-circle shrink-0 text-green-500" />
+							<!-- break-all + min-w-0: los nicknames de ML suelen ser una sola "palabra"
+							     larga; así se parten dentro de su lugar y el tag no se sale. -->
+							<span class="min-w-0 break-all">{{ $t('admin.ml.connectedAs', { name: mlState.connection.mlNickname || '—' }) }}</span>
+							<Tag v-if="mlState.connection.siteId" :value="mlState.connection.siteId" severity="secondary" class="shrink-0" />
 						</div>
 						<Button :label="$t('admin.ml.disconnect')" icon="pi pi-times" severity="danger" text size="small" class="self-start" @click="disconnectMl" />
 					</template>
@@ -58,7 +60,7 @@
 			<!-- ── Redes (Meta) — solo si el espacio tiene Instagram habilitado ── -->
 			<section v-if="igEnabled" class="glass-card rounded-2xl p-6">
 				<div class="mb-4 flex items-center gap-3">
-					<div class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+					<div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
 						<i class="pi pi-share-alt text-xl" />
 					</div>
 					<div>
@@ -120,7 +122,7 @@
 			<!-- ── Cobros y suscripciones ── -->
 			<section class="glass-card rounded-2xl p-6">
 				<div class="mb-4 flex items-center gap-3">
-					<div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+					<div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
 						<i class="pi pi-credit-card text-xl" />
 					</div>
 					<div>
@@ -203,7 +205,9 @@ export default defineComponent({
 	},
 	watch: {
 		// Al cambiar de negocio arriba, recargamos las conexiones de ese rubro.
-		'ctx.currentRubroId'() {
+		// Se mira el rubro RESUELTO, no el id: en carga directa el id ya viene
+		// persistido y lo que llega tarde es la lista de rubros.
+		'rubro.id'() {
 			void this.reload();
 		},
 	},

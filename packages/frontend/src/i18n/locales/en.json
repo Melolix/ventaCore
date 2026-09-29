@@ -1,5 +1,7 @@
 {
 	"common": {
+		"darkMode": "Dark mode",
+		"lightMode": "Light mode",
 		"login": "Sign in",
 		"logout": "Sign out",
 		"email": "Email",
@@ -74,7 +76,8 @@
 		"business": "Business",
 		"nav": {
 			"home": "Home",
-			"subscriptions": "Subscriptions"
+			"subscriptions": "Subscriptions",
+			"menu": "Menu"
 		},
 		"about": {
 			"nav": "About Us",
@@ -168,7 +171,7 @@
 			"empty": "No spaces created yet.",
 			"active": "Active",
 			"suspended": "Suspended",
-			"rubros": "{n} categories",
+			"rubros": "{n} category | {n} categories",
 			"suspend": "Suspend",
 			"activate": "Activate",
 			"createTitle": "Create Space",
@@ -209,6 +212,7 @@
 		"panelSubtitle": "VentaCore management",
 		"soon": "Coming soon",
 		"viewSite": "View site",
+		"menu": "Menu",
 		"sidebar": {
 			"general": "General"
 		},
@@ -244,6 +248,8 @@
 			"product": "Product",
 			"searchProduct": "Search product…",
 			"noPrice": "No price",
+			"change": "Change",
+			"pickerDone": "Done",
 			"template": "Template",
 			"caption": "Post caption",
 			"videoSoon": "Upload a video and trim it",
@@ -390,6 +396,11 @@
 			"delete": "Could not delete"
 		},
 		"carga": {
+			"selectedOfShort": "{sel} of {total}",
+			"addMenu": {
+				"button": "Add",
+				"manual": "Manual product"
+			},
 			"eyebrow": "Bulk upload",
 			"title": "Upload products",
 			"subtitle": "Bring in your products and publish them in bulk. The system fills in what it can.",
@@ -414,7 +425,17 @@
 			},
 			"addRow": "Add row",
 			"selectedOf": "{sel} selected of {total}",
-			"searchPlaceholder": "Search by name, brand, EAN…",
+			"searchPlaceholder": "Search…",
+			"searchHint": "Search by name, brand, EAN…",
+			"sheet": {
+				"title": "Edit product",
+				"untitled": "Untitled",
+				"noCost": "No cost",
+				"cost": "Cost {costo}",
+				"costMargin": "Cost {costo} · margin {margen}%",
+				"save": "Save",
+				"publish": "Publish to ML"
+			},
 			"searchNoResults": "No products match “{q}”.",
 			"cols": {
 				"producto": "Product",
@@ -486,7 +507,6 @@
 			"mlNotConnected": "ML not connected",
 			"mlConnectHint": "Connect ML to publish",
 			"needName": "Give every selected product a name.",
-			"saveAll": "Save all",
 			"saveRow": "Save this row",
 			"saveSelected": "Save ({n})",
 			"unsavedN": "{n} unsaved",
@@ -500,7 +520,7 @@
 			},
 			"nothingSelected": "No rows selected.",
 			"noRubros": "Create at least one category first to upload products.",
-			"saved": "{n} products saved",
+			"saved": "1 product saved | {n} products saved",
 			"savedSynced": "Saved and synced to Mercado Libre",
 			"savedSyncedN": "{n} saved · {synced} synced to Mercado Libre",
 			"savedPartial": "{ok} saved · {fail} failed",
@@ -680,6 +700,7 @@
 			"missingScopesToast": "Connected, but some permissions are missing ({scopes}). Publishing won't work: reconnect and keep all permissions checked."
 		},
 		"ml": {
+			"mlPriceShort": "ML price",
 			"tabs": {
 				"publicaciones": "Listings",
 				"ventas": "Sales",
@@ -750,6 +771,7 @@
 				"removed": "Recipient removed."
 			},
 			"ventas": {
+				"qtyShort": "{n} u.",
 				"eyebrow": "Mercado Libre",
 				"pageTitle": "Completed sales",
 				"pageSubtitle": "This business's paid sales on Mercado Libre.",
@@ -837,13 +859,30 @@
 			"storePriceHint": "Cost + margin. What you want to earn per unit.",
 			"mlPrice": "Mercado Libre price",
 			"calcBtn": "Calculate",
-			"needCategory": "Assign an ML category above to compute the fee.",
+			"needCategory": "Assign the category (in Listing) to compute the fee.",
 			"noCostHint": "Add cost",
 			"benefitNoShipping": "Shipping not included. Add the product's height, width, length and weight to compute the real profit.",
 			"benefitNoShippingShort": "no shipping",
 			"secPricing": "Price & profitability",
 			"secData": "Data",
 			"secFicha": "Mercado Libre listing",
+			"secShipping": "Shipping",
+			"youEarn": "You earn",
+			"earnNeedsCategory": "Pick the category to calculate it",
+			"steps": {
+				"ficha": "Listing",
+				"envio": "Shipping",
+				"precio": "Price",
+				"datos": "Data"
+			},
+			"rowReady": "Ready to publish",
+			"rowMissing": "Missing {campos}",
+			"missing": {
+				"category": "category",
+				"stock": "stock",
+				"price": "price",
+				"title": "title"
+			},
 			"pause": "Pause",
 			"activate": "Activate",
 			"pausedToast": "Listing paused",

@@ -53,6 +53,15 @@ body {
 	border-color: rgba(255, 255, 255, 0.05);
 }
 
+/* ── Toast en modo oscuro ──
+   Aura usa un tinte al 16% de opacidad: sobre el contenido el texto se mezclaba
+   con lo de atrás y no se leía. Mismo tinte, pero sobre una base sólida. */
+.p-dark .p-toast .p-toast-message-success { background: color-mix(in srgb, var(--p-green-500) 16%, var(--p-surface-900)); }
+.p-dark .p-toast .p-toast-message-info { background: color-mix(in srgb, var(--p-blue-500) 16%, var(--p-surface-900)); }
+.p-dark .p-toast .p-toast-message-warn { background: color-mix(in srgb, var(--p-yellow-500) 16%, var(--p-surface-900)); }
+.p-dark .p-toast .p-toast-message-error { background: color-mix(in srgb, var(--p-red-500) 16%, var(--p-surface-900)); }
+.p-dark .p-toast .p-toast-message-secondary { background: var(--p-surface-800); }
+
 /* ── Slider de PrimeVue ──
    En este proyecto el riel (track) quedaba con alto 0 y fondo transparente, así
    que solo se veía la manija flotando. Forzamos un riel visible en claro y

@@ -1,10 +1,12 @@
 <template>
 	<div class="mx-auto max-w-7xl">
 		<!-- Encabezado -->
-		<div class="mb-6">
+		<!-- En mobile el encabezado va compacto (sin subtítulo): la pantalla es para
+		     trabajar con la lista, no para leer. -->
+		<div class="mb-3 md:mb-6">
 			<p class="text-xs font-semibold uppercase tracking-wide text-primary">{{ $t('admin.carga.eyebrow') }}</p>
 			<h1 class="text-2xl font-extrabold text-surface-900 dark:text-surface-0">{{ $t('admin.carga.title') }}</h1>
-			<p class="mt-1 text-sm text-surface-500">{{ $t('admin.carga.subtitle') }}</p>
+			<p class="mt-1 hidden text-sm text-surface-500 md:block">{{ $t('admin.carga.subtitle') }}</p>
 		</div>
 
 		<!-- Cargando -->
@@ -30,9 +32,9 @@
 		<!-- Grilla del negocio activo -->
 		<template v-else>
 			<!-- Contexto: rubro + estado de ML -->
-			<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+			<div class="mb-3 flex flex-wrap items-center justify-between gap-3 md:mb-4">
 				<div class="flex items-center gap-2 text-sm">
-					<span class="text-surface-400">{{ $t('admin.carga.loadingIn') }}</span>
+					<span class="hidden text-surface-400 md:inline">{{ $t('admin.carga.loadingIn') }}</span>
 					<span class="inline-flex items-center gap-1.5 font-semibold text-surface-800 dark:text-surface-100">
 						<i class="pi pi-box text-surface-500" /> {{ selectedRubro?.nombre }}
 					</span>
@@ -42,12 +44,14 @@
 						<span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
 							<i class="pi pi-check-circle" /> {{ $t('admin.carga.mlConnected') }}
 						</span>
+						<!-- En mobile "Bajar de ML" está dentro del menú "Agregar". -->
 						<Button
 							:label="$t('admin.carga.importMl.button')"
 							icon="pi pi-cloud-download"
 							size="small"
 							outlined
 							:loading="importingMl"
+							class="!hidden md:!inline-flex"
 							@click="importMl"
 						/>
 					</template>
@@ -62,19 +66,20 @@
 				</div>
 			</div>
 
-			<!-- Fuentes de entrada -->
-			<div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+			<!-- Fuentes de entrada (desde md; en mobile van en el menú "Agregar").
+			     Las "Próximamente" (disabled) se ocultan hasta lg. -->
+			<div class="mb-4 hidden grid-cols-2 gap-3 md:grid lg:grid-cols-4">
 				<button
 					v-for="src in sources"
 					:key="src.key"
 					type="button"
 					:disabled="src.disabled"
 					:class="[
-						'group relative flex flex-col gap-2 rounded-2xl border p-4 text-left transition-all',
+						'group relative flex-col gap-2 rounded-2xl border p-4 text-left transition-all',
 						src.highlight
 							? 'border-primary/40 bg-primary/5 hover:border-primary'
 							: 'border-surface-200/60 bg-surface-0/40 hover:border-surface-300 dark:border-surface-700/60 dark:bg-surface-900/40',
-						src.disabled ? 'cursor-not-allowed opacity-60' : 'hover:-translate-y-0.5',
+						src.disabled ? 'hidden cursor-not-allowed opacity-60 lg:flex' : 'flex hover:-translate-y-0.5',
 					]"
 					@click="src.action && src.action()"
 				>
@@ -94,16 +99,33 @@
 
 			<!-- Barra de acciones: sticky para que "Agregar" y "Guardar" viajen con el scroll -->
 			<div
-				class="glass-card sticky top-20 z-20 mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3 shadow-sm"
+				class="glass-card sticky top-20 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-2xl p-3 shadow-sm md:gap-3"
 			>
-				<Button :label="$t('admin.carga.addRow')" icon="pi pi-plus" size="small" @click="addRow()" />
-				<!-- Buscador: filtra por nombre, marca, EAN/SKU… y acota las acciones en lote. -->
-				<div class="relative">
+				<!-- Mobile: 2 filas FIJAS (no flex-wrap, que armaba 3 filas desparejas según
+				     el ancho): ① Agregar + buscador, ② selección + Guardar. Desde md las dos
+				     filas son `contents` y todo vuelve a ser una sola barra. -->
+				<div class="flex w-full min-w-0 items-center gap-2 md:contents">
+				<Button :label="$t('admin.carga.addRow')" icon="pi pi-plus" size="small" class="!hidden md:!inline-flex" @click="onAddRow" />
+				<!-- Mobile: un solo "Agregar" que reúne todas las formas de cargar (a mano,
+				     escanear, Excel/CSV y bajar de ML), en vez de 4 bloques apilados. -->
+				<Button
+					:label="$t('admin.carga.addMenu.button')"
+					icon="pi pi-plus"
+					size="small"
+					class="shrink-0 md:!hidden"
+					aria-haspopup="true"
+					@click="toggleAddMenu"
+				/>
+				<Menu ref="addMenu" :model="addMenuItems" popup />
+				<!-- Buscador: filtra por nombre, marca, EAN/SKU… y acota las acciones en lote.
+				     En mobile ocupa el ancho libre de la 1ª fila. -->
+				<div class="relative min-w-0 flex-1 sm:flex-none">
 					<i class="pi pi-search pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-surface-400" />
 					<InputText
 						v-model="search"
 						:placeholder="$t('admin.carga.searchPlaceholder')"
-						class="w-48 !py-1.5 !pl-8 !pr-7 text-sm sm:w-56"
+						:title="$t('admin.carga.searchHint')"
+						class="w-full !py-1.5 !pl-8 !pr-7 text-sm sm:w-56"
 					/>
 					<button
 						v-if="search"
@@ -115,18 +137,35 @@
 						<i class="pi pi-times text-xs" />
 					</button>
 				</div>
-				<span class="hidden h-6 w-px bg-surface-200 dark:bg-surface-700 sm:block" />
+				</div>
+				<div class="flex w-full min-w-0 items-center gap-2 md:contents">
+				<span class="hidden h-6 w-px bg-surface-200 dark:bg-surface-700 md:block" />
 				<Checkbox :model-value="allSelected" binary @update:model-value="toggleAll" />
-				<span class="text-sm font-semibold text-surface-700 dark:text-surface-200">
-					{{ $t('admin.carga.selectedOf', { sel: selectedCount, total: gridRows.length }) }}
+				<span class="whitespace-nowrap text-sm font-semibold text-surface-700 dark:text-surface-200">
+					<span class="md:hidden">{{ $t('admin.carga.selectedOfShort', { sel: selectedCount, total: gridRows.length }) }}</span>
+					<span class="hidden md:inline">{{ $t('admin.carga.selectedOf', { sel: selectedCount, total: gridRows.length }) }}</span>
 				</span>
 
 				<!-- Acciones en lote: aparecen SOLO al seleccionar, agrupadas y resaltadas
 				     (leen como "esto aplica a lo seleccionado"). Los 3 ajustes de precio
 				     van en un menú para no saturar la barra. -->
+				<!-- Mobile: las acciones del lote en un solo "⋯" (con los 3 botones no entraba
+				     "Guardar" en la fila). -->
+				<Button
+					v-if="selectedCount"
+					icon="pi pi-ellipsis-h"
+					size="small"
+					text
+					rounded
+					class="shrink-0 !bg-primary/10 md:!hidden"
+					:title="$t('admin.carga.bulk.adjustPrices')"
+					aria-haspopup="true"
+					@click="toggleBulkMenu"
+				/>
+				<Menu ref="bulkMenu" :model="bulkMenuItems" popup />
 				<div
 					v-if="selectedCount"
-					class="flex items-center gap-1 rounded-xl bg-primary/5 p-1 dark:bg-primary/10"
+					class="hidden shrink-0 items-center gap-1 rounded-xl bg-primary/5 p-1 md:flex dark:bg-primary/10"
 				>
 					<Button
 						:label="$t('admin.carga.bulk.adjustPrices')"
@@ -155,21 +194,25 @@
 				</div>
 
 				<div class="ml-auto flex items-center gap-2">
+					<!-- En mobile no entra; las filas con cambios ya se ven resaltadas. -->
 					<span
 						v-if="dirtyCount"
-						class="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+						class="hidden items-center gap-1.5 text-xs font-medium text-amber-600 md:flex dark:text-amber-400"
 					>
 						<i class="pi pi-circle-fill text-[7px]" /> {{ $t('admin.carga.unsavedN', { n: dirtyCount }) }}
 					</span>
+					<!-- Cuenta lo que VA a guardar (cambios/nuevos, o los seleccionados con
+					     cambios). Sin nada pendiente queda deshabilitado. -->
 					<Button
-						:label="selectedCount ? $t('admin.carga.saveSelected', { n: selectedCount }) : $t('admin.carga.saveAll')"
+						:label="saveTargets.length ? $t('admin.carga.saveSelected', { n: saveTargets.length }) : $t('admin.carga.sheet.save')"
 						icon="pi pi-save"
 						size="small"
 						:loading="saving"
-						:disabled="!visibleRows.length"
-						class="primary-gradient border-0 font-semibold text-white"
+						:disabled="!saveTargets.length"
+						class="primary-gradient shrink-0 whitespace-nowrap border-0 font-semibold text-white"
 						@click="saveSelected"
 					/>
+				</div>
 				</div>
 			</div>
 
@@ -182,8 +225,36 @@
 				<template v-else>{{ $t('admin.carga.empty') }}</template>
 			</div>
 
-			<!-- Grilla -->
-			<div v-else class="glass-card quiet overflow-x-auto rounded-2xl">
+			<template v-else>
+			<!-- Mobile: lista compacta. Cada producto en una línea (costo, margen, precio
+			     y estado); al tocarlo se abre la hoja de edición con todos los campos. -->
+			<div class="glass-card overflow-hidden rounded-2xl md:hidden">
+				<div
+					v-for="row in gridRows"
+					:key="row.key"
+					class="flex cursor-pointer items-center gap-3 border-b border-surface-100 px-3 py-2.5 last:border-0 dark:border-surface-800/60"
+					:class="[row.dirty ? 'bg-amber-50/50 dark:bg-amber-950/20' : '', row.selected ? 'bg-primary/5 dark:bg-primary/10' : '']"
+					@click="openSheet(row)"
+				>
+					<span class="shrink-0" @click.stop><Checkbox v-model="row.selected" binary /></span>
+					<div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-100 text-surface-400 dark:bg-surface-800">
+						<img v-if="row.imageUrl" :src="row.imageUrl" class="h-full w-full object-cover" alt="" />
+						<i v-else class="pi pi-camera text-sm" />
+					</div>
+					<div class="min-w-0 flex-1">
+						<!-- 2 líneas: en 1 sola los nombres se cortaban a las 8 letras -->
+						<p class="line-clamp-2 break-words text-sm font-semibold leading-tight text-surface-900 dark:text-surface-0">{{ row.nombre || $t('admin.carga.sheet.untitled') }}</p>
+						<p class="truncate text-xs text-surface-500">{{ rowMeta(row) }}</p>
+					</div>
+					<div class="shrink-0 text-right">
+						<p class="text-sm font-semibold tabular-nums text-surface-800 dark:text-surface-100">{{ row.precio != null ? money(row.precio) : '—' }}</p>
+						<p class="text-[11px] font-semibold" :class="estadoTextCls(row)">{{ estadoLabel(row) }}</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Grilla editable (desde md) -->
+			<div class="glass-card quiet hidden overflow-x-auto rounded-2xl md:block">
 				<table class="w-full min-w-[900px] table-fixed text-sm">
 					<thead>
 						<tr
@@ -377,6 +448,7 @@
 					</tbody>
 				</table>
 			</div>
+			</template>
 
 			<!-- Pie: leyenda de estados -->
 			<div class="mt-4 flex flex-wrap items-center gap-4 text-xs">
@@ -678,6 +750,169 @@
 				<Button :label="$t('admin.carga.images.done')" @click="imgVisible = false" />
 			</template>
 		</Dialog>
+
+		<!-- Hoja de edición (mobile): se abre al tocar un producto de la lista. Edita la
+		     MISMA fila que la tabla de desktop (mismos v-model y handlers), así no hay
+		     dos lógicas. Fotos y categoría abren los mismos diálogos de siempre. -->
+		<Drawer
+			v-model:visible="sheetVisible"
+			position="bottom"
+			block-scroll
+			:header="$t('admin.carga.sheet.title')"
+			:style="{ height: 'auto', maxHeight: '92vh' }"
+			class="rounded-t-2xl"
+		>
+			<div v-if="sheetRow" class="space-y-4">
+				<!-- Foto + nombre -->
+				<div class="flex items-end gap-3">
+					<button
+						type="button"
+						class="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-100 text-surface-400 dark:bg-surface-800"
+						:title="$t('admin.carga.images.title')"
+						@click="openImages(sheetRow)"
+					>
+						<img v-if="sheetRow.imageUrl" :src="sheetRow.imageUrl" class="h-full w-full object-cover" alt="" />
+						<i v-else class="pi pi-camera" />
+						<span
+							v-if="sheetRow.imagenes.length > 1"
+							class="absolute bottom-0 right-0 rounded-tl bg-surface-900/80 px-1 text-[9px] font-semibold text-white"
+						>{{ sheetRow.imagenes.length }}</span>
+					</button>
+					<div class="min-w-0 flex-1 space-y-1">
+						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.producto') }}</label>
+						<InputText
+							v-model="sheetRow.nombre"
+							class="w-full"
+							:placeholder="$t('admin.carga.placeholders.nombre')"
+							@update:model-value="markDirty(sheetRow)"
+						/>
+					</div>
+				</div>
+
+				<!-- Precio: costo → margen → precio (se recalculan entre sí, igual que en la tabla).
+				     Costo ancho + margen angosto (un "900 %" entra en 6rem; mitad y mitad
+				     cortaba los costos de 7 cifras) y el precio (el resultado) a todo el ancho. -->
+				<div class="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+					<div class="min-w-0 space-y-1">
+						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.costo') }}</label>
+						<InputNumber
+							v-model="sheetRow.precioCosto"
+							fluid
+							mode="currency"
+							currency="ARS"
+							locale="es-AR"
+							:min="0"
+							:max-fraction-digits="0"
+							:placeholder="'—'"
+							@update:model-value="onRowCosto(sheetRow)"
+						/>
+					</div>
+					<div class="min-w-0 space-y-1">
+						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.margen') }}</label>
+						<InputNumber
+							v-model="sheetRow.margen"
+							fluid
+							suffix=" %"
+							:min="0"
+							:max="900"
+							:max-fraction-digits="0"
+							:placeholder="'—'"
+							@update:model-value="onRowMargen(sheetRow)"
+						/>
+					</div>
+					<div class="col-span-2 min-w-0 space-y-1">
+						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.precio') }}</label>
+						<InputNumber
+							v-model="sheetRow.precio"
+							fluid
+							mode="currency"
+							currency="ARS"
+							locale="es-AR"
+							:min="0"
+							:max-fraction-digits="0"
+							input-class="text-lg font-semibold"
+							@update:model-value="onRowPrecio(sheetRow)"
+						/>
+					</div>
+				</div>
+
+				<!-- Stock + EAN -->
+				<div class="grid grid-cols-2 gap-2">
+					<div class="min-w-0 space-y-1">
+						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.stock') }}</label>
+						<InputNumber v-model="sheetRow.stock" fluid :min="0" :placeholder="'—'" @update:model-value="markDirty(sheetRow)" />
+					</div>
+					<div class="min-w-0 space-y-1">
+						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.placeholders.ean') }}</label>
+						<InputText v-model="sheetRow.gtin" class="w-full" @update:model-value="markDirty(sheetRow)" />
+					</div>
+				</div>
+
+				<!-- Categoría de ML -->
+				<div
+					v-if="mlConnected"
+					class="flex items-center justify-between gap-2 rounded-xl border border-surface-200 px-3 py-2 dark:border-surface-700"
+				>
+					<div class="min-w-0">
+						<p class="text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.categoriaMl') }}</p>
+						<p class="truncate text-sm" :class="sheetRow.mlCategoryName ? 'text-surface-800 dark:text-surface-100' : 'text-amber-600 dark:text-amber-400'">
+							{{ sheetRow.mlCategoryName || $t('admin.carga.ml.noCategory') }}
+						</p>
+					</div>
+					<Button
+						:label="sheetRow.mlCategoryName ? $t('common.edit') : $t('admin.carga.ml.assignInline')"
+						size="small"
+						outlined
+						class="shrink-0"
+						@click="openMl(sheetRow)"
+					/>
+				</div>
+
+				<!-- Estado + lo que falta -->
+				<div class="flex flex-wrap items-center gap-2">
+					<Tag :value="estadoLabel(sheetRow)" :severity="estadoSeverity(sheetRow)" />
+					<span v-if="faltantesDe(sheetRow).length" class="text-xs text-surface-500">{{ faltantesDe(sheetRow).join(' · ') }}</span>
+				</div>
+
+				<!-- Acciones: fijas al pie de la hoja. Eliminar y ML como íconos (con su
+				     texto en el tooltip) y Guardar, la acción principal, ocupa el resto:
+				     con etiquetas largas se partían en 2 líneas y empujaban Guardar afuera. -->
+				<div class="sticky bottom-0 -mx-1 flex items-center gap-2 border-t border-surface-200 bg-surface-0 px-1 pb-1 pt-3 dark:border-surface-700 dark:bg-surface-900">
+					<Button icon="pi pi-trash" severity="secondary" outlined :aria-label="$t('common.delete')" :title="$t('common.delete')" class="shrink-0" @click="removeSheetRow" />
+					<template v-if="mlConnected">
+						<a
+							v-if="sheetRow.mlPermalink"
+							:href="sheetRow.mlPermalink"
+							target="_blank"
+							rel="noopener"
+							class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+							:aria-label="$t('admin.carga.pub.view')"
+							:title="$t('admin.carga.pub.view')"
+						><i class="pi pi-external-link" /></a>
+						<Button
+							v-else
+							icon="pi pi-megaphone"
+							severity="success"
+							outlined
+							:aria-label="$t('admin.carga.sheet.publish')"
+							:title="$t('admin.carga.sheet.publish')"
+							:loading="publishingKey === sheetRow.key"
+							:disabled="!sheetRow.id"
+							class="shrink-0"
+							@click="publishRow(sheetRow)"
+						/>
+					</template>
+					<Button
+						:label="$t('admin.carga.sheet.save')"
+						icon="pi pi-save"
+						class="min-w-0 flex-1 whitespace-nowrap"
+						:loading="savingKey === sheetRow.key"
+						:disabled="!sheetRow.dirty"
+						@click="saveSheetRow"
+					/>
+				</div>
+			</div>
+		</Drawer>
 	</div>
 </template>
 
@@ -692,6 +927,7 @@ import {
 	type Producto,
 	type ProductoLike,
 	type BatchProductoItem,
+	type BatchProductoResult,
 	type MlCategoryPrediction,
 	type MlAttribute,
 	type MlListingType,
@@ -745,6 +981,9 @@ interface Row {
 }
 
 /** Campos de producto a los que puede mapear una columna del archivo. */
+/** Productos por pedido al guardar (el servidor corta los pedidos de más de ~100 KB). */
+const SAVE_CHUNK = 25;
+
 const IMPORT_FIELDS = ['nombre', 'descripcion', 'precioCosto', 'precio', 'stock', 'gtin', 'sku', 'imageUrl'] as const;
 type ImportField = (typeof IMPORT_FIELDS)[number] | 'ignore';
 
@@ -809,6 +1048,9 @@ export default defineComponent({
 			// Gestor de imágenes por fila
 			imgVisible: false,
 			imgRow: null as Row | null,
+			// Hoja de edición en mobile (edita la misma fila que la tabla).
+			sheetVisible: false,
+			sheetRow: null as Row | null,
 			// Índice de la imagen a la que se le está quitando el fondo (null = ninguna).
 			strippingIdx: null as number | null,
 			// ¿Hay cambios en la grilla sin guardar?
@@ -917,6 +1159,26 @@ export default defineComponent({
 			return this.gridRows.filter(r => r.selected && r.mlItemId).length;
 		},
 		/** Ítems del menú "Ajustar precios". "Aumentar costo" primero (flujo más usado). */
+		/** Menú "Agregar" (mobile): las mismas formas de cargar que las tarjetas de
+		 *  fuentes y "Bajar de ML" de desktop, juntas en un solo botón. */
+		addMenuItems(): MenuItem[] {
+			const items: MenuItem[] = [
+				{ label: this.$t('admin.carga.addMenu.manual'), icon: 'pi pi-pencil', command: () => this.onAddRow() },
+				{
+					label: this.$t('admin.carga.sources.scan.title'),
+					icon: 'pi pi-qrcode',
+					command: () => {
+						this.addRow(ProductoSource.SCAN);
+						if (this.rows[0]) this.openSheet(this.rows[0]);
+					},
+				},
+				{ label: this.$t('admin.carga.sources.excel.title'), icon: 'pi pi-file-import', command: () => this.openImport() },
+			];
+			if (this.mlConnected) {
+				items.push({ label: this.$t('admin.carga.importMl.button'), icon: 'pi pi-cloud-download', command: () => this.importMl() });
+			}
+			return items;
+		},
 		priceMenuItems(): MenuItem[] {
 			return [
 				{ label: this.$t('admin.carga.bulk.costoEnLote'), icon: 'pi pi-tag', command: () => { this.bulkCostoVisible = true; } },
@@ -924,6 +1186,25 @@ export default defineComponent({
 				{ label: this.$t('admin.carga.bulk.margen'), icon: 'pi pi-percentage', command: () => { this.bulkMargenVisible = true; } },
 				{ label: this.$t('admin.carga.bulk.precioEnLote'), icon: 'pi pi-dollar', command: () => { this.bulkPrecioVisible = true; } },
 			];
+		},
+		/** Menú "⋯" del lote en mobile: ajustes de precio + eliminar + deseleccionar. */
+		bulkMenuItems(): MenuItem[] {
+			return [
+				...this.priceMenuItems,
+				{ separator: true },
+				{ label: this.$t('admin.carga.bulk.delete'), icon: 'pi pi-trash', class: 'text-red-500', command: () => { this.bulkDeleteVisible = true; } },
+				{ label: this.$t('admin.carga.bulk.clearSelection'), icon: 'pi pi-times', command: () => this.clearSelection() },
+			];
+		},
+		/**
+		 * Lo que guarda "Guardar": las filas con cambios o nuevas (sin id). Con
+		 * selección, solo las seleccionadas que cumplan eso. Sin selección, las de
+		 * todo el negocio (no solo las del buscador), así el filtro no esconde cambios.
+		 */
+		saveTargets(): Row[] {
+			const pending = (r: Row) => r.dirty || !r.id;
+			const marcadas = this.gridRows.filter(r => r.selected);
+			return (marcadas.length ? marcadas : this.visibleRows).filter(pending);
 		},
 		/** Filas del negocio activo con cambios sin guardar. */
 		dirtyCount(): number {
@@ -1079,6 +1360,50 @@ export default defineComponent({
 		removeRow(row: Row) {
 			this.rows = this.rows.filter(r => r.key !== row.key);
 		},
+		/** "Agregar fila": en mobile abre directo la hoja para cargar el producto nuevo. */
+		onAddRow() {
+			this.addRow();
+			if (window.matchMedia('(max-width: 767.98px)').matches && this.rows[0]) this.openSheet(this.rows[0]);
+		},
+		/** Abre la hoja de edición (mobile) sobre una fila. */
+		openSheet(row: Row) {
+			this.sheetRow = row;
+			this.sheetVisible = true;
+		},
+		/** Guarda desde la hoja; si quedó guardada, la cierra. */
+		async saveSheetRow() {
+			if (!this.sheetRow) return;
+			await this.saveRow(this.sheetRow);
+			if (!this.sheetRow?.dirty) this.sheetVisible = false;
+		},
+		removeSheetRow() {
+			if (!this.sheetRow) return;
+			this.removeRow(this.sheetRow);
+			this.sheetVisible = false;
+			this.sheetRow = null;
+		},
+		money(v: number): string {
+			return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(v);
+		},
+		/** Línea de detalle de la lista mobile: costo y margen (lo que arma el precio). */
+		rowMeta(row: Row): string {
+			if (row.precioCosto == null) return this.$t('admin.carga.sheet.noCost');
+			const costo = this.money(row.precioCosto);
+			return row.margen != null
+				? this.$t('admin.carga.sheet.costMargin', { costo, margen: row.margen })
+				: this.$t('admin.carga.sheet.cost', { costo });
+		},
+		/** Color del texto de estado en la lista mobile (mismo criterio que el Tag). */
+		estadoTextCls(row: Row): string {
+			return (
+				{
+					success: 'text-emerald-600 dark:text-emerald-400',
+					warn: 'text-amber-600 dark:text-amber-400',
+					danger: 'text-red-500',
+					info: 'text-sky-600 dark:text-sky-400',
+				}[this.estadoSeverity(row)] ?? 'text-surface-500'
+			);
+		},
 		toggleAll(value: boolean) {
 			for (const row of this.gridRows) row.selected = value;
 		},
@@ -1089,6 +1414,12 @@ export default defineComponent({
 		/** Abre el menú "Ajustar precios" anclado al botón. */
 		togglePriceMenu(e: Event) {
 			(this.$refs.priceMenu as { toggle: (e: Event) => void } | undefined)?.toggle(e);
+		},
+		toggleBulkMenu(e: Event) {
+			(this.$refs.bulkMenu as { toggle: (e: Event) => void } | undefined)?.toggle(e);
+		},
+		toggleAddMenu(e: Event) {
+			(this.$refs.addMenu as { toggle: (e: Event) => void } | undefined)?.toggle(e);
 		},
 		/**
 		 * Click en el renglón para seleccionarlo. Ignora clicks en campos editables o
@@ -1316,7 +1647,7 @@ export default defineComponent({
 				}
 				this.$toast.add({
 					severity: 'success',
-					summary: synced ? this.$t('admin.carga.savedSynced') : this.$t('admin.carga.saved', { n: 1 }),
+					summary: synced ? this.$t('admin.carga.savedSynced') : this.$t('admin.carga.saved', 1),
 					life: 3000,
 				});
 			} catch (e: unknown) {
@@ -1326,14 +1657,10 @@ export default defineComponent({
 			}
 		},
 		async saveSelected() {
-			// Con selección (dentro del filtro activo): guardamos esas. Sin selección:
-			// guardamos TODAS las del rubro, así el buscador no oculta cambios sin guardar.
-			const marcadas = this.gridRows.filter(r => r.selected);
-			const seleccionadas = marcadas.length ? marcadas : this.visibleRows;
-			if (!seleccionadas.length) {
-				this.$toast.add({ severity: 'warn', summary: this.$t('admin.carga.empty'), life: 3000 });
-				return;
-			}
+			// Solo se guarda lo que CAMBIÓ (o es nuevo): mandar todas las filas pisaba
+			// productos sin tocar, los re-empujaba a ML y superaba el límite del pedido.
+			const seleccionadas = this.saveTargets;
+			if (!seleccionadas.length) return;
 			if (seleccionadas.some(r => !r.nombre.trim())) {
 				this.$toast.add({ severity: 'warn', summary: this.$t('admin.carga.needName'), life: 4000 });
 				return;
@@ -1345,7 +1672,12 @@ export default defineComponent({
 				await Promise.all(seleccionadas.map(r => this.recomputeMlPrice(r)));
 				const items: BatchProductoItem[] = seleccionadas.map(r => this.rowToBatchItem(r));
 
-				const results = await this.catalog.batchUpsert(items);
+				// En tandas: el servidor acepta pedidos de hasta ~100 KB y un producto con
+				// descripción y atributos pesa varios KB.
+				const results: BatchProductoResult[] = [];
+				for (let i = 0; i < items.length; i += SAVE_CHUNK) {
+					results.push(...(await this.catalog.batchUpsert(items.slice(i, i + SAVE_CHUNK))));
+				}
 				const ok = results.filter(r => r.ok);
 				const fail = results.filter(r => !r.ok);
 
@@ -1375,7 +1707,7 @@ export default defineComponent({
 						severity: 'success',
 						summary: synced
 							? this.$t('admin.carga.savedSyncedN', { n: ok.length, synced })
-							: this.$t('admin.carga.saved', { n: ok.length }),
+							: this.$t('admin.carga.saved', ok.length),
 						life: 4000,
 					});
 				} else {
@@ -1800,3 +2132,4 @@ export default defineComponent({
 	},
 });
 </script>
+
