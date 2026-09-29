@@ -25,7 +25,8 @@
 	},
 	"nav": {
 		"goToPanel": "Go to panel",
-		"backToPanel": "Back to panel"
+		"backToPanel": "Back to panel",
+		"panelShort": "Panel"
 	},
 	"auth": {
 		"signIn": "Sign in",
@@ -33,6 +34,11 @@
 		"invalidCredentials": "Invalid credentials",
 		"forbidden": "You don't have access to this area",
 		"spaceSuspended": "Your site is suspended. Please contact the administrator."
+	},
+	"focusPicker": {
+		"hint": "Tap the most important part of the photo: on phones the crop centers there.",
+		"mobile": "On phones",
+		"reset": "Back to center"
 	},
 	"image": {
 		"upload": "Upload image",

@@ -4,7 +4,7 @@
 		<section class="relative mb-10 min-h-[18rem] overflow-hidden rounded-[2rem] md:min-h-0 md:aspect-[3/1]">
 			<div
 				class="absolute inset-0 bg-cover bg-center"
-				:style="rubro?.imageUrl ? { backgroundImage: `url('${rubro.imageUrl}')` } : {}"
+				:style="rubro?.imageUrl ? { backgroundImage: `url('${rubro.imageUrl}')`, backgroundPosition: rubro.imageFocus || undefined } : {}"
 				:class="[{ 'primary-gradient': !rubro?.imageUrl }, isApps && rubro?.imageUrl ? 'scale-110 blur-xl' : '']"
 			>
 				<!-- En apps el fondo va desenfocado: el título se lee limpio y no compite

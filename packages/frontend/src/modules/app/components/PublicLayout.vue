@@ -15,13 +15,15 @@
 		<header
 			class="sticky top-0 z-50 border-b border-surface-200/70 bg-surface-0/80 shadow-sm backdrop-blur-xl dark:border-surface-700/70 dark:bg-surface-900/80"
 		>
-			<div class="mx-auto grid h-16 max-w-7xl grid-cols-2 items-center px-6 md:grid-cols-3">
+			<!-- Mobile: marca a la izquierda y hamburguesa al extremo derecho (tema y
+			     sesión van dentro del menú). Desde md: marca · nav centrada · acciones. -->
+			<div class="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 md:grid md:grid-cols-3 md:px-6">
 				<!-- Marca -->
-				<router-link to="/" class="flex items-center gap-2.5 justify-self-start">
-					<div v-if="espacio?.logoUrl" class="h-9 w-9 overflow-hidden rounded-lg">
+				<router-link to="/" class="flex min-w-0 flex-1 items-center gap-2.5 justify-self-start md:flex-none">
+					<div v-if="espacio?.logoUrl" class="h-9 w-9 shrink-0 overflow-hidden rounded-lg">
 						<img :src="espacio.logoUrl" class="h-full w-full object-cover" :alt="espacio.nombre" />
 					</div>
-					<span class="text-lg font-extrabold tracking-tight text-primary">
+					<span class="truncate text-lg font-extrabold tracking-tight text-primary">
 						{{ espacio?.nombre || $t('app.brand') }}
 					</span>
 				</router-link>
@@ -47,8 +49,58 @@
 				</nav>
 
 				<!-- Acciones -->
-				<div class="flex items-center gap-2 justify-self-end sm:gap-3">
-					<!-- Hamburguesa: despliega la nav en mobile (en md+ la nav va inline). -->
+				<div class="flex shrink-0 items-center gap-2 justify-self-end sm:gap-3">
+					<Button
+						:icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
+						severity="secondary"
+						size="small"
+						text
+						rounded
+						aria-label="Cambiar tema"
+						class="!hidden md:!inline-flex"
+						@click="toggleTheme"
+					/>
+					<!-- Volver al panel: si llegamos desde el panel (incluye "actuar como"),
+					     ocupa el lugar del login y reemplaza a los botones de sesión.
+					     La sesión vive en ese origen, así que volvemos allá. En mobile queda
+					     visible pero corto ("Panel"), así la vuelta sigue a un toque. -->
+					<Button
+						v-if="panelReturn"
+						:label="$t('nav.backToPanel')"
+						icon="pi pi-arrow-left"
+						rounded
+						size="small"
+						class="!hidden !border-0 !bg-amber-500 px-4 font-semibold !text-white shadow-md hover:!bg-amber-600 md:!inline-flex"
+						@click="backToPanel"
+					/>
+					<Button
+						v-if="panelReturn"
+						:label="$t('nav.panelShort')"
+						icon="pi pi-arrow-left"
+						rounded
+						size="small"
+						class="whitespace-nowrap !border-0 !bg-amber-500 px-3 font-semibold !text-white shadow-md hover:!bg-amber-600 md:!hidden"
+						@click="backToPanel"
+					/>
+					<template v-else-if="isAuthenticated">
+						<Button
+							:label="$t('nav.goToPanel')"
+							rounded
+							size="small"
+							class="primary-gradient !hidden border-0 px-5 font-semibold text-white shadow-md md:!inline-flex"
+							@click="onGoToPanel"
+						/>
+						<Button :label="$t('common.logout')" severity="secondary" size="small" text class="!hidden md:!inline-flex" @click="onLogout" />
+					</template>
+					<Button
+						v-else
+						:label="$t('common.login')"
+						rounded
+						size="small"
+						class="primary-gradient !hidden border-0 px-6 font-semibold text-white shadow-md md:!inline-flex"
+						@click="onSignIn"
+					/>
+					<!-- Hamburguesa (mobile): al extremo derecho; despliega nav, tema y sesión. -->
 					<button
 						type="button"
 						class="flex h-9 w-9 items-center justify-center rounded-lg text-surface-600 transition-colors hover:bg-surface-100 md:hidden dark:text-surface-300 dark:hover:bg-surface-800"
@@ -57,45 +109,6 @@
 					>
 						<i :class="mobileNavOpen ? 'pi pi-times' : 'pi pi-bars'" class="text-lg" />
 					</button>
-					<Button
-						:icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
-						severity="secondary"
-						size="small"
-						text
-						rounded
-						aria-label="Cambiar tema"
-						@click="toggleTheme"
-					/>
-					<!-- Volver al panel: si llegamos desde el panel (incluye "actuar como"),
-					     ocupa el lugar del login y reemplaza a los botones de sesión.
-					     La sesión vive en ese origen, así que volvemos allá. -->
-					<Button
-						v-if="panelReturn"
-						:label="$t('nav.backToPanel')"
-						icon="pi pi-arrow-left"
-						rounded
-						size="small"
-						class="border-0 bg-amber-500 px-4 font-semibold text-white shadow-md hover:bg-amber-600"
-						@click="backToPanel"
-					/>
-					<template v-else-if="isAuthenticated">
-						<Button
-							:label="$t('nav.goToPanel')"
-							rounded
-							size="small"
-							class="primary-gradient border-0 px-5 font-semibold text-white shadow-md"
-							@click="onGoToPanel"
-						/>
-						<Button :label="$t('common.logout')" severity="secondary" size="small" text @click="onLogout" />
-					</template>
-					<Button
-						v-else
-						:label="$t('common.login')"
-						rounded
-						size="small"
-						class="primary-gradient border-0 px-6 font-semibold text-white shadow-md"
-						@click="onSignIn"
-					/>
 				</div>
 			</div>
 
@@ -123,6 +136,44 @@
 					active-class="!text-primary"
 					@click="mobileNavOpen = false"
 				>{{ $t('public.about.nav') }}</router-link>
+
+				<!-- Tema + sesión (en mobile no entran en la barra). -->
+				<div class="mt-1 border-t border-surface-200/70 pt-2 dark:border-surface-700/70">
+					<button
+						type="button"
+						class="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-surface-700 hover:bg-surface-100 dark:text-surface-200 dark:hover:bg-surface-800"
+						@click="toggleTheme"
+					>
+						<i :class="isDark ? 'pi pi-sun' : 'pi pi-moon'" class="text-sm" />
+						{{ $t(isDark ? 'common.lightMode' : 'common.darkMode') }}
+					</button>
+					<template v-if="!panelReturn">
+						<template v-if="isAuthenticated">
+							<button
+								type="button"
+								class="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-primary hover:bg-surface-100 dark:hover:bg-surface-800"
+								@click="onGoToPanel"
+							>
+								<i class="pi pi-th-large text-sm" /> {{ $t('nav.goToPanel') }}
+							</button>
+							<button
+								type="button"
+								class="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-surface-700 hover:bg-surface-100 dark:text-surface-200 dark:hover:bg-surface-800"
+								@click="onLogout"
+							>
+								<i class="pi pi-sign-out text-sm" /> {{ $t('common.logout') }}
+							</button>
+						</template>
+						<button
+							v-else
+							type="button"
+							class="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-primary hover:bg-surface-100 dark:hover:bg-surface-800"
+							@click="onSignIn"
+						>
+							<i class="pi pi-sign-in text-sm" /> {{ $t('common.login') }}
+						</button>
+					</template>
+				</div>
 			</nav>
 		</header>
 

@@ -98,9 +98,11 @@
 			@click="sidebarOpen = false"
 		/>
 
-		<!-- Sidebar: fijo en md+, drawer off-canvas en mobile (se desliza con sidebarOpen). -->
+		<!-- Sidebar: fijo en md+, drawer off-canvas en mobile (se desliza con sidebarOpen).
+		     top-16 + bottom-0 (no h-[100vh]): en el celu 100vh ignora la barra del
+		     navegador y el pie ("Ver el sitio") quedaba tapado, había que scrollear. -->
 		<aside
-			class="sidebar-drawer fixed top-16 left-0 z-40 flex h-[calc(100vh-64px)] w-64 flex-col border-r border-surface-200/60 bg-surface-0/95 p-4 backdrop-blur-2xl md:bg-surface-0/60 dark:border-surface-700/60 dark:bg-surface-900/95 md:dark:bg-surface-900/60"
+			class="sidebar-drawer fixed top-16 bottom-0 left-0 z-40 flex w-64 flex-col border-r border-surface-200/60 bg-surface-0/95 p-4 backdrop-blur-2xl md:bg-surface-0/60 dark:border-surface-700/60 dark:bg-surface-900/95 md:dark:bg-surface-900/60"
 			:class="{ 'is-open': sidebarOpen }"
 		>
 			<nav class="flex flex-1 flex-col gap-1 overflow-y-auto">

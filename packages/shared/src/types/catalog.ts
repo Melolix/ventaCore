@@ -29,6 +29,9 @@ export const ALL_APP_PLATFORMS: AppPlatform[] = [
 	AppPlatform.DESKTOP,
 ];
 
+/** Punto de foco de una portada: "x% y%" con enteros 0–100 (CSS object-position). */
+export const IMAGE_FOCUS_RE = /^(100|[1-9]?\d)% (100|[1-9]?\d)%$/;
+
 export interface Rubro {
 	id: string;
 	/** Espacio (negocio) al que pertenece el rubro */
@@ -36,6 +39,11 @@ export interface Rubro {
 	nombre: string;
 	descripcion: string | null;
 	imageUrl: string | null;
+	/**
+	 * Punto de foco de la portada ("x% y%"). La portada es 3:1 y en el celu se
+	 * muestra casi cuadrada: el recorte se centra acá. null = centro.
+	 */
+	imageFocus: string | null;
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	logoUrl: string | null;
 	/** Instagram propio del rubro (cada rubro es un negocio distinto). */

@@ -29,6 +29,13 @@ export class RubroEntity {
 	@Column({ type: 'varchar', nullable: true })
 	imageUrl!: string | null;
 
+	/**
+	 * Punto de foco de la portada ("x% y%", CSS object-position). La portada es 3:1
+	 * y en el celu se muestra casi cuadrada: el recorte se centra acá. null = centro.
+	 */
+	@Column({ type: 'varchar', nullable: true })
+	imageFocus!: string | null;
+
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	@Column({ type: 'varchar', nullable: true })
 	logoUrl!: string | null;

@@ -25,7 +25,8 @@
 	},
 	"nav": {
 		"goToPanel": "Ir al panel",
-		"backToPanel": "Volver al panel"
+		"backToPanel": "Volver al panel",
+		"panelShort": "Panel"
 	},
 	"auth": {
 		"signIn": "Iniciar sesión",
@@ -33,6 +34,11 @@
 		"invalidCredentials": "Credenciales inválidas",
 		"forbidden": "No tenés permiso para esta área",
 		"spaceSuspended": "Tu sitio está suspendido. Contactá al administrador."
+	},
+	"focusPicker": {
+		"hint": "Tocá lo más importante de la foto: en el celu el recorte se centra ahí.",
+		"mobile": "En el celu",
+		"reset": "Volver al centro"
 	},
 	"image": {
 		"upload": "Subir imagen",

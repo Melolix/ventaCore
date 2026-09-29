@@ -59,7 +59,10 @@
 								:aspect-ratio="3"
 								:min-width="900"
 								:hint="$t('admin.rubros.fields.imageHint')"
+								@update:model-value="form.imageFocus = null"
 							/>
+							<!-- Foco de la portada: dónde centrar el recorte en el celu. -->
+							<FocusPicker v-if="form.imageUrl" v-model="form.imageFocus" :src="form.imageUrl" />
 						</div>
 
 						<div class="space-y-2">
@@ -241,7 +244,8 @@
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.rubros.fields.imageUrl') }}</label>
-					<ImageUpload v-model="edit.imageUrl" folder="rubros" :aspect-ratio="3" :min-width="900" />
+					<ImageUpload v-model="edit.imageUrl" folder="rubros" :aspect-ratio="3" :min-width="900" @update:model-value="edit.imageFocus = null" />
+					<FocusPicker v-if="edit.imageUrl" v-model="edit.imageFocus" :src="edit.imageUrl" class="pt-1" />
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.rubros.fields.logoUrl') }}</label>
@@ -301,10 +305,11 @@ import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
 import ApkUpload from '@/shared/components/ApkUpload.vue';
+import FocusPicker from '@/shared/components/FocusPicker.vue';
 
 export default defineComponent({
 	name: 'RubrosView',
-	components: { ImageUpload, ApkUpload },
+	components: { ImageUpload, ApkUpload, FocusPicker },
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -318,6 +323,7 @@ export default defineComponent({
 				nombre: '',
 				descripcion: '',
 				imageUrl: '',
+				imageFocus: null as string | null,
 				logoUrl: '',
 				instagramUrl: '',
 				platforms: [] as string[],
@@ -332,6 +338,7 @@ export default defineComponent({
 				nombre: '',
 				descripcion: '',
 				imageUrl: '',
+				imageFocus: null as string | null,
 				logoUrl: '',
 				instagramUrl: '',
 				platforms: [] as string[],
@@ -394,6 +401,7 @@ export default defineComponent({
 					nombre: this.form.nombre.trim(),
 					descripcion: this.form.descripcion.trim() || undefined,
 					imageUrl: this.form.imageUrl.trim() || undefined,
+					imageFocus: this.form.imageUrl.trim() ? this.form.imageFocus : undefined,
 					logoUrl: this.form.logoUrl.trim() || undefined,
 					instagramUrl: this.form.instagramUrl.trim() || undefined,
 					platforms: this.isApps ? (this.form.platforms as AppPlatform[]) : undefined,
@@ -407,6 +415,7 @@ export default defineComponent({
 					nombre: '',
 					descripcion: '',
 					imageUrl: '',
+					imageFocus: null,
 					logoUrl: '',
 					instagramUrl: '',
 					platforms: [],
@@ -427,6 +436,7 @@ export default defineComponent({
 				nombre: rubro.nombre,
 				descripcion: rubro.descripcion ?? '',
 				imageUrl: rubro.imageUrl ?? '',
+				imageFocus: rubro.imageFocus ?? null,
 				logoUrl: rubro.logoUrl ?? '',
 				instagramUrl: rubro.instagramUrl ?? '',
 				platforms: [...(rubro.platforms ?? [])],
@@ -444,6 +454,7 @@ export default defineComponent({
 					nombre: this.edit.nombre.trim(),
 					descripcion: this.edit.descripcion.trim() || undefined,
 					imageUrl: this.edit.imageUrl.trim() || undefined,
+					imageFocus: this.edit.imageFocus,
 					logoUrl: this.edit.logoUrl.trim() || undefined,
 					instagramUrl: this.edit.instagramUrl.trim(),
 					...(this.isApps

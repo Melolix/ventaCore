@@ -89,6 +89,7 @@
 							:src="rubro.imageUrl"
 							:alt="rubro.nombre"
 							class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+							:style="{ objectPosition: rubro.imageFocus || undefined }"
 						/>
 						<div v-else class="primary-gradient flex h-full w-full items-center justify-center opacity-90">
 							<i class="pi pi-tag text-5xl text-white/70" />
