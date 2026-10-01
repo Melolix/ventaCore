@@ -3,7 +3,14 @@ import { auth, storage } from '@/shared/providers/firebase';
 import { api } from '@/shared/services/api';
 
 export const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-export const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 MB
+/**
+ * Tope del archivo ORIGINAL. Las fotos de celular pesan 10–20 MB, pero antes de
+ * recortar las achicamos (ver `prepareImage`) y se suben livianas: el tope solo
+ * frena archivos absurdos.
+ */
+export const MAX_FILE_BYTES = 40 * 1024 * 1024; // 40 MB
+/** Lado máximo con el que trabajamos la foto en el navegador (recorte incluido). */
+export const WORK_MAX_SIDE = 2560;
 
 export interface ImageValidation {
 	/** Ancho/alto mínimos aceptados (evita fotos que quedarían borrosas). */
@@ -16,13 +23,79 @@ export type ImageError = 'type' | 'size' | 'dimensions' | 'decode';
 
 /** Valida tipo y peso del archivo antes de siquiera decodificarlo. */
 export function validateFile(file: File): ImageError | null {
-	if (!ACCEPTED_TYPES.includes(file.type)) return 'type';
+	// Algunas galerías de Android mandan el archivo sin tipo (o como HEIC): si
+	// parece imagen lo dejamos pasar y decide la decodificación (`prepareImage`).
+	const looksImage =
+		ACCEPTED_TYPES.includes(file.type) ||
+		file.type.startsWith('image/') ||
+		(!file.type && /\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name));
+	if (!looksImage) return 'type';
 	if (file.size > MAX_FILE_BYTES) return 'size';
 	return null;
 }
 
+/**
+ * Decodifica la foto y la achica a `maxSide` (lado mayor), respetando la
+ * orientación EXIF. En el celu es imprescindible: una foto de 48–108 MP supera
+ * el límite de canvas de iOS (~16 MP) y el recorte salía vacío (además de ser
+ * lentísimo). Devuelve también las dimensiones ORIGINALES, para validar la
+ * resolución mínima.
+ */
+export async function prepareImage(
+	file: Blob,
+	maxSide = WORK_MAX_SIDE,
+	opts: { jpeg?: boolean; quality?: number } = {},
+): Promise<{ blob: Blob; width: number; height: number }> {
+	let source: CanvasImageSource;
+	let width: number;
+	let height: number;
+	let release = () => {};
+	try {
+		const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+		source = bmp;
+		width = bmp.width;
+		height = bmp.height;
+		release = () => bmp.close();
+	} catch {
+		// Navegadores/formatos que createImageBitmap no toma: vía <img>.
+		const img = await loadImage(file);
+		source = img;
+		width = img.naturalWidth;
+		height = img.naturalHeight;
+		release = () => URL.revokeObjectURL(img.src);
+	}
+	try {
+		const scale = Math.min(1, maxSide / Math.max(width, height));
+		const canvas = document.createElement('canvas');
+		canvas.width = Math.round(width * scale);
+		canvas.height = Math.round(height * scale);
+		const ctx = canvas.getContext('2d');
+		if (!ctx) throw new Error('canvas');
+		ctx.imageSmoothingQuality = 'high';
+		ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+		// PNG/WebP pueden traer transparencia (logos): la conservamos en PNG, salvo
+		// que se pida JPEG (fondo blanco para que lo transparente no quede negro).
+		const keepAlpha = !opts.jpeg && (file.type === 'image/png' || file.type === 'image/webp');
+		if (!keepAlpha) {
+			ctx.globalCompositeOperation = 'destination-over';
+			ctx.fillStyle = '#ffffff';
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+		}
+		const blob = await new Promise<Blob>((resolve, reject) =>
+			canvas.toBlob(
+				b => (b ? resolve(b) : reject(new Error('encode'))),
+				keepAlpha ? 'image/png' : 'image/jpeg',
+				opts.quality ?? 0.92,
+			),
+		);
+		return { blob, width, height };
+	} finally {
+		release();
+	}
+}
+
 /** Carga un archivo a un HTMLImageElement (para leer dimensiones y recortar). */
-export function loadImage(file: File): Promise<HTMLImageElement> {
+export function loadImage(file: Blob): Promise<HTMLImageElement> {
 	return new Promise((resolve, reject) => {
 		const url = URL.createObjectURL(file);
 		const img = new Image();
@@ -39,7 +112,10 @@ export function loadImage(file: File): Promise<HTMLImageElement> {
 }
 
 /** Verifica dimensiones mínimas de una imagen ya cargada. */
-export function checkDimensions(img: HTMLImageElement, v: ImageValidation): ImageError | null {
+export function checkDimensions(
+	img: Pick<HTMLImageElement, 'naturalWidth' | 'naturalHeight'>,
+	v: ImageValidation,
+): ImageError | null {
 	if (v.minWidth && img.naturalWidth < v.minWidth) return 'dimensions';
 	if (v.minHeight && img.naturalHeight < v.minHeight) return 'dimensions';
 	return null;

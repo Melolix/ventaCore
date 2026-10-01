@@ -46,9 +46,9 @@
 		"cropSave": "Recortar y subir",
 		"err": {
 			"type": "Formato no válido. Usá JPG, PNG o WebP.",
-			"size": "La imagen supera el tamaño máximo (8 MB).",
+			"size": "La imagen supera el tamaño máximo (40 MB).",
 			"dimensions": "La imagen es muy chica y se vería borrosa. Subí una de mayor resolución.",
-			"decode": "No se pudo leer la imagen.",
+			"decode": "No se pudo leer la imagen. Probá con otra foto o guardala como JPG.",
 			"upload": "No se pudo subir la imagen. Probá de nuevo.",
 			"removeBg": "No se pudo quitar el fondo. Probá de nuevo."
 		},

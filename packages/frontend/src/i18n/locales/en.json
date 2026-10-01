@@ -46,9 +46,9 @@
 		"cropSave": "Crop and upload",
 		"err": {
 			"type": "Invalid format. Use JPG, PNG or WebP.",
-			"size": "The image exceeds the maximum size (8 MB).",
+			"size": "The image exceeds the maximum size (40 MB).",
 			"dimensions": "The image is too small and would look blurry. Upload a higher-resolution one.",
-			"decode": "Could not read the image.",
+			"decode": "Could not read the image. Try another photo or save it as JPG.",
 			"upload": "Could not upload the image. Please try again.",
 			"removeBg": "Could not remove the background. Please try again."
 		},

@@ -53,19 +53,16 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { api } from '@/shared/services/api';
-import { loadImage, canvasToBlob, validateFile } from '@/shared/utils/image';
+import { prepareImage, validateFile } from '@/shared/utils/image';
 
-/** Redibuja el archivo en un canvas y lo exporta comprimido a JPEG (máx 1600px). */
+/**
+ * Achica la foto a 1600px (lado mayor) y la exporta a JPEG. Antes se dibujaba a
+ * resolución completa: en iPhone una foto de 48 MP supera el límite de canvas y
+ * fallaba al procesarla.
+ */
 async function toJpegBlob(file: File): Promise<Blob> {
-	const img = await loadImage(file);
-	const canvas = document.createElement('canvas');
-	canvas.width = img.naturalWidth;
-	canvas.height = img.naturalHeight;
-	const ctx = canvas.getContext('2d');
-	if (!ctx) throw new Error('canvas');
-	ctx.drawImage(img, 0, 0);
-	URL.revokeObjectURL(img.src);
-	return canvasToBlob(canvas, 1600, { format: 'jpeg' });
+	const { blob } = await prepareImage(file, 1600, { jpeg: true, quality: 0.85 });
+	return blob;
 }
 
 /**

@@ -47,7 +47,10 @@
 		<p v-if="hint" class="px-1 text-xs text-surface-400">{{ hint }}</p>
 		<p v-if="errorKey" class="px-1 text-xs text-red-500">{{ $t(errorKey) }}</p>
 
-		<input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onFile" />
+		<!-- image/*: con la lista de tipos exacta, algunas galerías de Android no
+		     mostraban las fotos o las mandaban sin tipo. El formato lo resuelve
+		     `prepareImage` (en iPhone, Safari ya convierte HEIC a JPG). -->
+		<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFile" />
 
 		<!-- Recorte -->
 		<Dialog v-model:visible="cropVisible" modal :header="$t('image.cropTitle')" class="w-full max-w-xl" @hide="cleanup">
@@ -68,7 +71,7 @@ import { Cropper } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
 import {
 	validateFile,
-	loadImage,
+	prepareImage,
 	checkDimensions,
 	canvasToBlob,
 	stripBackgroundToUpload,
@@ -154,20 +157,26 @@ async function onFile(ev: Event): Promise<void> {
 		return;
 	}
 
+	// Achicamos ANTES de recortar: las fotos del celu (48–108 MP) superan el
+	// límite de canvas de iOS y el recorte salía vacío ("No se pudo subir").
+	let prepared: Blob;
 	try {
-		const img = await loadImage(file);
-		const dimErr = checkDimensions(img, { minWidth: props.minWidth, minHeight: props.minHeight });
-		URL.revokeObjectURL(img.src);
+		const { blob, width, height } = await prepareImage(file);
+		const dimErr = checkDimensions(
+			{ naturalWidth: width, naturalHeight: height },
+			{ minWidth: props.minWidth, minHeight: props.minHeight },
+		);
 		if (dimErr) {
 			errorKey.value = errKey(dimErr);
 			return;
 		}
+		prepared = blob;
 	} catch {
 		errorKey.value = errKey('decode');
 		return;
 	}
 
-	cropSrc.value = URL.createObjectURL(file);
+	cropSrc.value = URL.createObjectURL(prepared);
 	cropVisible.value = true;
 }
 
