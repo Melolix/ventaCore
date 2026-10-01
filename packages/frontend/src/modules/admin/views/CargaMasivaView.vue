@@ -1112,8 +1112,9 @@ export default defineComponent({
 		mlEnabled(): boolean {
 			return channelEnabled(this.catalog.miEspacio, 'mercadolibre');
 		},
-		/** ¿El negocio activo tiene Mercado Libre conectado? Gatea los campos de ML.
-		 *  Si el espacio no tiene el canal habilitado, no se muestra nada de ML. */
+		/** ¿El negocio activo tiene Mercado Libre conectado? Gatea los campos de ML
+		 *  y decide si la categoría/atributos de ML cuentan como "faltan" en el estado
+		 *  (sin conexión no hay dónde cargarlos). Sin el canal habilitado, nada de ML. */
 		mlConnected(): boolean {
 			if (!this.mlEnabled) return false;
 			return !!this.mlStateByRubro[this.selectedRubroId];
@@ -1216,7 +1217,7 @@ export default defineComponent({
 		tally(): { ready: number; review: number; missing: number } {
 			const t = { ready: 0, review: 0, missing: 0 };
 			for (const row of this.visibleRows) {
-				const e = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlEnabled }).estado;
+				const e = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlConnected }).estado;
 				if (e === ProductoEstado.READY) t.ready++;
 				else if (e === ProductoEstado.REVIEW) t.review++;
 				else if (e === ProductoEstado.MISSING) t.missing++;
@@ -1476,15 +1477,15 @@ export default defineComponent({
 			return (attrs ?? []).map(a => ({ id: a.id, name: a.name }));
 		},
 		faltantesDe(row: Row): string[] {
-			return evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlEnabled }).faltantes;
+			return evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlConnected }).faltantes;
 		},
 		estadoLabel(row: Row): string {
-			const { estado, faltantes } = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlEnabled });
+			const { estado, faltantes } = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlConnected });
 			if (estado === ProductoEstado.MISSING) return this.$t('admin.carga.estado.missing', { n: faltantes.length });
 			return this.$t('admin.carga.estado.' + estado);
 		},
 		estadoSeverity(row: Row): string {
-			const estado = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlEnabled }).estado;
+			const estado = evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlConnected }).estado;
 			return (
 				{
 					[ProductoEstado.READY]: 'success',
