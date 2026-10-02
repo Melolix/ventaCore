@@ -78,7 +78,7 @@
 			"cta": "Explorar Catálogo"
 		},
 		"products": "Productos",
-		"categories": "Rubros",
+		"categories": "Categorías",
 		"business": "Negocio",
 		"nav": {
 			"home": "Inicio",
@@ -123,7 +123,6 @@
 		"sector": "Sector",
 		"detailTitle": "Rubro",
 		"showing": "Mostrando {n} productos",
-		"categories": "Categorías",
 		"otherCategory": "Otros",
 		"showingScreens": "Mostrando {n} capturas",
 		"searchPlaceholder": "Buscar producto...",
@@ -169,6 +168,47 @@
 			"leads": "Leads Generados",
 			"support": "Soporte IA",
 			"catalogs": "Catálogos"
+		},
+		"cart": {
+			"title": "Tu pedido",
+			"add": "Agregar",
+			"addToOrder": "Agregar al pedido",
+			"view": "Ver pedido",
+			"viewN": "Ver pedido · {n}",
+			"less": "Quitar uno",
+			"more": "Agregar uno",
+			"each": "{price} c/u",
+			"maxStock": "Es todo el stock",
+			"total": "Total",
+			"yourData": "Tus datos",
+			"name": "Nombre y apellido",
+			"phone": "Tu WhatsApp",
+			"delivery": "Entrega",
+			"entrega": {
+				"retiro": "Retiro en el local",
+				"envio": "Envío a coordinar"
+			},
+			"address": "Dirección de entrega",
+			"addressHint": "El costo del envío lo coordinás con el vendedor.",
+			"notes": "Aclaraciones (opcional)",
+			"nextStep": "El vendedor confirma el stock y te pasa los datos para transferir.",
+			"send": "Enviar pedido por WhatsApp",
+			"emptyTitle": "Tu pedido está vacío",
+			"emptyBody": "Agregá productos desde el catálogo y mandá el pedido por WhatsApp.",
+			"keepBrowsing": "Seguir mirando",
+			"sentTitle": "Abrimos WhatsApp con tu pedido",
+			"sentBody": "Si ya lo enviaste, podés vaciar el pedido. Si no se abrió, tocá de nuevo \"Enviar\".",
+			"clear": "Vaciar pedido",
+			"err": {
+				"name": "Escribí tu nombre.",
+				"phone": "Escribí un número de WhatsApp válido, con característica.",
+				"address": "Escribí la dirección para el envío."
+			},
+			"msg": {
+				"title": "Pedido — {tienda}",
+				"client": "Cliente",
+				"phone": "WhatsApp"
+			}
 		}
 	},
 	"superadmin": {
@@ -665,6 +705,16 @@
 				"ios": "iOS",
 				"web": "Web",
 				"desktop": "Escritorio"
+			},
+			"pedidos": {
+				"title": "Pedidos de la tienda",
+				"hint": "Elegí a qué WhatsApp llegan los pedidos y las consultas de este rubro.",
+				"cm": "Los recibe el CM",
+				"cmHint": "Llegan al WhatsApp general del negocio (el de Sobre Nosotros).",
+				"negocio": "Los recibe el negocio",
+				"negocioHint": "Llegan a un WhatsApp propio de este rubro.",
+				"whatsapp": "WhatsApp del rubro",
+				"whatsappHint": "Con código de país y sin espacios. Ej.: 5493511234567. Si queda vacío, se usa el general."
 			}
 		},
 		"productos": {

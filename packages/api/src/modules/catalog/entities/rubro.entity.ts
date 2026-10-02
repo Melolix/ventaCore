@@ -7,7 +7,7 @@ import {
 	PrimaryGeneratedColumn,
 	UpdateDateColumn,
 } from 'typeorm';
-import { AppPlatform, RubroStatus } from '@base-template/shared';
+import { AppPlatform, RubroStatus, type PedidosDestino } from '@base-template/shared';
 import { ProductoEntity } from './producto.entity';
 
 @Entity('rubros')
@@ -43,6 +43,19 @@ export class RubroEntity {
 	 */
 	@Column({ type: 'jsonb', default: [] })
 	categorias!: string[];
+
+	/**
+	 * Quién recibe los pedidos de la tienda de este rubro: 'cm' = el WhatsApp
+	 * general del espacio (lo lleva el community manager); 'negocio' = el WhatsApp
+	 * propio del rubro (`whatsapp`). Si es 'negocio' pero no cargó número, cae al
+	 * del espacio.
+	 */
+	@Column({ type: 'varchar', default: 'cm' })
+	pedidosDestino!: PedidosDestino;
+
+	/** WhatsApp propio del rubro (para recibir los pedidos cuando los lleva el negocio). */
+	@Column({ type: 'varchar', nullable: true })
+	whatsapp!: string | null;
 
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	@Column({ type: 'varchar', nullable: true })

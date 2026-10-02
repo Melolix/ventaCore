@@ -1,5 +1,6 @@
 <template>
-	<div>
+	<!-- pb-24: cuando hay pedido, la barra fija de abajo no tapa el final de la página. -->
+	<div :class="cartCount ? 'pb-24 md:pb-0' : ''">
 		<!-- Hero del rubro (3:1 en desktop → coincide con el recorte de la portada) -->
 		<!-- En el celu el hero del catálogo es bajo (alto = su contenido) para que los
 		     productos asomen sin scrollear; en apps conserva el alto por los botones. -->
@@ -254,10 +255,39 @@
 								{{ formatPrice(producto.precio) }}
 							</p>
 							<p v-else class="py-0.5 text-xs font-semibold text-surface-400 sm:py-1">{{ $t('public.consultPrice') }}</p>
+							<!-- Con pedido habilitado: "Agregar" → − n + (se agrega sin salir de la
+							     lista). Lo que no se puede comprar (sin precio/stock) se consulta. -->
+							<div
+								v-if="buyable(producto) && qty(producto)"
+								class="mt-auto flex min-h-9 items-center justify-between rounded-xl bg-primary text-primary-contrast"
+								@click.stop
+							>
+								<button type="button" class="flex h-9 w-10 items-center justify-center" :aria-label="$t('public.cart.less')" @click="addQty(producto, -1)">
+									<i class="pi pi-minus text-xs" />
+								</button>
+								<span class="text-sm font-extrabold tabular-nums">{{ qty(producto) }}</span>
+								<button
+									type="button"
+									class="flex h-9 w-10 items-center justify-center disabled:opacity-40"
+									:aria-label="$t('public.cart.more')"
+									:disabled="qty(producto) >= maxQty(producto)"
+									@click="addQty(producto, 1)"
+								>
+									<i class="pi pi-plus text-xs" />
+								</button>
+							</div>
 							<button
-								v-if="espacio?.whatsapp"
+								v-else-if="buyable(producto)"
 								type="button"
-								class="mt-auto flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-primary/40 px-2 text-xs font-bold text-primary transition-colors hover:bg-primary/10"
+								class="mt-auto flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-primary/50 px-2 text-xs font-bold text-primary transition-colors hover:bg-primary/10"
+								@click.stop="addQty(producto, 1)"
+							>
+								<i class="pi pi-plus text-[11px]" /> {{ $t('public.cart.add') }}
+							</button>
+							<button
+								v-else-if="orderNumber"
+								type="button"
+								class="mt-auto flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-300 px-2 text-xs font-bold text-surface-600 transition-colors hover:text-primary dark:border-surface-600 dark:text-surface-300"
 								@click.stop="consultarWhatsapp(producto)"
 							>
 								<i class="pi pi-whatsapp text-sm" /> {{ $t('public.consult') }}
@@ -341,10 +371,40 @@
 					<div
 						class="sticky bottom-0 -mx-5 mt-auto flex flex-col gap-2 border-t border-surface-200 bg-surface-0 px-5 py-3 md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:pb-0 dark:border-surface-700 dark:bg-surface-900 md:dark:bg-transparent"
 					>
+						<!-- Se puede comprar: cantidad + agregar (o "Ver pedido" si ya está). -->
+						<div v-if="buyable(detail)" class="flex items-center gap-2">
+							<div v-if="qty(detail)" class="flex shrink-0 items-center rounded-xl border border-surface-200 dark:border-surface-700">
+								<button type="button" class="flex h-11 w-11 items-center justify-center" :aria-label="$t('public.cart.less')" @click="addQty(detail, -1)">
+									<i class="pi pi-minus text-xs" />
+								</button>
+								<span class="w-7 text-center font-extrabold tabular-nums">{{ qty(detail) }}</span>
+								<button
+									type="button"
+									class="flex h-11 w-11 items-center justify-center disabled:opacity-30"
+									:aria-label="$t('public.cart.more')"
+									:disabled="qty(detail) >= maxQty(detail)"
+									@click="addQty(detail, 1)"
+								>
+									<i class="pi pi-plus text-xs" />
+								</button>
+							</div>
+							<button
+								type="button"
+								class="primary-gradient flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-white"
+								@click="qty(detail) ? openCartFromDetail() : addQty(detail, 1)"
+							>
+								<template v-if="qty(detail)"><i class="pi pi-shopping-cart" /> {{ $t('public.cart.view') }}</template>
+								<template v-else><i class="pi pi-plus" /> {{ $t('public.cart.addToOrder') }}</template>
+							</button>
+						</div>
+						<!-- Consultar: acción principal si no se puede comprar; si no, secundaria. -->
 						<button
-							v-if="espacio?.whatsapp"
+							v-if="orderNumber"
 							type="button"
-							class="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-700"
+							class="flex items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-colors"
+							:class="buyable(detail)
+								? 'min-h-9 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400'
+								: 'min-h-11 bg-emerald-600 text-white hover:bg-emerald-700'"
 							@click="consultarWhatsapp(detail)"
 						>
 							<i class="pi pi-whatsapp" /> {{ $t('public.consultWhatsapp') }}
@@ -363,6 +423,30 @@
 				</div>
 			</div>
 		</Dialog>
+
+		<!-- Barra del pedido: aparece al agregar el primer producto. En el celu, fija
+		     abajo a todo el ancho; en desktop, un botón flotante abajo a la derecha. -->
+		<div
+			v-if="canOrder && cartCount"
+			class="fixed inset-x-0 bottom-0 z-40 border-t border-surface-200 bg-surface-0/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur md:inset-x-auto md:bottom-6 md:right-6 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none dark:border-surface-700 dark:bg-surface-900/95 md:dark:bg-transparent"
+		>
+			<button
+				type="button"
+				class="primary-gradient flex min-h-12 w-full items-center justify-between gap-6 rounded-xl px-4 text-sm font-bold text-white shadow-lg md:w-auto md:rounded-full md:px-6"
+				@click="cartVisible = true"
+			>
+				<span class="flex items-center gap-2"><i class="pi pi-shopping-cart" /> {{ $t('public.cart.viewN', { n: cartCount }) }}</span>
+				<span class="tabular-nums">{{ formatPrice(cartTotal) }}</span>
+			</button>
+		</div>
+		<CartDrawer
+			v-if="canOrder"
+			v-model:visible="cartVisible"
+			:rubro-id="rubroId"
+			:tienda="rubro?.nombre ?? ''"
+			:productos="catalog.publicProductos"
+			:whatsapp="orderNumber"
+		/>
 
 		<!-- Lightbox: captura ampliada al centro (solo apps) -->
 		<Dialog
@@ -402,6 +486,9 @@ import { AppPlatform, EspacioType, Role, type Producto } from '@base-template/sh
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useUserStore } from '@/modules/auth/store/user';
 import { PLATFORM_ICON, effectivePlatforms } from '@/shared/utils/apps';
+import { useCartStore } from '@/modules/app/store/cart';
+import { formatPrice } from '@/modules/app/utils/price';
+import CartDrawer, { MAX_QTY, canBuy } from '@/modules/app/components/CartDrawer.vue';
 
 type SortKey = 'relevance' | 'priceAsc' | 'priceDesc';
 /** Un grupo del catálogo: una categoría con sus productos. */
@@ -424,6 +511,7 @@ interface Download {
 
 export default defineComponent({
 	name: 'RubroDetailView',
+	components: { CartDrawer },
 	props: {
 		/** Rubro a mostrar cuando se reusa fuera de la ruta (negocio de un solo rubro).
 		 *  Si viene vacío, se toma el `:id` de la URL. */
@@ -434,6 +522,8 @@ export default defineComponent({
 	data() {
 		return {
 			catalog: useCatalogStore(),
+			cart: useCartStore(),
+			cartVisible: false,
 			loading: false,
 			search: '',
 			sort: 'relevance' as SortKey,
@@ -521,6 +611,35 @@ export default defineComponent({
 		 * productos pero no están en la lista, y al final "Otros" (sin categoría).
 		 * Solo grupos con productos (el buscador los achica). En apps: un grupo.
 		 */
+		/**
+		 * WhatsApp que recibe pedidos y consultas de ESTE rubro (solo dígitos): el
+		 * propio del rubro si los lleva el negocio; si no, el general del espacio.
+		 */
+		orderNumber(): string {
+			const own = this.rubro?.pedidosDestino === 'negocio' ? this.rubro.whatsapp : null;
+			return (own || this.espacio?.whatsapp || '').replace(/\D/g, '');
+		},
+		/** Hay tienda con pedido si es un catálogo (no apps) y hay a quién mandarlo. */
+		canOrder(): boolean {
+			return !this.isApps && !!this.orderNumber;
+		},
+		/** Unidades y total del pedido, contando solo lo que hoy se puede comprar. */
+		cartCount(): number {
+			return this.cartLines.reduce((sum, l) => sum + l.qty, 0);
+		},
+		cartTotal(): number {
+			return this.cartLines.reduce((sum, l) => sum + l.qty * l.precio, 0);
+		},
+		cartLines(): { qty: number; precio: number }[] {
+			const cart = this.cart.carts[this.rubroId] ?? {};
+			const out: { qty: number; precio: number }[] = [];
+			for (const p of this.catalog.publicProductos) {
+				const want = cart[p.id];
+				if (!want || !canBuy(p) || p.precio == null) continue;
+				out.push({ qty: Math.min(want, p.stock ?? MAX_QTY), precio: p.precio });
+			}
+			return out;
+		},
 		/** Producto abierto: sale del `?p=<id>` de la URL (compartible, y "atrás" lo cierra). */
 		detail(): Producto | undefined {
 			const id = this.$route.query.p;
@@ -609,6 +728,26 @@ export default defineComponent({
 		}
 	},
 	methods: {
+		/** ¿Se puede agregar al pedido? (hay destino, tiene precio y no está sin stock). */
+		buyable(p: Producto): boolean {
+			return this.canOrder && canBuy(p);
+		},
+		maxQty(p: Producto): number {
+			return p.stock ?? MAX_QTY;
+		},
+		/** Unidades de ese producto en el pedido (acotadas al stock actual). */
+		qty(p: Producto): number {
+			return Math.min(this.cart.qty(this.rubroId, p.id), this.maxQty(p));
+		},
+		addQty(p: Producto, delta: number) {
+			const next = Math.max(0, Math.min(this.qty(p) + delta, this.maxQty(p)));
+			this.cart.setQty(this.rubroId, p.id, next);
+		},
+		/** Desde la pantalla del producto: la cierra y abre el pedido. */
+		openCartFromDetail() {
+			this.closeProducto();
+			this.cartVisible = true;
+		},
 		/** Abre la pantalla del producto (queda en la URL como ?p=<id>). */
 		openProducto(producto: Producto) {
 			this.detailPushed = true;
@@ -685,8 +824,7 @@ export default defineComponent({
 			this.$router.push('/');
 		},
 		formatPrice(value: number): string {
-			// Sin ",00": los centavos solo se muestran si el precio los tiene.
-			return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(value);
+			return formatPrice(value);
 		},
 		platformIcon(p: AppPlatform): string {
 			return PLATFORM_ICON[p];
@@ -703,7 +841,7 @@ export default defineComponent({
 		},
 		/** Cliente: abre WhatsApp con una consulta sobre el producto. */
 		consultarWhatsapp(producto: Producto) {
-			const num = (this.espacio?.whatsapp || '').replace(/\D/g, '');
+			const num = this.orderNumber;
 			if (!num) return;
 			const msg = this.$t('public.whatsappMsg', { producto: producto.nombre });
 			window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');

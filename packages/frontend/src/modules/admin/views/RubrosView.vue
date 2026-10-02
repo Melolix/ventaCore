@@ -257,6 +257,33 @@
 					<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-instagram" /> {{ $t('admin.rubros.fields.instagram') }}</label>
 					<InputText v-model="edit.instagramUrl" class="w-full" placeholder="https://instagram.com/el.negocio" />
 				</div>
+				<!-- Pedidos de la tienda: quién los recibe por WhatsApp. -->
+				<div v-if="!isApps" class="space-y-2 rounded-xl border border-surface-200 p-3 dark:border-surface-700">
+					<div>
+						<label class="text-sm font-medium">{{ $t('admin.rubros.pedidos.title') }}</label>
+						<p class="text-xs text-surface-500">{{ $t('admin.rubros.pedidos.hint') }}</p>
+					</div>
+					<button
+						v-for="opt in pedidosDestinos"
+						:key="opt"
+						type="button"
+						class="flex w-full items-start gap-2.5 rounded-xl border p-2.5 text-left transition-colors"
+						:class="edit.pedidosDestino === opt ? 'border-primary bg-primary/10' : 'border-surface-200 dark:border-surface-700'"
+						:aria-pressed="edit.pedidosDestino === opt"
+						@click="edit.pedidosDestino = opt"
+					>
+						<i class="pi mt-0.5 text-sm" :class="edit.pedidosDestino === opt ? 'pi-circle-fill text-primary' : 'pi-circle text-surface-400'" />
+						<span class="min-w-0">
+							<span class="block text-sm font-semibold">{{ $t('admin.rubros.pedidos.' + opt) }}</span>
+							<span class="block text-xs text-surface-500">{{ $t('admin.rubros.pedidos.' + opt + 'Hint') }}</span>
+						</span>
+					</button>
+					<div v-if="edit.pedidosDestino === 'negocio'" class="space-y-1">
+						<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-whatsapp" /> {{ $t('admin.rubros.pedidos.whatsapp') }}</label>
+						<InputText v-model="edit.whatsapp" class="w-full" type="tel" inputmode="tel" placeholder="5493511234567" />
+						<p class="text-xs text-surface-500">{{ $t('admin.rubros.pedidos.whatsappHint') }}</p>
+					</div>
+				</div>
 				<!-- Categorías del catálogo: el orden de esta lista es el del menú de la tienda.
 				     Cada cambio se guarda al instante (renombrar/borrar también actualiza los
 				     productos), por eso no depende del botón "Guardar cambios". -->
@@ -331,7 +358,16 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { ALL_APP_PLATFORMS, AppPlatform, EspacioType, RubroStatus, channelEnabled, type Rubro } from '@base-template/shared';
+import {
+	ALL_APP_PLATFORMS,
+	AppPlatform,
+	EspacioType,
+	PEDIDOS_DESTINOS,
+	RubroStatus,
+	channelEnabled,
+	type PedidosDestino,
+	type Rubro,
+} from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
@@ -368,11 +404,14 @@ export default defineComponent({
 			editId: '',
 			newCategoria: '',
 			savingCats: false,
+			pedidosDestinos: PEDIDOS_DESTINOS,
 			edit: {
 				nombre: '',
 				descripcion: '',
 				imageUrl: '',
 				imageFocus: null as string | null,
+				pedidosDestino: 'cm' as PedidosDestino,
+				whatsapp: '',
 				logoUrl: '',
 				instagramUrl: '',
 				platforms: [] as string[],
@@ -475,6 +514,8 @@ export default defineComponent({
 				descripcion: rubro.descripcion ?? '',
 				imageUrl: rubro.imageUrl ?? '',
 				imageFocus: rubro.imageFocus ?? null,
+				pedidosDestino: rubro.pedidosDestino ?? 'cm',
+				whatsapp: rubro.whatsapp ?? '',
 				logoUrl: rubro.logoUrl ?? '',
 				instagramUrl: rubro.instagramUrl ?? '',
 				platforms: [...(rubro.platforms ?? [])],
@@ -493,6 +534,8 @@ export default defineComponent({
 					descripcion: this.edit.descripcion.trim() || undefined,
 					imageUrl: this.edit.imageUrl.trim() || undefined,
 					imageFocus: this.edit.imageFocus,
+					pedidosDestino: this.edit.pedidosDestino,
+					whatsapp: this.edit.whatsapp.replace(/\D/g, '') || null,
 					logoUrl: this.edit.logoUrl.trim() || undefined,
 					instagramUrl: this.edit.instagramUrl.trim(),
 					...(this.isApps

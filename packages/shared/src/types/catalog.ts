@@ -29,6 +29,10 @@ export const ALL_APP_PLATFORMS: AppPlatform[] = [
 	AppPlatform.DESKTOP,
 ];
 
+/** Quién recibe los pedidos de la tienda de un rubro: el CM (WhatsApp del espacio) o el negocio (WhatsApp del rubro). */
+export type PedidosDestino = 'cm' | 'negocio';
+export const PEDIDOS_DESTINOS: PedidosDestino[] = ['cm', 'negocio'];
+
 /** Punto de foco de una portada: "x% y%" con enteros 0–100 (CSS object-position). */
 export const IMAGE_FOCUS_RE = /^(100|[1-9]?\d)% (100|[1-9]?\d)%$/;
 
@@ -49,6 +53,10 @@ export interface Rubro {
 	 * apunta a una por nombre en `seccion`; los que no tienen van a "Otros".
 	 */
 	categorias: string[];
+	/** Quién recibe los pedidos de la tienda: 'cm' (WhatsApp del espacio) o 'negocio' (`whatsapp` del rubro). */
+	pedidosDestino: PedidosDestino;
+	/** WhatsApp propio del rubro (pedidos, cuando los lleva el negocio). */
+	whatsapp: string | null;
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	logoUrl: string | null;
 	/** Instagram propio del rubro (cada rubro es un negocio distinto). */

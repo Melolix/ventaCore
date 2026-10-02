@@ -65,6 +65,8 @@ export type RubroInput = Partial<
 		| 'imageUrl'
 		| 'imageFocus'
 		| 'categorias'
+		| 'pedidosDestino'
+		| 'whatsapp'
 		| 'logoUrl'
 		| 'instagramUrl'
 		| 'platforms'

@@ -50,7 +50,11 @@ export class RubrosService {
 		const rubro = await this.findOne(id, espacioId);
 		Object.assign(rubro, dto);
 		if (dto.categorias) rubro.categorias = normalizeCategorias(dto.categorias);
-		return this.repo.save(rubro);
+		await this.repo.save(rubro);
+		// Releemos: el DTO trae como `undefined` los campos que no vinieron y pisaba
+		// esas propiedades en la respuesta (el panel "perdía" categorías/plataformas
+		// hasta recargar). En la base no se tocaban; era solo la respuesta.
+		return this.findOne(id, espacioId);
 	}
 
 	/**

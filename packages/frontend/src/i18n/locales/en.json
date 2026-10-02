@@ -123,7 +123,6 @@
 		"sector": "Sector",
 		"detailTitle": "Category",
 		"showing": "Showing {n} products",
-		"categories": "Categories",
 		"otherCategory": "Other",
 		"showingScreens": "Showing {n} screenshots",
 		"searchPlaceholder": "Search product...",
@@ -169,6 +168,47 @@
 			"leads": "Leads Generated",
 			"support": "AI Support",
 			"catalogs": "Catalogs"
+		},
+		"cart": {
+			"title": "Your order",
+			"add": "Add",
+			"addToOrder": "Add to order",
+			"view": "View order",
+			"viewN": "View order · {n}",
+			"less": "Remove one",
+			"more": "Add one",
+			"each": "{price} each",
+			"maxStock": "That's all the stock",
+			"total": "Total",
+			"yourData": "Your details",
+			"name": "Full name",
+			"phone": "Your WhatsApp",
+			"delivery": "Delivery",
+			"entrega": {
+				"retiro": "Store pickup",
+				"envio": "Shipping to be arranged"
+			},
+			"address": "Delivery address",
+			"addressHint": "You arrange the shipping cost with the seller.",
+			"notes": "Notes (optional)",
+			"nextStep": "The seller confirms the stock and sends you the payment details.",
+			"send": "Send order via WhatsApp",
+			"emptyTitle": "Your order is empty",
+			"emptyBody": "Add products from the catalog and send the order via WhatsApp.",
+			"keepBrowsing": "Keep browsing",
+			"sentTitle": "We opened WhatsApp with your order",
+			"sentBody": "If you already sent it, you can clear the order. If it did not open, tap \"Send\" again.",
+			"clear": "Clear order",
+			"err": {
+				"name": "Enter your name.",
+				"phone": "Enter a valid WhatsApp number, with area code.",
+				"address": "Enter the delivery address."
+			},
+			"msg": {
+				"title": "Order — {tienda}",
+				"client": "Customer",
+				"phone": "WhatsApp"
+			}
 		}
 	},
 	"superadmin": {
@@ -665,6 +705,16 @@
 				"ios": "iOS",
 				"web": "Web",
 				"desktop": "Desktop"
+			},
+			"pedidos": {
+				"title": "Store orders",
+				"hint": "Choose which WhatsApp receives the orders and questions for this category.",
+				"cm": "The CM receives them",
+				"cmHint": "They go to the business's general WhatsApp (the one in About us).",
+				"negocio": "The business receives them",
+				"negocioHint": "They go to a WhatsApp number specific to this category.",
+				"whatsapp": "Category WhatsApp",
+				"whatsappHint": "With country code and no spaces. E.g. 5493511234567. If empty, the general one is used."
 			}
 		},
 		"productos": {

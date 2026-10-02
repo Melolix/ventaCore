@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ArrayMaxSize, IsArray, IsBoolean, IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
-import { AppPlatform, IMAGE_FOCUS_RE, RubroStatus } from '@base-template/shared';
+import { ArrayMaxSize, IsArray, IsBoolean, IsEnum, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { AppPlatform, IMAGE_FOCUS_RE, PEDIDOS_DESTINOS, RubroStatus, type PedidosDestino } from '@base-template/shared';
 
 export class UpdateRubroDto {
 	@ApiProperty({ required: false, example: 'Bienes Raíces' })
@@ -31,6 +31,17 @@ export class UpdateRubroDto {
 	@IsString({ each: true })
 	@MaxLength(40, { each: true })
 	categorias?: string[];
+
+	@ApiProperty({ required: false, enum: PEDIDOS_DESTINOS, description: 'Quién recibe los pedidos de la tienda.' })
+	@IsOptional()
+	@IsIn(PEDIDOS_DESTINOS)
+	pedidosDestino?: PedidosDestino;
+
+	@ApiProperty({ required: false, nullable: true, example: '5493511234567', description: 'WhatsApp propio del rubro.' })
+	@IsOptional()
+	@IsString()
+	@MaxLength(30)
+	whatsapp?: string | null;
 
 	@ApiProperty({ required: false })
 	@IsOptional()
