@@ -20,6 +20,8 @@ export const useCartStore = defineStore('cart', {
 			telefono: '',
 			entrega: 'retiro' as Entrega,
 			direccion: '',
+			/** Dirección estructurada (cuando la tienda cotiza envíos). */
+			destino: { calle: '', numero: '', ciudad: '', provincia: '', cp: '', referencia: '' },
 			notas: '',
 		},
 	}),

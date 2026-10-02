@@ -8,6 +8,7 @@ import { RubroEntity } from './entities/rubro.entity';
 import { ProductoEntity } from './entities/producto.entity';
 import { PedidoEntity } from './entities/pedido.entity';
 import { PedidosService } from './pedidos.service';
+import { EnviaService } from './envia.service';
 import { PedidosController } from './pedidos.controller';
 import { RubrosService } from './rubros.service';
 import { ProductosService } from './productos.service';
@@ -19,7 +20,7 @@ import { PublicController } from './public.controller';
 @Module({
 	imports: [TypeOrmModule.forFeature([RubroEntity, ProductoEntity, PedidoEntity]), UsersModule, SpacesModule],
 	controllers: [RubrosController, ProductosController, ProductosBatchController, PedidosController, PublicController],
-	providers: [RubrosService, ProductosService, PedidosService, FirebaseAuthGuard, RolesGuard],
+	providers: [RubrosService, ProductosService, PedidosService, EnviaService, FirebaseAuthGuard, RolesGuard],
 	exports: [RubrosService, ProductosService],
 })
 export class CatalogModule {}

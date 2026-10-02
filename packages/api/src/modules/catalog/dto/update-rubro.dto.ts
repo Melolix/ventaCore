@@ -1,5 +1,64 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ArrayMaxSize, IsArray, IsBoolean, IsEnum, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+	ArrayMaxSize,
+	IsArray,
+	IsBoolean,
+	IsEnum,
+	IsIn,
+	IsInt,
+	IsOptional,
+	IsString,
+	Matches,
+	Max,
+	MaxLength,
+	Min,
+	MinLength,
+	ValidateNested,
+} from 'class-validator';
+import { DireccionDto } from './pedido.dto';
+
+/** Desde dónde despacha el rubro (origen de los envíos). */
+export class DespachoDto extends DireccionDto {
+	@ApiProperty({ example: 'Ferretería Sur' })
+	@IsString()
+	@MinLength(2)
+	@MaxLength(80)
+	nombre!: string;
+
+	@ApiProperty({ example: '3515550101' })
+	@IsString()
+	@MinLength(6)
+	@MaxLength(30)
+	telefono!: string;
+}
+
+/** Bulto por defecto (cm y gramos). */
+export class PaqueteDto {
+	@ApiProperty({ example: 30 })
+	@IsInt()
+	@Min(1)
+	@Max(300)
+	largo!: number;
+
+	@ApiProperty({ example: 20 })
+	@IsInt()
+	@Min(1)
+	@Max(300)
+	ancho!: number;
+
+	@ApiProperty({ example: 15 })
+	@IsInt()
+	@Min(1)
+	@Max(300)
+	alto!: number;
+
+	@ApiProperty({ example: 1000, description: 'Gramos.' })
+	@IsInt()
+	@Min(1)
+	@Max(100000)
+	peso!: number;
+}
 import { AppPlatform, IMAGE_FOCUS_RE, PEDIDOS_DESTINOS, RubroStatus, type PedidosDestino } from '@base-template/shared';
 
 export class UpdateRubroDto {
@@ -60,6 +119,24 @@ export class UpdateRubroDto {
 	@IsString()
 	@MaxLength(80)
 	pagoTitular?: string | null;
+
+	@ApiProperty({ required: false, nullable: true, type: DespachoDto, description: 'Dirección de despacho (origen de los envíos).' })
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => DespachoDto)
+	despacho?: DespachoDto | null;
+
+	@ApiProperty({ required: false, nullable: true, type: PaqueteDto, description: 'Bulto para productos sin medidas.' })
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => PaqueteDto)
+	paqueteDefault?: PaqueteDto | null;
+
+	@ApiProperty({ required: false, nullable: true, description: 'Token de la cuenta PROPIA de envia.com. null o "" = usar la de la plataforma.' })
+	@IsOptional()
+	@IsString()
+	@MaxLength(200)
+	enviaToken?: string | null;
 
 	@ApiProperty({ required: false })
 	@IsOptional()

@@ -71,9 +71,13 @@
 							<span class="shrink-0 tabular-nums text-surface-500">{{ money(it.precio * it.cantidad) }}</span>
 						</li>
 					</ul>
+					<p v-if="p.envio" class="mt-1 flex justify-between gap-3 text-sm">
+						<span class="min-w-0 text-surface-700 dark:text-surface-200">{{ $t('public.cart.shipping') }} · {{ p.envio.nombre }}</span>
+						<span class="shrink-0 tabular-nums text-surface-500">{{ money(p.envioCosto) }}</span>
+					</p>
 					<p class="mt-2 text-sm text-surface-500">
 						<i class="pi mr-1 text-xs" :class="p.entrega === 'envio' ? 'pi-truck' : 'pi-shop'" />
-						{{ $t('public.cart.entrega.' + p.entrega) }}<template v-if="p.direccion"> — {{ p.direccion }}</template>
+						{{ p.envio ? p.envio.nombre : $t('public.cart.entrega.' + p.entrega) }}<template v-if="p.direccion"> — {{ p.direccion }}</template>
 					</p>
 					<p v-if="p.notas" class="mt-1 text-sm text-surface-500"><i class="pi pi-comment mr-1 text-xs" />{{ p.notas }}</p>
 					<p v-if="p.motivo" class="mt-1 text-sm text-red-500">{{ $t('admin.pedidos.motivoLabel') }}: {{ p.motivo }}</p>

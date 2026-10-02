@@ -294,6 +294,69 @@
 						<InputText v-model.trim="edit.pagoTitular" class="w-full" maxlength="80" :placeholder="$t('admin.rubros.pago.titular')" :aria-label="$t('admin.rubros.pago.titular')" />
 					</div>
 				</div>
+				<!-- Envíos (envia.com): desde dónde se despacha y con qué cuenta se cotiza. -->
+				<div v-if="!isApps" class="space-y-3 rounded-xl border border-surface-200 p-3 dark:border-surface-700">
+					<div>
+						<label class="text-sm font-medium">{{ $t('admin.rubros.envios.title') }}</label>
+						<p class="text-xs text-surface-500">{{ $t('admin.rubros.envios.hint') }}</p>
+					</div>
+					<div class="grid grid-cols-2 gap-2">
+						<InputText v-model.trim="edit.despacho.nombre" class="col-span-2 w-full" maxlength="80" :placeholder="$t('admin.rubros.envios.nombre')" :aria-label="$t('admin.rubros.envios.nombre')" />
+						<InputText v-model.trim="edit.despacho.telefono" class="col-span-2 w-full" type="tel" inputmode="tel" maxlength="30" :placeholder="$t('admin.rubros.envios.telefono')" :aria-label="$t('admin.rubros.envios.telefono')" />
+						<InputText v-model.trim="edit.despacho.calle" class="w-full" maxlength="80" :placeholder="$t('public.cart.street')" :aria-label="$t('public.cart.street')" />
+						<InputText v-model.trim="edit.despacho.numero" class="w-full" maxlength="12" :placeholder="$t('public.cart.number')" :aria-label="$t('public.cart.number')" />
+						<InputText v-model.trim="edit.despacho.ciudad" class="w-full" maxlength="60" :placeholder="$t('public.cart.city')" :aria-label="$t('public.cart.city')" />
+						<InputText v-model.trim="edit.despacho.cp" class="w-full" maxlength="8" :placeholder="$t('public.cart.zip')" :aria-label="$t('public.cart.zip')" />
+						<Select
+							v-model="edit.despacho.provincia"
+							:options="provincias"
+							option-label="nombre"
+							option-value="code"
+							class="col-span-2"
+							fluid
+							:placeholder="$t('public.cart.provincePlaceholder')"
+							:aria-label="$t('public.cart.province')"
+						/>
+					</div>
+					<p v-if="despachoIncompleto" class="text-xs text-amber-600 dark:text-amber-400">{{ $t('admin.rubros.envios.incomplete') }}</p>
+
+					<div class="space-y-1 border-t border-surface-200 pt-3 dark:border-surface-700">
+						<label class="text-sm font-medium">{{ $t('admin.rubros.envios.paquete') }}</label>
+						<p class="text-xs text-surface-500">{{ $t('admin.rubros.envios.paqueteHint') }}</p>
+						<div class="grid grid-cols-4 gap-2">
+							<InputNumber v-model="edit.paquete.largo" fluid :min="1" :max="300" :placeholder="$t('admin.rubros.envios.largo')" :aria-label="$t('admin.rubros.envios.largo')" />
+							<InputNumber v-model="edit.paquete.ancho" fluid :min="1" :max="300" :placeholder="$t('admin.rubros.envios.ancho')" :aria-label="$t('admin.rubros.envios.ancho')" />
+							<InputNumber v-model="edit.paquete.alto" fluid :min="1" :max="300" :placeholder="$t('admin.rubros.envios.alto')" :aria-label="$t('admin.rubros.envios.alto')" />
+							<InputNumber v-model="edit.paquete.peso" fluid :min="1" :max="100000" :placeholder="$t('admin.rubros.envios.peso')" :aria-label="$t('admin.rubros.envios.peso')" />
+						</div>
+					</div>
+
+					<div class="space-y-1 border-t border-surface-200 pt-3 dark:border-surface-700">
+						<label class="text-sm font-medium">{{ $t('admin.rubros.envios.cuenta') }}</label>
+						<p class="text-xs" :class="edit.enviaPropia ? 'text-emerald-600 dark:text-emerald-400' : 'text-surface-500'">
+							{{ edit.enviaPropia ? $t('admin.rubros.envios.cuentaPropia') : $t('admin.rubros.envios.cuentaPlataforma') }}
+						</p>
+						<!-- El token solo se escribe: nunca vuelve del servidor. -->
+						<InputText
+							v-model.trim="edit.enviaToken"
+							class="w-full"
+							type="password"
+							autocomplete="off"
+							maxlength="200"
+							:placeholder="$t(edit.enviaPropia ? 'admin.rubros.envios.tokenReplace' : 'admin.rubros.envios.tokenPlaceholder')"
+							:aria-label="$t('admin.rubros.envios.tokenPlaceholder')"
+						/>
+						<button
+							v-if="edit.enviaPropia"
+							type="button"
+							class="text-xs font-semibold underline underline-offset-2"
+							:class="edit.enviaDesconectar ? 'text-red-500' : 'text-surface-500 hover:text-red-500'"
+							@click="edit.enviaDesconectar = !edit.enviaDesconectar"
+						>
+							{{ edit.enviaDesconectar ? $t('admin.rubros.envios.desconectarUndo') : $t('admin.rubros.envios.desconectar') }}
+						</button>
+					</div>
+				</div>
 				<!-- Categorías del catálogo: el orden de esta lista es el del menú de la tienda.
 				     Cada cambio se guarda al instante (renombrar/borrar también actualiza los
 				     productos), por eso no depende del botón "Guardar cambios". -->
@@ -373,8 +436,11 @@ import {
 	AppPlatform,
 	EspacioType,
 	PEDIDOS_DESTINOS,
+	PROVINCIAS_AR,
 	RubroStatus,
 	channelEnabled,
+	type DespachoConfig,
+	type Paquete,
 	type PedidosDestino,
 	type Rubro,
 } from '@base-template/shared';
@@ -415,6 +481,7 @@ export default defineComponent({
 			newCategoria: '',
 			savingCats: false,
 			pedidosDestinos: PEDIDOS_DESTINOS,
+			provincias: PROVINCIAS_AR,
 			edit: {
 				nombre: '',
 				descripcion: '',
@@ -425,6 +492,12 @@ export default defineComponent({
 				pagoAlias: '',
 				pagoCbu: '',
 				pagoTitular: '',
+				despacho: { nombre: '', telefono: '', calle: '', numero: '', ciudad: '', provincia: '', cp: '' },
+				paquete: { largo: null, ancho: null, alto: null, peso: null } as Record<keyof Paquete, number | null>,
+				enviaPropia: false,
+				/** Token nuevo de la cuenta propia (solo se escribe). */
+				enviaToken: '',
+				enviaDesconectar: false,
 				logoUrl: '',
 				instagramUrl: '',
 				platforms: [] as string[],
@@ -442,6 +515,15 @@ export default defineComponent({
 		 *  (en ese caso crear es lo único que puede hacer). */
 		showCreate(): boolean {
 			return this.createOpen || !this.catalog.rubros.length;
+		},
+		/** Empezó a cargar el despacho pero le faltan datos (no se guardaría). */
+		despachoIncompleto(): boolean {
+			const values = Object.values(this.edit.despacho);
+			return values.some(v => v) && !this.despachoCompleto;
+		},
+		despachoCompleto(): boolean {
+			const d = this.edit.despacho;
+			return d.nombre.length >= 2 && d.telefono.length >= 6 && d.calle.length >= 2 && !!d.numero && d.ciudad.length >= 2 && !!d.provincia && /^[A-Za-z]?\d{4}[A-Za-z]{0,3}$/.test(d.cp);
 		},
 		/** Categorías del rubro en edición (viven en el store: se guardan al instante). */
 		editCategorias(): string[] {
@@ -520,6 +602,24 @@ export default defineComponent({
 				this.saving = false;
 			}
 		},
+		/**
+		 * Parte de envíos del guardado. El despacho va completo o null (incompleto
+		 * no se pisa lo guardado). El token de la cuenta propia solo se manda si lo
+		 * escribió, o null si pidió desconectarla.
+		 */
+		enviosPayload(): { despacho?: DespachoConfig | null; paqueteDefault?: Paquete | null; enviaToken?: string | null } {
+			if (this.isApps) return {};
+			const out: { despacho?: DespachoConfig | null; paqueteDefault?: Paquete | null; enviaToken?: string | null } = {};
+			const d = this.edit.despacho;
+			if (this.despachoCompleto) out.despacho = { ...d };
+			else if (!Object.values(d).some(v => v)) out.despacho = null;
+			const p = this.edit.paquete;
+			if (p.largo && p.ancho && p.alto && p.peso) out.paqueteDefault = { largo: p.largo, ancho: p.ancho, alto: p.alto, peso: p.peso };
+			else if (!p.largo && !p.ancho && !p.alto && !p.peso) out.paqueteDefault = null;
+			if (this.edit.enviaToken) out.enviaToken = this.edit.enviaToken;
+			else if (this.edit.enviaDesconectar) out.enviaToken = null;
+			return out;
+		},
 		openEdit(rubro: Rubro) {
 			this.editId = rubro.id;
 			this.edit = {
@@ -532,6 +632,24 @@ export default defineComponent({
 				pagoAlias: rubro.pagoAlias ?? '',
 				pagoCbu: rubro.pagoCbu ?? '',
 				pagoTitular: rubro.pagoTitular ?? '',
+				despacho: {
+					nombre: rubro.despacho?.nombre ?? '',
+					telefono: rubro.despacho?.telefono ?? '',
+					calle: rubro.despacho?.calle ?? '',
+					numero: rubro.despacho?.numero ?? '',
+					ciudad: rubro.despacho?.ciudad ?? '',
+					provincia: rubro.despacho?.provincia ?? '',
+					cp: rubro.despacho?.cp ?? '',
+				},
+				paquete: {
+					largo: rubro.paqueteDefault?.largo ?? null,
+					ancho: rubro.paqueteDefault?.ancho ?? null,
+					alto: rubro.paqueteDefault?.alto ?? null,
+					peso: rubro.paqueteDefault?.peso ?? null,
+				},
+				enviaPropia: !!rubro.enviaPropia,
+				enviaToken: '',
+				enviaDesconectar: false,
 				logoUrl: rubro.logoUrl ?? '',
 				instagramUrl: rubro.instagramUrl ?? '',
 				platforms: [...(rubro.platforms ?? [])],
@@ -555,6 +673,7 @@ export default defineComponent({
 					pagoAlias: this.edit.pagoAlias || null,
 					pagoCbu: this.edit.pagoCbu || null,
 					pagoTitular: this.edit.pagoTitular || null,
+					...this.enviosPayload(),
 					logoUrl: this.edit.logoUrl.trim() || undefined,
 					instagramUrl: this.edit.instagramUrl.trim(),
 					...(this.isApps

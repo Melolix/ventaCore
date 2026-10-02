@@ -4,16 +4,9 @@ import { Repository } from 'typeorm';
 import { RubroStatus } from '@base-template/shared';
 import { RubroEntity } from './entities/rubro.entity';
 import { ProductoEntity } from './entities/producto.entity';
+import { EnviaService } from './envia.service';
 import { CreateRubroDto } from './dto/create-rubro.dto';
 import { UpdateRubroDto } from './dto/update-rubro.dto';
-
-/**
- * Versión pública del rubro: sin los datos para transferir (el cliente los ve
- * solo en su pedido, y recién cuando el vendedor lo confirma).
- */
-function sinDatosPrivados(rubro: RubroEntity): RubroEntity {
-	return Object.assign(rubro, { pagoAlias: null, pagoCbu: null, pagoTitular: null });
-}
 
 /** Limpia la lista: sin vacíos ni repetidos (sin distinguir mayúsculas), respetando el orden. */
 function normalizeCategorias(list: string[]): string[] {
@@ -36,6 +29,7 @@ export class RubrosService {
 		private readonly repo: Repository<RubroEntity>,
 		@InjectRepository(ProductoEntity)
 		private readonly productos: Repository<ProductoEntity>,
+		private readonly envia: EnviaService,
 	) {}
 
 	findByEspacio(espacioId: string): Promise<RubroEntity[]> {
@@ -58,6 +52,11 @@ export class RubrosService {
 		const rubro = await this.findOne(id, espacioId);
 		Object.assign(rubro, dto);
 		if (dto.categorias) rubro.categorias = normalizeCategorias(dto.categorias);
+		// Cuenta propia de envia: el token no viaja en las respuestas; queda la marca.
+		if (dto.enviaToken !== undefined) {
+			rubro.enviaToken = dto.enviaToken?.trim() || null;
+			rubro.enviaPropia = !!rubro.enviaToken;
+		}
 		await this.repo.save(rubro);
 		// Releemos: el DTO trae como `undefined` los campos que no vinieron y pisaba
 		// esas propiedades en la respuesta (el panel "perdía" categorías/plataformas
@@ -123,11 +122,21 @@ export class RubrosService {
 			.andWhere('rubro.status = :status', { status: RubroStatus.ACTIVE })
 			.orderBy('rubro.createdAt', 'DESC')
 			.getMany();
-		return rubros.map(sinDatosPrivados);
+		return rubros.map(r => this.publico(r));
+	}
+
+	/**
+	 * Versión pública del rubro: sin los datos para transferir ni la dirección de
+	 * despacho (el cliente ve el pago en su pedido, cuando el vendedor confirma), y
+	 * con la marca de si se pueden cotizar envíos.
+	 */
+	private publico(rubro: RubroEntity): RubroEntity {
+		const enviosActivos = this.envia.activo(rubro);
+		return Object.assign(rubro, { pagoAlias: null, pagoCbu: null, pagoTitular: null, despacho: null, enviosActivos });
 	}
 
 	/** Un rubro activo (404 si no existe o está en borrador). */
 	async findPublicOne(id: string): Promise<RubroEntity> {
-		return sinDatosPrivados(await this.findActive(id));
+		return this.publico(await this.findActive(id));
 	}
 }

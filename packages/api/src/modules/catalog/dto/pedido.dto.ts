@@ -9,13 +9,50 @@ import {
 	IsOptional,
 	IsString,
 	IsUUID,
+	Matches,
 	Max,
 	MaxLength,
 	Min,
 	MinLength,
 	ValidateNested,
 } from 'class-validator';
-import { PEDIDO_ENTREGAS, PEDIDO_STATUSES, type PedidoEntrega, type PedidoStatus } from '@base-template/shared';
+import { PEDIDO_ENTREGAS, PEDIDO_STATUSES, PROVINCIA_CODES, type PedidoEntrega, type PedidoStatus } from '@base-template/shared';
+
+/** Dirección postal argentina (destino del envío o despacho del rubro). */
+export class DireccionDto {
+	@ApiProperty({ example: 'Av. Colón' })
+	@IsString()
+	@MinLength(2)
+	@MaxLength(80)
+	calle!: string;
+
+	@ApiProperty({ example: '1234' })
+	@IsString()
+	@MinLength(1)
+	@MaxLength(12)
+	numero!: string;
+
+	@ApiProperty({ example: 'Córdoba' })
+	@IsString()
+	@MinLength(2)
+	@MaxLength(60)
+	ciudad!: string;
+
+	@ApiProperty({ example: 'X', description: 'Código de provincia (ISO 3166-2 sin "AR-").' })
+	@IsIn(PROVINCIA_CODES)
+	provincia!: string;
+
+	@ApiProperty({ example: '5000' })
+	@IsString()
+	@Matches(/^[A-Za-z]?\d{4}[A-Za-z]{0,3}$/)
+	cp!: string;
+
+	@ApiProperty({ required: false, example: 'Piso 2, depto B' })
+	@IsOptional()
+	@IsString()
+	@MaxLength(120)
+	referencia?: string;
+}
 
 export class CreatePedidoItemDto {
 	@ApiProperty()
@@ -27,6 +64,22 @@ export class CreatePedidoItemDto {
 	@Min(1)
 	@Max(999)
 	cantidad!: number;
+}
+
+/** Cotización de envío desde el carrito. */
+export class CotizarEnvioDto {
+	@ApiProperty({ type: DireccionDto })
+	@ValidateNested()
+	@Type(() => DireccionDto)
+	destino!: DireccionDto;
+
+	@ApiProperty({ type: [CreatePedidoItemDto] })
+	@IsArray()
+	@ArrayMinSize(1)
+	@ArrayMaxSize(100)
+	@ValidateNested({ each: true })
+	@Type(() => CreatePedidoItemDto)
+	items!: CreatePedidoItemDto[];
 }
 
 /** Pedido que arma el cliente en la vitrina. Los precios los resuelve el servidor. */
@@ -66,6 +119,18 @@ export class CreatePedidoDto {
 	@ValidateNested({ each: true })
 	@Type(() => CreatePedidoItemDto)
 	items!: CreatePedidoItemDto[];
+
+	@ApiProperty({ required: false, type: DireccionDto, description: 'Dirección estructurada (envío cotizado).' })
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => DireccionDto)
+	destino?: DireccionDto;
+
+	@ApiProperty({ required: false, example: 'andreani:ground', description: 'Opción de envío elegida (carrier:service).' })
+	@IsOptional()
+	@IsString()
+	@MaxLength(80)
+	envioId?: string;
 }
 
 /** Cambio de estado que hace el vendedor desde el panel. */

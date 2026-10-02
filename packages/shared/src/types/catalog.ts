@@ -29,6 +29,8 @@ export const ALL_APP_PLATFORMS: AppPlatform[] = [
 	AppPlatform.DESKTOP,
 ];
 
+import type { DespachoConfig, Paquete } from './envio';
+
 /** Quién recibe los pedidos de la tienda de un rubro: el CM (WhatsApp del espacio) o el negocio (WhatsApp del rubro). */
 export type PedidosDestino = 'cm' | 'negocio';
 export const PEDIDOS_DESTINOS: PedidosDestino[] = ['cm', 'negocio'];
@@ -65,6 +67,14 @@ export interface Rubro {
 	pagoAlias: string | null;
 	pagoCbu: string | null;
 	pagoTitular: string | null;
+	/** Desde dónde despacha el rubro (origen de los envíos). Solo en el panel; en la vitrina llega null. */
+	despacho: DespachoConfig | null;
+	/** Bulto que se asume para los productos sin medidas (cm y gramos). */
+	paqueteDefault: Paquete | null;
+	/** ¿El rubro conectó su PROPIA cuenta de envia.com? (si no, usa la de la plataforma). */
+	enviaPropia: boolean;
+	/** Vitrina: ¿se pueden cotizar envíos en esta tienda? (hay despacho y cuenta). */
+	enviosActivos?: boolean;
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	logoUrl: string | null;
 	/** Instagram propio del rubro (cada rubro es un negocio distinto). */

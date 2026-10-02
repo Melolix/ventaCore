@@ -186,7 +186,7 @@
 			"delivery": "Delivery",
 			"entrega": {
 				"retiro": "Store pickup",
-				"envio": "Shipping to be arranged"
+				"envio": "Shipping"
 			},
 			"address": "Delivery address",
 			"addressHint": "You arrange the shipping cost with the seller.",
@@ -200,7 +200,11 @@
 				"name": "Enter your name.",
 				"phone": "Enter a valid WhatsApp number, with area code.",
 				"address": "Enter the delivery address.",
-				"send": "We couldn't send the order. Check your connection and try again."
+				"send": "We couldn't send the order. Check your connection and try again.",
+				"destino": "Fill in street, number, city, province and ZIP code.",
+				"quote": "We couldn't quote the shipping. Try again.",
+				"quoteFirst": "Tap \"See shipping options\" to choose how it gets to you.",
+				"pickShipping": "Choose a shipping option."
 			},
 			"msg": {
 				"title": "Order #{n} — {tienda}",
@@ -212,7 +216,22 @@
 			"doneBody": "The store already has it. WhatsApp opened with your order: send that message to let the seller know.",
 			"openWhatsapp": "Open WhatsApp",
 			"track": "Track my order",
-			"trackN": "Track my order #{n}"
+			"trackN": "Track my order #{n}",
+			"products": "Products",
+			"shipping": "Shipping",
+			"shippingOptions": "Choose shipping",
+			"street": "Street",
+			"number": "Number",
+			"reference": "Floor, apt or reference (optional)",
+			"city": "City",
+			"zip": "ZIP code",
+			"province": "Province",
+			"provincePlaceholder": "Choose the province",
+			"quote": "See shipping options",
+			"quoting": "Finding shipping options…",
+			"noQuotes": "We couldn't find shipping for that address. You can arrange it with the seller.",
+			"coordinate": "Arrange it with the seller",
+			"coordinateHint": "Cost and method are agreed via WhatsApp."
 		},
 		"pedido": {
 			"title": "Order #{n}",
@@ -781,6 +800,26 @@
 				"alias": "Alias",
 				"cbu": "CBU / CVU",
 				"titular": "Account holder"
+			},
+			"envios": {
+				"title": "Shipping",
+				"hint": "Add where you ship from and your customers will see the shipping cost in the cart.",
+				"nombre": "Who ships (store or person)",
+				"telefono": "Contact phone",
+				"incomplete": "The ship-from address is incomplete: shipping is not quoted meanwhile.",
+				"paquete": "Default package",
+				"paqueteHint": "For products without measurements. Length, width and height in cm; weight in grams.",
+				"largo": "Length",
+				"ancho": "Width",
+				"alto": "Height",
+				"peso": "Weight (g)",
+				"cuenta": "envia.com account",
+				"cuentaPlataforma": "Using ventaCore's account. If you have your own, paste your token.",
+				"cuentaPropia": "Own account connected.",
+				"tokenPlaceholder": "Your envia.com account token (optional)",
+				"tokenReplace": "Paste another token to replace it",
+				"desconectar": "Disconnect and go back to ventaCore's account",
+				"desconectarUndo": "It will disconnect on save. Tap to undo."
 			}
 		},
 		"productos": {

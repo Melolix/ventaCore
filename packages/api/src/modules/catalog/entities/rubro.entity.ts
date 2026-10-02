@@ -7,7 +7,7 @@ import {
 	PrimaryGeneratedColumn,
 	UpdateDateColumn,
 } from 'typeorm';
-import { AppPlatform, RubroStatus, type PedidosDestino } from '@base-template/shared';
+import { AppPlatform, RubroStatus, type DespachoConfig, type Paquete, type PedidosDestino } from '@base-template/shared';
 import { ProductoEntity } from './producto.entity';
 
 @Entity('rubros')
@@ -67,6 +67,29 @@ export class RubroEntity {
 
 	@Column({ type: 'varchar', nullable: true })
 	pagoTitular!: string | null;
+
+	// ── Envíos (envia.com) ──
+	/** Desde dónde despacha el rubro. Sin esto no se cotizan envíos. */
+	@Column({ type: 'jsonb', nullable: true })
+	despacho!: DespachoConfig | null;
+
+	/** Bulto que se asume para los productos sin medidas (cm y gramos). */
+	@Column({ type: 'jsonb', nullable: true })
+	paqueteDefault!: Paquete | null;
+
+	/**
+	 * Token de la cuenta PROPIA de envia.com del rubro. `select: false`: nunca
+	 * viaja en las respuestas; lo lee solo EnviaService.
+	 */
+	@Column({ type: 'varchar', nullable: true, select: false })
+	enviaToken!: string | null;
+
+	/** ¿Conectó su propia cuenta de envia? (si no, usa la de la plataforma). */
+	@Column({ default: false })
+	enviaPropia!: boolean;
+
+	/** No es columna: lo calcula el servicio en las respuestas públicas. */
+	enviosActivos?: boolean;
 
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	@Column({ type: 'varchar', nullable: true })

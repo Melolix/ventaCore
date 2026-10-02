@@ -454,6 +454,7 @@
 			:tienda="rubro?.nombre ?? ''"
 			:productos="catalog.publicProductos"
 			:whatsapp="orderNumber"
+			:envios-activos="!!rubro?.enviosActivos"
 		/>
 
 		<!-- Lightbox: captura ampliada al centro (solo apps) -->

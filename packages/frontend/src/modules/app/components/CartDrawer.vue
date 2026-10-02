@@ -80,9 +80,21 @@
 					</li>
 				</ul>
 
-				<div class="flex items-baseline justify-between border-t border-surface-200 pt-3 dark:border-surface-700">
-					<span class="font-bold text-surface-900 dark:text-surface-0">{{ $t('public.cart.total') }}</span>
-					<span class="text-xl font-extrabold tabular-nums text-surface-900 dark:text-surface-0">{{ money(total) }}</span>
+				<div class="space-y-1 border-t border-surface-200 pt-3 dark:border-surface-700">
+					<!-- Con envío elegido: productos + envío = total. -->
+					<template v-if="envioElegido">
+						<div class="flex justify-between text-sm text-surface-500">
+							<span>{{ $t('public.cart.products') }}</span><span class="tabular-nums">{{ money(total) }}</span>
+						</div>
+						<div class="flex justify-between gap-3 text-sm text-surface-500">
+							<span class="min-w-0 truncate">{{ $t('public.cart.shipping') }} · {{ envioElegido.nombre }}</span>
+							<span class="shrink-0 tabular-nums">{{ money(envioElegido.precio) }}</span>
+						</div>
+					</template>
+					<div class="flex items-baseline justify-between">
+						<span class="font-bold text-surface-900 dark:text-surface-0">{{ $t('public.cart.total') }}</span>
+						<span class="text-xl font-extrabold tabular-nums text-surface-900 dark:text-surface-0">{{ money(totalConEnvio) }}</span>
+					</div>
 				</div>
 
 				<!-- Datos del cliente: lo mínimo para que el vendedor pueda responder. -->
@@ -125,8 +137,98 @@
 							</button>
 						</div>
 					</div>
-					<!-- La dirección solo si elige envío. -->
-					<div v-if="cart.cliente.entrega === 'envio'" class="space-y-1">
+					<!-- Tienda con envíos cotizados: dirección completa → opciones con precio y plazo. -->
+					<div v-if="cart.cliente.entrega === 'envio' && enviosActivos" class="space-y-3">
+						<div class="grid grid-cols-[minmax(0,1fr)_5.5rem] gap-2">
+							<div class="space-y-1">
+								<label for="cart-calle" class="text-sm font-medium">{{ $t('public.cart.street') }}</label>
+								<InputText id="cart-calle" v-model.trim="destino.calle" class="w-full" autocomplete="address-line1" :invalid="!!errors.destino && !destino.calle" />
+							</div>
+							<div class="space-y-1">
+								<label for="cart-numero" class="text-sm font-medium">{{ $t('public.cart.number') }}</label>
+								<InputText id="cart-numero" v-model.trim="destino.numero" class="w-full" inputmode="numeric" :invalid="!!errors.destino && !destino.numero" />
+							</div>
+						</div>
+						<div class="space-y-1">
+							<label for="cart-referencia" class="text-sm font-medium">{{ $t('public.cart.reference') }}</label>
+							<InputText id="cart-referencia" v-model.trim="destino.referencia" class="w-full" autocomplete="address-line2" />
+						</div>
+						<div class="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+							<div class="space-y-1">
+								<label for="cart-ciudad" class="text-sm font-medium">{{ $t('public.cart.city') }}</label>
+								<InputText id="cart-ciudad" v-model.trim="destino.ciudad" class="w-full" autocomplete="address-level2" :invalid="!!errors.destino && !destino.ciudad" />
+							</div>
+							<div class="space-y-1">
+								<label for="cart-cp" class="text-sm font-medium">{{ $t('public.cart.zip') }}</label>
+								<InputText id="cart-cp" v-model.trim="destino.cp" class="w-full" inputmode="numeric" autocomplete="postal-code" :invalid="!!errors.destino && !cpValido" />
+							</div>
+						</div>
+						<div class="space-y-1">
+							<label for="cart-provincia" class="text-sm font-medium">{{ $t('public.cart.province') }}</label>
+							<Select
+								v-model="destino.provincia"
+								input-id="cart-provincia"
+								:options="provincias"
+								option-label="nombre"
+								option-value="code"
+								fluid
+								:placeholder="$t('public.cart.provincePlaceholder')"
+								:invalid="!!errors.destino && !destino.provincia"
+							/>
+						</div>
+						<p v-if="errors.destino" class="text-xs text-red-500">{{ errors.destino }}</p>
+
+						<!-- Opciones de envío -->
+						<button
+							v-if="opciones === null"
+							type="button"
+							class="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-primary/50 px-3 text-sm font-bold text-primary transition-colors hover:bg-primary/10 disabled:opacity-60"
+							:disabled="cotizando"
+							@click="cotizar"
+						>
+							<i class="pi" :class="cotizando ? 'pi-spin pi-spinner' : 'pi-truck'" />
+							{{ cotizando ? $t('public.cart.quoting') : $t('public.cart.quote') }}
+						</button>
+						<div v-else class="space-y-2">
+							<p class="text-[11px] font-bold uppercase tracking-widest text-surface-400">{{ $t('public.cart.shippingOptions') }}</p>
+							<p v-if="!opciones.length" class="rounded-lg bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+								{{ $t('public.cart.noQuotes') }}
+							</p>
+							<button
+								v-for="op in opciones"
+								:key="op.id"
+								type="button"
+								class="flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-colors"
+								:class="envioId === op.id ? 'border-primary bg-primary/10' : 'border-surface-200 dark:border-surface-700'"
+								:aria-pressed="envioId === op.id"
+								@click="envioId = op.id"
+							>
+								<i class="pi text-sm" :class="envioId === op.id ? 'pi-circle-fill text-primary' : 'pi-circle text-surface-400'" />
+								<span class="min-w-0 flex-1">
+									<span class="block text-sm font-semibold leading-tight">{{ op.nombre }}</span>
+									<span v-if="op.plazo" class="block text-xs text-surface-500">{{ op.plazo }}</span>
+								</span>
+								<span class="shrink-0 text-sm font-extrabold tabular-nums">{{ money(op.precio) }}</span>
+							</button>
+							<!-- Siempre queda la salida de coordinarlo directo con el vendedor. -->
+							<button
+								type="button"
+								class="flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-colors"
+								:class="envioId === COORDINAR ? 'border-primary bg-primary/10' : 'border-surface-200 dark:border-surface-700'"
+								:aria-pressed="envioId === COORDINAR"
+								@click="envioId = COORDINAR"
+							>
+								<i class="pi text-sm" :class="envioId === COORDINAR ? 'pi-circle-fill text-primary' : 'pi-circle text-surface-400'" />
+								<span class="min-w-0 flex-1">
+									<span class="block text-sm font-semibold leading-tight">{{ $t('public.cart.coordinate') }}</span>
+									<span class="block text-xs text-surface-500">{{ $t('public.cart.coordinateHint') }}</span>
+								</span>
+							</button>
+							<p v-if="errors.envio" class="text-xs text-red-500">{{ errors.envio }}</p>
+						</div>
+					</div>
+					<!-- Tienda sin cotización: una sola línea de dirección y se coordina. -->
+					<div v-else-if="cart.cliente.entrega === 'envio'" class="space-y-1">
 						<label for="cart-direccion" class="text-sm font-medium">{{ $t('public.cart.address') }}</label>
 						<InputText id="cart-direccion" v-model.trim="cart.cliente.direccion" class="w-full" autocomplete="street-address" :invalid="!!errors.direccion" />
 						<p v-if="errors.direccion" class="text-xs text-red-500">{{ errors.direccion }}</p>
@@ -158,7 +260,7 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
-import type { PedidoPublic, Producto } from '@base-template/shared';
+import { PROVINCIAS_AR, type EnvioOpcion, type PedidoPublic, type Producto } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { apiErrorMessage } from '@/shared/utils/apiError';
 import { useCartStore, type Entrega } from '@/modules/app/store/cart';
@@ -173,6 +275,9 @@ export interface CartLine {
 	precio: number;
 	subtotal: number;
 }
+
+/** Opción "lo coordino con el vendedor" (sin envío cotizado). */
+const COORDINAR = 'coordinar';
 
 /** Tope por producto cuando el negocio no lleva stock. */
 export const MAX_QTY = 99;
@@ -197,13 +302,22 @@ export default defineComponent({
 		productos: { type: Array as PropType<Producto[]>, required: true },
 		/** Número de WhatsApp que recibe el pedido (solo dígitos). */
 		whatsapp: { type: String, required: true },
+		/** ¿La tienda cotiza envíos? (si no, el envío "se coordina"). */
+		enviosActivos: { type: Boolean, default: false },
 	},
 	emits: ['update:visible'],
 	data() {
 		return {
 			cart: useCartStore(),
 			entregas: ['retiro', 'envio'] as Entrega[],
-			errors: {} as Partial<Record<'nombre' | 'telefono' | 'direccion', string>>,
+			errors: {} as Partial<Record<'nombre' | 'telefono' | 'direccion' | 'destino' | 'envio', string>>,
+			provincias: PROVINCIAS_AR,
+			COORDINAR,
+			/** Opciones cotizadas para la dirección y el carrito actuales (null = todavía no cotizó). */
+			opciones: null as EnvioOpcion[] | null,
+			/** Opción elegida: id de envío, COORDINAR, o '' si no eligió. */
+			envioId: '',
+			cotizando: false,
 			sending: false,
 			/** Mensaje del servidor si no se pudo crear el pedido (ej. se quedó sin stock). */
 			sendError: '',
@@ -231,8 +345,64 @@ export default defineComponent({
 		total(): number {
 			return this.lines.reduce((sum, l) => sum + l.subtotal, 0);
 		},
+		destino() {
+			return this.cart.cliente.destino;
+		},
+		cpValido(): boolean {
+			return /^[A-Za-z]?\d{4}[A-Za-z]{0,3}$/.test(this.destino.cp);
+		},
+		/** ¿Este pedido va con envío cotizado? */
+		conCotizacion(): boolean {
+			return this.enviosActivos && this.cart.cliente.entrega === 'envio';
+		},
+		envioElegido(): EnvioOpcion | null {
+			if (!this.conCotizacion) return null;
+			return this.opciones?.find(o => o.id === this.envioId) ?? null;
+		},
+		totalConEnvio(): number {
+			return this.total + (this.envioElegido?.precio ?? 0);
+		},
+		/** Lo que define la cotización: si cambia, hay que volver a cotizar. */
+		quoteKey(): string {
+			const d = this.destino;
+			return [d.calle, d.numero, d.ciudad, d.provincia, d.cp, ...this.lines.map(l => l.producto.id + 'x' + l.qty)].join('|');
+		},
+	},
+	watch: {
+		// Cambió la dirección o el carrito: la cotización anterior ya no vale.
+		quoteKey() {
+			this.opciones = null;
+			this.envioId = '';
+		},
 	},
 	methods: {
+		destinoValido(): boolean {
+			const d = this.destino;
+			return d.calle.length >= 2 && !!d.numero && d.ciudad.length >= 2 && !!d.provincia && this.cpValido;
+		},
+		/** Pide las opciones de envío para la dirección y el carrito actuales. */
+		async cotizar() {
+			if (!this.destinoValido()) {
+				this.errors = { ...this.errors, destino: this.$t('public.cart.err.destino') };
+				return;
+			}
+			this.errors = { ...this.errors, destino: undefined, envio: undefined };
+			this.cotizando = true;
+			try {
+				const d = this.destino;
+				const opciones = await useCatalogStore().cotizarEnvio(this.rubroId, {
+					destino: { calle: d.calle, numero: d.numero, ciudad: d.ciudad, provincia: d.provincia, cp: d.cp, referencia: d.referencia || undefined },
+					items: this.lines.map(l => ({ productoId: l.producto.id, cantidad: l.qty })),
+				});
+				this.opciones = opciones;
+				// La más barata queda elegida; si no hay ninguna, se coordina.
+				this.envioId = opciones[0]?.id ?? COORDINAR;
+			} catch (e: unknown) {
+				this.errors = { ...this.errors, destino: apiErrorMessage(e, this.$t('public.cart.err.quote')) };
+			} finally {
+				this.cotizando = false;
+			}
+		},
 		money(n: number): string {
 			return formatPrice(n);
 		},
@@ -253,7 +423,13 @@ export default defineComponent({
 			const errors: typeof this.errors = {};
 			if (c.nombre.length < 2) errors.nombre = this.$t('public.cart.err.name');
 			if (c.telefono.replace(/\D/g, '').length < 8) errors.telefono = this.$t('public.cart.err.phone');
-			if (c.entrega === 'envio' && c.direccion.length < 4) errors.direccion = this.$t('public.cart.err.address');
+			if (this.conCotizacion) {
+				if (!this.destinoValido()) errors.destino = this.$t('public.cart.err.destino');
+				else if (this.opciones === null) errors.destino = this.$t('public.cart.err.quoteFirst');
+				else if (!this.envioId) errors.envio = this.$t('public.cart.err.pickShipping');
+			} else if (c.entrega === 'envio' && c.direccion.length < 4) {
+				errors.direccion = this.$t('public.cart.err.address');
+			}
 			this.errors = errors;
 			return !Object.keys(errors).length;
 		},
@@ -271,11 +447,14 @@ export default defineComponent({
 				'',
 				...rows,
 				'',
-				`*${this.$t('public.cart.total')}: ${this.money(pedido.total)}*`,
-				c.entrega === 'envio'
-					? `${this.$t('public.cart.delivery')}: ${this.$t('public.cart.entrega.envio')} — ${c.direccion}`
-					: `${this.$t('public.cart.delivery')}: ${this.$t('public.cart.entrega.retiro')}`,
 			];
+			if (pedido.envio) parts.push(`${this.$t('public.cart.shipping')} (${pedido.envio.nombre}): ${this.money(pedido.envioCosto)}`);
+			parts.push(`*${this.$t('public.cart.total')}: ${this.money(pedido.total)}*`);
+			if (pedido.entrega === 'retiro') parts.push(`${this.$t('public.cart.delivery')}: ${this.$t('public.cart.entrega.retiro')}`);
+			else {
+				const modo = pedido.envio ? pedido.envio.nombre : this.$t('public.cart.entrega.envio');
+				parts.push(`${this.$t('public.cart.delivery')}: ${modo} — ${pedido.direccion ?? ''}`);
+			}
 			if (c.notas) parts.push(`${this.$t('public.cart.notes')}: ${c.notas}`);
 			parts.push('', `${this.$t('public.cart.msg.track')}: ${window.location.origin}/pedido/${pedido.token}`);
 			return parts.join('\n');
@@ -296,7 +475,11 @@ export default defineComponent({
 					clienteNombre: c.nombre,
 					clienteTelefono: c.telefono,
 					entrega: c.entrega,
-					direccion: c.entrega === 'envio' ? c.direccion : undefined,
+					direccion: c.entrega === 'envio' && !this.conCotizacion ? c.direccion : undefined,
+					destino: this.conCotizacion
+						? { calle: c.destino.calle, numero: c.destino.numero, ciudad: c.destino.ciudad, provincia: c.destino.provincia, cp: c.destino.cp, referencia: c.destino.referencia || undefined }
+						: undefined,
+					envioId: this.conCotizacion && this.envioId !== COORDINAR ? this.envioId : undefined,
 					notas: c.notas || undefined,
 					items: this.lines.map(l => ({ productoId: l.producto.id, cantidad: l.qty })),
 				});

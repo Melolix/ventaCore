@@ -6,6 +6,8 @@ import type {
 	PedidoPublic,
 	PedidoStatus,
 	CreatePedidoInput,
+	CotizarEnvioInput,
+	EnvioOpcion,
 	ProductoWrite,
 	BatchProductoItem,
 	BatchProductoResult,
@@ -74,6 +76,8 @@ export type RubroInput = Partial<
 		| 'pagoAlias'
 		| 'pagoCbu'
 		| 'pagoTitular'
+		| 'despacho'
+		| 'paqueteDefault'
 		| 'logoUrl'
 		| 'instagramUrl'
 		| 'platforms'
@@ -84,6 +88,8 @@ export type RubroInput = Partial<
 		| 'subscriptionsEnabled'
 	>
 >;
+/** El token de la cuenta propia de envia solo se ESCRIBE (nunca vuelve del servidor). */
+export type RubroUpdate = RubroInput & { enviaToken?: string | null };
 export type ProductoInput = ProductoWrite;
 
 /** Credenciales del proveedor de cobro (los secretos vacíos se conservan). */
@@ -138,7 +144,7 @@ export const useCatalogStore = defineStore('catalog', {
 			return data;
 		},
 
-		async updateRubro(id: string, input: RubroInput): Promise<Rubro> {
+		async updateRubro(id: string, input: RubroUpdate): Promise<Rubro> {
 			const prev = this.rubros.find(r => r.id === id);
 			const { data } = await api.patch<Rubro>(`/rubros/${id}`, input);
 			const i = this.rubros.findIndex(r => r.id === id);
@@ -160,6 +166,11 @@ export const useCatalogStore = defineStore('catalog', {
 		/** Panel: aceptar, rechazar, registrar pago/entrega o cancelar. */
 		async updatePedidoStatus(rubroId: string, id: string, status: PedidoStatus, motivo?: string): Promise<Pedido> {
 			const { data } = await api.patch<Pedido>(`/rubros/${rubroId}/pedidos/${id}/status`, { status, motivo });
+			return data;
+		},
+		/** Vitrina: opciones de envío para el carrito y la dirección del cliente. */
+		async cotizarEnvio(rubroId: string, input: CotizarEnvioInput): Promise<EnvioOpcion[]> {
+			const { data } = await api.post<EnvioOpcion[]>(`/public/rubros/${rubroId}/envios/cotizar`, input);
 			return data;
 		},
 		/** Vitrina: el cliente envía su carrito. Devuelve el pedido con número y token de seguimiento. */

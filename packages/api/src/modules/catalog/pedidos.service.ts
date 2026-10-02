@@ -2,13 +2,23 @@ import { randomBytes } from 'crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
-import { PEDIDO_TRANSITIONS, type PedidoItem, type PedidoPublic, type PedidoStatus } from '@base-template/shared';
+import {
+	PAQUETE_FALLBACK,
+	PEDIDO_TRANSITIONS,
+	formatDireccion,
+	type EnvioOpcion,
+	type Paquete,
+	type PedidoItem,
+	type PedidoPublic,
+	type PedidoStatus,
+} from '@base-template/shared';
+import { EnviaService } from './envia.service';
 import { EspaciosService } from '../spaces/espacios.service';
 import { PedidoEntity } from './entities/pedido.entity';
 import { ProductoEntity } from './entities/producto.entity';
 import { RubroEntity } from './entities/rubro.entity';
 import { RubrosService } from './rubros.service';
-import { CreatePedidoDto } from './dto/pedido.dto';
+import { CotizarEnvioDto, CreatePedidoDto, CreatePedidoItemDto } from './dto/pedido.dto';
 
 /** Estados en los que el cliente ya puede ver los datos para transferir. */
 const PAGO_VISIBLE: PedidoStatus[] = ['confirmado', 'pagado', 'entregado'];
@@ -22,30 +32,33 @@ export class PedidosService {
 		private readonly productos: Repository<ProductoEntity>,
 		private readonly rubros: RubrosService,
 		private readonly espacios: EspaciosService,
+		private readonly envia: EnviaService,
 		private readonly dataSource: DataSource,
 	) {}
 
 	// ── Público (vitrina) ──
 
 	/**
-	 * Crea el pedido desde la vitrina. El cliente solo manda ids y cantidades: el
-	 * nombre y el precio los pone el servidor (no se puede "pedir más barato"), y
-	 * se valida que cada producto sea del rubro, tenga precio y alcance el stock.
+	 * Resuelve el carrito contra la base: el cliente solo manda ids y cantidades;
+	 * el nombre y el precio los pone el servidor (no se puede "pedir más barato").
+	 * Valida que cada producto sea del rubro, tenga precio y alcance el stock, y
+	 * arma el bulto para cotizar el envío.
 	 */
-	async createPublic(rubroId: string, dto: CreatePedidoDto): Promise<PedidoPublic> {
-		const rubro = await this.rubros.findActive(rubroId);
-		if (dto.entrega === 'envio' && !dto.direccion?.trim()) {
-			throw new BadRequestException('Falta la dirección para el envío');
-		}
-
+	private async resolverCarrito(
+		rubro: RubroEntity,
+		lineas: CreatePedidoItemDto[],
+	): Promise<{ items: PedidoItem[]; subtotal: number; paquete: Paquete }> {
 		// Unificamos líneas repetidas del mismo producto.
 		const cantidades = new Map<string, number>();
-		for (const it of dto.items) cantidades.set(it.productoId, (cantidades.get(it.productoId) ?? 0) + it.cantidad);
+		for (const it of lineas) cantidades.set(it.productoId, (cantidades.get(it.productoId) ?? 0) + it.cantidad);
 
-		const encontrados = await this.productos.find({ where: { id: In([...cantidades.keys()]), rubroId } });
+		const encontrados = await this.productos.find({ where: { id: In([...cantidades.keys()]), rubroId: rubro.id } });
 		const porId = new Map(encontrados.map(p => [p.id, p]));
+		const base = rubro.paqueteDefault ?? PAQUETE_FALLBACK;
 
 		const items: PedidoItem[] = [];
+		// Bulto único aproximado: la base más grande y los productos apilados.
+		const paquete: Paquete = { largo: 0, ancho: 0, alto: 0, peso: 0 };
 		for (const [productoId, cantidad] of cantidades) {
 			const p = porId.get(productoId);
 			if (!p) throw new BadRequestException('Uno de los productos ya no está disponible');
@@ -54,8 +67,46 @@ export class PedidosService {
 				throw new BadRequestException(p.stock === 0 ? `"${p.nombre}" se quedó sin stock` : `De "${p.nombre}" quedan ${p.stock}`);
 			}
 			items.push({ productoId, nombre: p.nombre, precio: p.precio, cantidad, imageUrl: p.imageUrl });
+			paquete.largo = Math.max(paquete.largo, p.largo ?? base.largo);
+			paquete.ancho = Math.max(paquete.ancho, p.ancho ?? base.ancho);
+			paquete.alto += (p.alto ?? base.alto) * cantidad;
+			paquete.peso += (p.peso ?? base.peso) * cantidad;
 		}
-		const total = items.reduce((sum, it) => sum + it.precio * it.cantidad, 0);
+		const subtotal = items.reduce((sum, it) => sum + it.precio * it.cantidad, 0);
+		return { items, subtotal, paquete };
+	}
+
+	/** Opciones de envío para el carrito y la dirección del cliente (de la más barata a la más cara). */
+	async cotizarPublic(rubroId: string, dto: CotizarEnvioDto): Promise<EnvioOpcion[]> {
+		const rubro = await this.rubros.findActive(rubroId);
+		if (!this.envia.activo(rubro)) return [];
+		const { subtotal, paquete } = await this.resolverCarrito(rubro, dto.items);
+		return this.envia.cotizar(rubro, dto.destino, paquete, subtotal);
+	}
+
+	/**
+	 * Crea el pedido desde la vitrina. Si eligió un envío cotizado, el servidor lo
+	 * RE-COTIZA y usa ese precio (el que manda el navegador no se toma).
+	 */
+	async createPublic(rubroId: string, dto: CreatePedidoDto): Promise<PedidoPublic> {
+		const rubro = await this.rubros.findActive(rubroId);
+		const { items, subtotal, paquete } = await this.resolverCarrito(rubro, dto.items);
+
+		let envio: EnvioOpcion | null = null;
+		let direccion: string | null = null;
+		if (dto.entrega === 'envio') {
+			if (dto.envioId && dto.destino) {
+				envio = await this.envia.cotizarOpcion(rubro, dto.destino, paquete, subtotal, dto.envioId);
+				if (!envio) throw new BadRequestException('Esa opción de envío ya no está disponible: volvé a cotizar');
+				direccion = formatDireccion(dto.destino);
+			} else {
+				// Envío a coordinar con el vendedor (sin cotización).
+				direccion = dto.destino ? formatDireccion(dto.destino) : dto.direccion?.trim() || null;
+				if (!direccion) throw new BadRequestException('Falta la dirección para el envío');
+			}
+		}
+		const envioCosto = envio?.precio ?? 0;
+		const total = subtotal + envioCosto;
 
 		// Número correlativo por rubro. El índice único (rubroId, numero) frena la
 		// carrera entre dos pedidos simultáneos: si choca, reintentamos con el siguiente.
@@ -76,7 +127,10 @@ export class PedidosService {
 						clienteNombre: dto.clienteNombre.trim(),
 						clienteTelefono: dto.clienteTelefono.trim(),
 						entrega: dto.entrega,
-						direccion: dto.entrega === 'envio' ? (dto.direccion?.trim() ?? null) : null,
+						direccion,
+						destino: dto.entrega === 'envio' ? (dto.destino ?? null) : null,
+						envio,
+						envioCosto,
 						notas: dto.notas?.trim() || null,
 						items,
 						total,
@@ -115,6 +169,8 @@ export class PedidosService {
 			entrega: pedido.entrega,
 			direccion: pedido.direccion,
 			items: pedido.items,
+			envio: pedido.envio,
+			envioCosto: pedido.envioCosto,
 			total: pedido.total,
 			motivo: pedido.motivo,
 			createdAt: pedido.createdAt.toISOString(),

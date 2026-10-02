@@ -99,13 +99,20 @@
 						<p class="shrink-0 text-sm font-extrabold tabular-nums">{{ money(it.precio * it.cantidad) }}</p>
 					</li>
 				</ul>
+				<div v-if="pedido.envio" class="flex justify-between gap-3 border-t border-surface-200 py-2.5 text-sm dark:border-surface-700">
+					<span class="min-w-0 text-surface-600 dark:text-surface-300">
+						{{ $t('public.cart.shipping') }} · {{ pedido.envio.nombre }}
+						<span v-if="pedido.envio.plazo" class="block text-xs text-surface-500">{{ pedido.envio.plazo }}</span>
+					</span>
+					<span class="shrink-0 font-extrabold tabular-nums">{{ money(pedido.envioCosto) }}</span>
+				</div>
 				<div class="flex items-baseline justify-between border-t border-surface-200 pt-3 dark:border-surface-700">
 					<span class="font-bold">{{ $t('public.cart.total') }}</span>
 					<span class="text-lg font-extrabold tabular-nums">{{ money(pedido.total) }}</span>
 				</div>
 				<p class="mt-3 text-sm text-surface-500">
 					{{ $t('public.cart.delivery') }}:
-					<span class="font-semibold text-surface-700 dark:text-surface-200">{{ $t('public.cart.entrega.' + pedido.entrega) }}</span>
+					<span class="font-semibold text-surface-700 dark:text-surface-200">{{ pedido.envio ? pedido.envio.nombre : $t('public.cart.entrega.' + pedido.entrega) }}</span>
 					<template v-if="pedido.direccion"> — {{ pedido.direccion }}</template>
 				</p>
 			</div>
@@ -116,13 +123,13 @@
 					:href="waUrl($t('public.pedido.waAsk', { n: pedido.numero }))"
 					target="_blank"
 					rel="noopener"
-					class="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-surface-300 px-4 text-sm font-bold text-surface-700 hover:text-primary dark:border-surface-600 dark:text-surface-200"
+					class="flex min-h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-surface-300 px-3 text-[13px] font-bold text-surface-700 hover:text-primary dark:border-surface-600 dark:text-surface-200"
 				>
 					<i class="pi pi-whatsapp" /> {{ $t('public.pedido.contact') }}
 				</a>
 				<button
 					type="button"
-					class="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-surface-300 px-4 text-sm font-bold text-surface-700 hover:text-primary dark:border-surface-600 dark:text-surface-200"
+					class="flex min-h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-surface-300 px-3 text-[13px] font-bold text-surface-700 hover:text-primary dark:border-surface-600 dark:text-surface-200"
 					@click="$router.push({ name: 'app-rubro-detalle', params: { id: pedido.rubroId } })"
 				>
 					<i class="pi pi-shopping-bag" /> {{ $t('public.pedido.backToStore') }}

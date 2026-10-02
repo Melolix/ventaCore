@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiQuery, ApiTags } from '@nestjs/swagger';
 import { EspaciosService } from '../spaces/espacios.service';
 import { RubrosService } from './rubros.service';
 import { ProductosService } from './productos.service';
 import { PedidosService } from './pedidos.service';
-import { CreatePedidoDto } from './dto/pedido.dto';
+import { CotizarEnvioDto, CreatePedidoDto } from './dto/pedido.dto';
 
 /**
  * Endpoints públicos (sin autenticación) de la vitrina de cada negocio. El negocio
@@ -33,6 +33,13 @@ export class PublicController {
 	@Get('rubros/:id')
 	rubro(@Param('id') id: string) {
 		return this.rubros.findPublicOne(id);
+	}
+
+	/** Opciones de envío (transportista, precio, plazo) para el carrito y la dirección del cliente. */
+	@Post('rubros/:id/envios/cotizar')
+	@HttpCode(200)
+	cotizarEnvio(@Param('id') id: string, @Body() dto: CotizarEnvioDto) {
+		return this.pedidos.cotizarPublic(id, dto);
 	}
 
 	/** El cliente envía su pedido (carrito) a la tienda de un rubro. */

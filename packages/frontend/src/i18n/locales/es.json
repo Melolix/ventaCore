@@ -186,7 +186,7 @@
 			"delivery": "Entrega",
 			"entrega": {
 				"retiro": "Retiro en el local",
-				"envio": "Envío a coordinar"
+				"envio": "Envío"
 			},
 			"address": "Dirección de entrega",
 			"addressHint": "El costo del envío lo coordinás con el vendedor.",
@@ -200,7 +200,11 @@
 				"name": "Escribí tu nombre.",
 				"phone": "Escribí un número de WhatsApp válido, con característica.",
 				"address": "Escribí la dirección para el envío.",
-				"send": "No pudimos enviar el pedido. Revisá tu conexión y probá de nuevo."
+				"send": "No pudimos enviar el pedido. Revisá tu conexión y probá de nuevo.",
+				"destino": "Completá calle, número, ciudad, provincia y código postal.",
+				"quote": "No pudimos cotizar el envío. Probá de nuevo.",
+				"quoteFirst": "Tocá \"Ver opciones de envío\" para elegir cómo te llega.",
+				"pickShipping": "Elegí una opción de envío."
 			},
 			"msg": {
 				"title": "Pedido #{n} — {tienda}",
@@ -212,7 +216,22 @@
 			"doneBody": "Ya le llegó a la tienda. Se abrió WhatsApp con tu pedido: mandá ese mensaje para avisarle al vendedor.",
 			"openWhatsapp": "Abrir WhatsApp",
 			"track": "Seguir mi pedido",
-			"trackN": "Seguir mi pedido #{n}"
+			"trackN": "Seguir mi pedido #{n}",
+			"products": "Productos",
+			"shipping": "Envío",
+			"shippingOptions": "Elegí el envío",
+			"street": "Calle",
+			"number": "Número",
+			"reference": "Piso, depto o referencia (opcional)",
+			"city": "Ciudad",
+			"zip": "Cód. postal",
+			"province": "Provincia",
+			"provincePlaceholder": "Elegí la provincia",
+			"quote": "Ver opciones de envío",
+			"quoting": "Buscando envíos…",
+			"noQuotes": "No encontramos envíos para esa dirección. Podés coordinarlo con el vendedor.",
+			"coordinate": "Coordinarlo con el vendedor",
+			"coordinateHint": "El costo y la forma se acuerdan por WhatsApp."
 		},
 		"pedido": {
 			"title": "Pedido #{n}",
@@ -781,6 +800,26 @@
 				"alias": "Alias",
 				"cbu": "CBU / CVU",
 				"titular": "Titular de la cuenta"
+			},
+			"envios": {
+				"title": "Envíos",
+				"hint": "Cargá desde dónde despachás y tus clientes van a ver el costo del envío en el carrito.",
+				"nombre": "Quién despacha (local o persona)",
+				"telefono": "Teléfono de contacto",
+				"incomplete": "Faltan datos de la dirección de despacho: mientras tanto no se cotizan envíos.",
+				"paquete": "Paquete por defecto",
+				"paqueteHint": "Para los productos sin medidas. Largo, ancho y alto en cm; peso en gramos.",
+				"largo": "Largo",
+				"ancho": "Ancho",
+				"alto": "Alto",
+				"peso": "Peso (g)",
+				"cuenta": "Cuenta de envia.com",
+				"cuentaPlataforma": "Usando la cuenta de ventaCore. Si tenés tu propia cuenta, pegá tu token.",
+				"cuentaPropia": "Cuenta propia conectada.",
+				"tokenPlaceholder": "Token de tu cuenta de envia.com (opcional)",
+				"tokenReplace": "Pegá otro token para reemplazarlo",
+				"desconectar": "Desconectar y volver a la cuenta de ventaCore",
+				"desconectarUndo": "Se va a desconectar al guardar. Tocá para deshacer."
 			}
 		},
 		"productos": {

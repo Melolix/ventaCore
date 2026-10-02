@@ -5,6 +5,8 @@
  * entrega.
  */
 
+import type { Direccion, EnvioOpcion } from './envio';
+
 /** Estado del pedido. El camino feliz es pendiente → confirmado → pagado → entregado. */
 export type PedidoStatus = 'pendiente' | 'confirmado' | 'pagado' | 'entregado' | 'rechazado' | 'cancelado';
 
@@ -55,6 +57,13 @@ export interface Pedido {
 	direccion: string | null;
 	notas: string | null;
 	items: PedidoItem[];
+	/** Dirección estructurada (cuando el envío se cotizó). */
+	destino: Direccion | null;
+	/** Opción de envío elegida (transportista, servicio, precio cotizado). null = retiro o envío a coordinar. */
+	envio: EnvioOpcion | null;
+	/** Costo del envío incluido en `total` (0 si no hay). */
+	envioCosto: number;
+	/** Total a pagar: productos + envío. */
 	total: number;
 	/** Motivo que el vendedor le da al cliente al rechazar o cancelar. */
 	motivo: string | null;
@@ -70,6 +79,9 @@ export interface CreatePedidoInput {
 	direccion?: string;
 	notas?: string;
 	items: { productoId: string; cantidad: number }[];
+	/** Con envío cotizado: la dirección y la opción elegida (`carrier:service`). El precio lo re-cotiza el servidor. */
+	destino?: Direccion;
+	envioId?: string;
 }
 
 /**
@@ -84,6 +96,8 @@ export interface PedidoPublic {
 	entrega: PedidoEntrega;
 	direccion: string | null;
 	items: PedidoItem[];
+	envio: EnvioOpcion | null;
+	envioCosto: number;
 	total: number;
 	motivo: string | null;
 	createdAt: string;
