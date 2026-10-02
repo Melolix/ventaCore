@@ -168,6 +168,16 @@ export const useCatalogStore = defineStore('catalog', {
 			const { data } = await api.patch<Pedido>(`/rubros/${rubroId}/pedidos/${id}/status`, { status, motivo });
 			return data;
 		},
+		/** Panel: genera el envío en el transportista (etiqueta + seguimiento). En producción descuenta saldo. */
+		async generarEnvio(rubroId: string, id: string): Promise<Pedido> {
+			const { data } = await api.post<Pedido>(`/rubros/${rubroId}/pedidos/${id}/envio`);
+			return data;
+		},
+		/** Panel: anula el envío generado (recupera el saldo). */
+		async anularEnvio(rubroId: string, id: string): Promise<Pedido> {
+			const { data } = await api.delete<Pedido>(`/rubros/${rubroId}/pedidos/${id}/envio`);
+			return data;
+		},
 		/** Vitrina: opciones de envío para el carrito y la dirección del cliente. */
 		async cotizarEnvio(rubroId: string, input: CotizarEnvioInput): Promise<EnvioOpcion[]> {
 			const { data } = await api.post<EnvioOpcion[]>(`/public/rubros/${rubroId}/envios/cotizar`, input);

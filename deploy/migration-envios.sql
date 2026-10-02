@@ -21,3 +21,9 @@ ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS "envio" jsonb;
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS "envioCosto" numeric(14,2) NOT NULL DEFAULT 0;
 
 COMMIT;
+
+-- Etapa 2: bulto cotizado y envío generado (seguimiento + etiqueta).
+BEGIN;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS "paquete" jsonb;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS "etiqueta" jsonb;
+COMMIT;

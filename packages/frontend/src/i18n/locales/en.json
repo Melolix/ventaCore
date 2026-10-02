@@ -258,6 +258,7 @@
 				"pendiente": "Order sent",
 				"confirmado": "Confirmed by the store",
 				"pagado": "Payment received",
+				"enviado": "Shipped",
 				"entregado": "Delivered"
 			},
 			"state": {
@@ -273,6 +274,10 @@
 					"title": "Payment received",
 					"body": "The store registered your payment and is preparing the order."
 				},
+				"enviado": {
+					"title": "Your order is on its way",
+					"body": "We already dispatched it. You can track it with the tracking number."
+				},
 				"entregado": {
 					"title": "Order delivered",
 					"body": "Thanks for your purchase."
@@ -285,7 +290,9 @@
 					"title": "Order cancelled",
 					"body": "If you had already transferred, message the store to arrange the refund."
 				}
-			}
+			},
+			"trackingNumber": "Tracking number",
+			"trackShipment": "Track shipment"
 		}
 	},
 	"superadmin": {
@@ -1139,6 +1146,7 @@
 				"pendiente": "Pending",
 				"confirmado": "To collect",
 				"pagado": "Paid",
+				"enviado": "Shipped",
 				"entregado": "Delivered",
 				"cerrados": "Closed",
 				"todos": "All"
@@ -1147,6 +1155,7 @@
 				"pendiente": "Pending",
 				"confirmado": "To collect",
 				"pagado": "Paid",
+				"enviado": "Shipped",
 				"entregado": "Delivered",
 				"rechazado": "Rejected",
 				"cancelado": "Cancelled"
@@ -1166,15 +1175,30 @@
 			"toast": {
 				"confirmado": "Order #{n} accepted. Send the payment details.",
 				"pagado": "Order #{n} marked as paid. Stock was deducted.",
+				"enviado": "Shipment for order #{n} created. You can print the label now.",
 				"entregado": "Order #{n} delivered.",
 				"rechazado": "Order #{n} rejected.",
-				"cancelado": "Order #{n} cancelled."
+				"cancelado": "Order #{n} cancelled.",
+				"anulado": "Shipment for order #{n} voided."
 			},
 			"msg": {
 				"confirmed": "Hi {nombre}! We confirmed your order #{n} from {tienda}. Everything is in stock.",
 				"payIntro": "To transfer:",
-				"track": "Track your order"
-			}
+				"track": "Track your order",
+				"shipped": "Hi {nombre}! Your order #{n} is on its way."
+			},
+			"tracking": "Tracking",
+			"testLabel": "Test",
+			"generateShipping": "Create shipment",
+			"generateBody": "The shipment for order #{n} will be created with the carrier the customer chose.",
+			"quotedCost": "Quoted cost",
+			"generateWarn": "Creating it deducts the cost from the envia.com account balance. Then you can print the label and stick it on the package.",
+			"generateError": "Couldn't create the shipment. Try again.",
+			"markShipped": "Mark as shipped",
+			"printLabel": "Print label",
+			"notifyShipped": "Notify it shipped",
+			"voidShipping": "Void shipment",
+			"voidConfirm": "Void the shipment for order #{n}? The balance is refunded and the order goes back to \"Paid\". Don't void it if you already dispatched the package."
 		}
 	},
 	"handoff": {

@@ -23,7 +23,7 @@
 			</div>
 
 			<!-- Filtros por estado (con cantidad) -->
-			<div class="mb-4 grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap">
+			<div class="mb-4 grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap">
 				<button
 					v-for="f in filters"
 					:key="f.key"
@@ -81,6 +81,14 @@
 					</p>
 					<p v-if="p.notas" class="mt-1 text-sm text-surface-500"><i class="pi pi-comment mr-1 text-xs" />{{ p.notas }}</p>
 					<p v-if="p.motivo" class="mt-1 text-sm text-red-500">{{ $t('admin.pedidos.motivoLabel') }}: {{ p.motivo }}</p>
+					<!-- Envío ya generado: número de seguimiento (y si es del entorno de pruebas). -->
+					<p v-if="p.etiqueta" class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">
+						<i class="pi pi-box text-xs" />
+						<span class="font-semibold">{{ $t('admin.pedidos.tracking') }}: {{ p.etiqueta.trackingNumber }}</span>
+						<span v-if="p.etiqueta.prueba" class="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700 dark:text-amber-300">
+							{{ $t('admin.pedidos.testLabel') }}
+						</span>
+					</p>
 
 					<!-- Qué puede hacer el vendedor ahora -->
 					<div class="mt-3 flex flex-wrap gap-2 border-t border-surface-200 pt-3 dark:border-surface-700">
@@ -102,8 +110,48 @@
 							<Button :label="$t('admin.pedidos.cancel')" size="small" severity="danger" text :disabled="busyId === p.id" @click="askMotivo(p, 'cancelado')" />
 						</template>
 						<template v-else-if="p.status === 'pagado'">
-							<Button :label="$t('admin.pedidos.markDelivered')" icon="pi pi-gift" size="small" :loading="busyId === p.id" @click="setStatus(p, 'entregado')" />
+							<!-- Con envío cotizado: se genera en el transportista. Si el envío se
+							     coordinó por fuera, se marca enviado a mano. Retiro: directo a entregado. -->
+							<Button v-if="p.envio" :label="$t('admin.pedidos.generateShipping')" icon="pi pi-truck" size="small" :loading="busyId === p.id" @click="askEnvio(p)" />
+							<Button
+								v-else-if="p.entrega === 'envio'"
+								:label="$t('admin.pedidos.markShipped')"
+								icon="pi pi-truck"
+								size="small"
+								:loading="busyId === p.id"
+								@click="setStatus(p, 'enviado')"
+							/>
+							<Button
+								:label="$t('admin.pedidos.markDelivered')"
+								icon="pi pi-gift"
+								size="small"
+								:outlined="p.entrega === 'envio'"
+								:disabled="busyId === p.id"
+								@click="setStatus(p, 'entregado')"
+							/>
 							<Button :label="$t('admin.pedidos.cancel')" size="small" severity="danger" text :disabled="busyId === p.id" @click="askMotivo(p, 'cancelado')" />
+						</template>
+						<template v-else-if="p.status === 'enviado'">
+							<a
+								v-if="p.etiqueta?.labelUrl"
+								:href="p.etiqueta.labelUrl"
+								target="_blank"
+								rel="noopener"
+								class="inline-flex min-h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-bold text-primary-contrast"
+							>
+								<i class="pi pi-print" /> {{ $t('admin.pedidos.printLabel') }}
+							</a>
+							<a
+								:href="waUrl(p, shippedMessage(p))"
+								target="_blank"
+								rel="noopener"
+								class="inline-flex min-h-9 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-bold text-white transition-colors hover:bg-emerald-700"
+							>
+								<i class="pi pi-whatsapp" /> {{ $t('admin.pedidos.notifyShipped') }}
+							</a>
+							<Button :label="$t('admin.pedidos.markDelivered')" icon="pi pi-gift" size="small" outlined :loading="busyId === p.id" @click="setStatus(p, 'entregado')" />
+							<Button v-if="p.etiqueta" :label="$t('admin.pedidos.voidShipping')" size="small" severity="danger" text :disabled="busyId === p.id" @click="askAnular(p)" />
+							<Button v-else :label="$t('admin.pedidos.cancel')" size="small" severity="danger" text :disabled="busyId === p.id" @click="askMotivo(p, 'cancelado')" />
 						</template>
 						<a
 							:href="waUrl(p, $t('admin.pedidos.waHello', { nombre: p.clienteNombre, n: p.numero }))"
@@ -117,6 +165,28 @@
 				</article>
 			</div>
 		</template>
+
+		<!-- Confirmar la generación del envío: es el único paso que gasta saldo. -->
+		<Dialog v-model:visible="envioVisible" modal :header="$t('admin.pedidos.generateShipping')" class="w-full max-w-sm">
+			<div v-if="envioTarget?.envio" class="space-y-3 pt-1 text-sm">
+				<p class="text-surface-600 dark:text-surface-300">{{ $t('admin.pedidos.generateBody', { n: envioTarget.numero }) }}</p>
+				<div class="rounded-xl border border-surface-200 p-3 dark:border-surface-700">
+					<p class="font-semibold text-surface-900 dark:text-surface-0">{{ envioTarget.envio.nombre }}</p>
+					<p class="text-surface-500">{{ envioTarget.direccion }}</p>
+					<p class="mt-1 flex justify-between">
+						<span class="text-surface-500">{{ $t('admin.pedidos.quotedCost') }}</span>
+						<span class="font-extrabold tabular-nums">{{ money(envioTarget.envioCosto) }}</span>
+					</p>
+				</div>
+				<p class="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+					<i class="pi pi-info-circle mt-0.5" /> {{ $t('admin.pedidos.generateWarn') }}
+				</p>
+			</div>
+			<template #footer>
+				<Button :label="$t('common.cancel')" text @click="envioVisible = false" />
+				<Button :label="$t('admin.pedidos.generateShipping')" icon="pi pi-truck" :loading="!!busyId" @click="confirmEnvio" />
+			</template>
+		</Dialog>
 
 		<!-- Motivo al rechazar / cancelar (lo ve el cliente en su seguimiento) -->
 		<Dialog v-model:visible="motivoVisible" modal :header="motivoTitle" class="w-full max-w-sm">
@@ -141,7 +211,7 @@ import { apiErrorMessage } from '@/shared/utils/apiError';
 import { vitrinaUrl } from '@/shared/utils/site';
 import { formatPrice } from '@/modules/app/utils/price';
 
-type FilterKey = 'pendiente' | 'confirmado' | 'pagado' | 'entregado' | 'cerrados' | 'todos';
+type FilterKey = 'pendiente' | 'confirmado' | 'pagado' | 'enviado' | 'entregado' | 'cerrados' | 'todos';
 
 /** Cada cuánto se buscan pedidos nuevos con la pantalla abierta. */
 const POLL_MS = 30_000;
@@ -178,6 +248,8 @@ export default defineComponent({
 			motivoVisible: false,
 			motivo: '',
 			motivoTarget: null as { pedido: Pedido; status: PedidoStatus } | null,
+			envioVisible: false,
+			envioTarget: null as Pedido | null,
 			timer: 0,
 		};
 	},
@@ -197,6 +269,7 @@ export default defineComponent({
 				{ key: 'pendiente', count: count('pendiente') },
 				{ key: 'confirmado', count: count('confirmado') },
 				{ key: 'pagado', count: count('pagado') },
+				{ key: 'enviado', count: count('enviado') },
 				{ key: 'entregado', count: count('entregado') },
 				{ key: 'cerrados', count: count('rechazado') + count('cancelado') },
 				{ key: 'todos', count: this.pedidos.length },
@@ -265,6 +338,63 @@ export default defineComponent({
 			await this.setStatus(pedido, status, this.motivo || undefined);
 			this.motivoVisible = false;
 		},
+		askEnvio(pedido: Pedido) {
+			this.envioTarget = pedido;
+			this.envioVisible = true;
+		},
+		/** Genera el envío en el transportista y deja el pedido en "enviado". */
+		async confirmEnvio() {
+			const pedido = this.envioTarget;
+			if (!pedido) return;
+			this.busyId = pedido.id;
+			try {
+				const updated = await this.catalog.generarEnvio(this.rubroId, pedido.id);
+				this.replace(updated);
+				this.envioVisible = false;
+				this.$toast.add({ severity: 'success', summary: this.$t('admin.pedidos.toast.enviado', { n: pedido.numero }), life: 4000 });
+				if (this.filter !== 'todos') this.filter = 'enviado';
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.pedidos.generateError')), life: 7000 });
+			} finally {
+				this.busyId = '';
+			}
+		},
+		/** Anula el envío generado: recupera el saldo y el pedido vuelve a "pagado". */
+		askAnular(pedido: Pedido) {
+			this.$confirm.require({
+				message: this.$t('admin.pedidos.voidConfirm', { n: pedido.numero }),
+				header: this.$t('admin.pedidos.voidShipping'),
+				icon: 'pi pi-exclamation-triangle',
+				rejectProps: { label: this.$t('common.cancel'), text: true },
+				acceptProps: { label: this.$t('admin.pedidos.voidShipping'), severity: 'danger' },
+				accept: async () => {
+					this.busyId = pedido.id;
+					try {
+						this.replace(await this.catalog.anularEnvio(this.rubroId, pedido.id));
+						this.$toast.add({ severity: 'success', summary: this.$t('admin.pedidos.toast.anulado', { n: pedido.numero }), life: 4000 });
+						if (this.filter !== 'todos') this.filter = 'pagado';
+					} catch (e: unknown) {
+						this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 7000 });
+					} finally {
+						this.busyId = '';
+					}
+				},
+			});
+		},
+		replace(updated: Pedido) {
+			const i = this.pedidos.findIndex(p => p.id === updated.id);
+			if (i !== -1) this.pedidos[i] = updated;
+		},
+		/** Mensaje para avisarle al cliente que su pedido salió. */
+		shippedMessage(p: Pedido): string {
+			const lines = [this.$t('admin.pedidos.msg.shipped', { nombre: p.clienteNombre, n: p.numero })];
+			if (p.etiqueta) {
+				lines.push(`${this.$t('admin.pedidos.tracking')}: ${p.etiqueta.trackingNumber}`);
+				if (p.etiqueta.trackUrl) lines.push(p.etiqueta.trackUrl);
+			}
+			lines.push('', `${this.$t('admin.pedidos.msg.track')}: ${this.trackingUrl(p)}`);
+			return lines.join('\n');
+		},
 		/** Link de seguimiento que ve el cliente (en el dominio de la vitrina). */
 		trackingUrl(p: Pedido): string {
 			const base = this.catalog.miEspacio ? vitrinaUrl(this.catalog.miEspacio) : window.location.origin;
@@ -294,6 +424,7 @@ export default defineComponent({
 				pendiente: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
 				confirmado: 'bg-primary/15 text-primary',
 				pagado: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+				enviado: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
 				entregado: 'bg-surface-500/15 text-surface-600 dark:text-surface-300',
 				rechazado: 'bg-red-500/15 text-red-600 dark:text-red-300',
 				cancelado: 'bg-red-500/15 text-red-600 dark:text-red-300',

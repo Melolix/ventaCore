@@ -258,6 +258,7 @@
 				"pendiente": "Pedido enviado",
 				"confirmado": "Confirmado por la tienda",
 				"pagado": "Pago recibido",
+				"enviado": "Enviado",
 				"entregado": "Entregado"
 			},
 			"state": {
@@ -273,6 +274,10 @@
 					"title": "Pago recibido",
 					"body": "La tienda ya registró tu pago y está preparando el pedido."
 				},
+				"enviado": {
+					"title": "Tu pedido está en camino",
+					"body": "Ya lo despachamos. Podés rastrearlo con el número de seguimiento."
+				},
 				"entregado": {
 					"title": "Pedido entregado",
 					"body": "Gracias por tu compra."
@@ -285,7 +290,9 @@
 					"title": "Pedido cancelado",
 					"body": "Si ya habías transferido, escribile a la tienda para coordinar la devolución."
 				}
-			}
+			},
+			"trackingNumber": "Número de seguimiento",
+			"trackShipment": "Rastrear envío"
 		}
 	},
 	"superadmin": {
@@ -1139,6 +1146,7 @@
 				"pendiente": "Pendientes",
 				"confirmado": "Por cobrar",
 				"pagado": "Pagados",
+				"enviado": "Enviados",
 				"entregado": "Entregados",
 				"cerrados": "Cerrados",
 				"todos": "Todos"
@@ -1147,6 +1155,7 @@
 				"pendiente": "Pendiente",
 				"confirmado": "Por cobrar",
 				"pagado": "Pagado",
+				"enviado": "Enviado",
 				"entregado": "Entregado",
 				"rechazado": "Rechazado",
 				"cancelado": "Cancelado"
@@ -1166,15 +1175,30 @@
 			"toast": {
 				"confirmado": "Pedido #{n} aceptado. Pasale los datos para transferir.",
 				"pagado": "Pedido #{n} marcado como pagado. Se descontó el stock.",
+				"enviado": "Envío del pedido #{n} generado. Ya podés imprimir la etiqueta.",
 				"entregado": "Pedido #{n} entregado.",
 				"rechazado": "Pedido #{n} rechazado.",
-				"cancelado": "Pedido #{n} cancelado."
+				"cancelado": "Pedido #{n} cancelado.",
+				"anulado": "Envío del pedido #{n} anulado."
 			},
 			"msg": {
 				"confirmed": "Hola {nombre}! Confirmamos tu pedido #{n} de {tienda}. Hay stock de todo.",
 				"payIntro": "Para transferir:",
-				"track": "Seguí tu pedido"
-			}
+				"track": "Seguí tu pedido",
+				"shipped": "Hola {nombre}! Tu pedido #{n} ya salió."
+			},
+			"tracking": "Seguimiento",
+			"testLabel": "Prueba",
+			"generateShipping": "Generar envío",
+			"generateBody": "Se va a generar el envío del pedido #{n} con el transportista que eligió el cliente.",
+			"quotedCost": "Costo cotizado",
+			"generateWarn": "Al generarlo se descuenta el costo del saldo de la cuenta de envia.com. Después podés imprimir la etiqueta y pegarla en el paquete.",
+			"generateError": "No se pudo generar el envío. Probá de nuevo.",
+			"markShipped": "Marcar enviado",
+			"printLabel": "Imprimir etiqueta",
+			"notifyShipped": "Avisar que salió",
+			"voidShipping": "Anular envío",
+			"voidConfirm": "¿Anular el envío del pedido #{n}? Se recupera el saldo y el pedido vuelve a \"Pagado\". Si ya despachaste el paquete, no lo anules."
 		}
 	},
 	"handoff": {

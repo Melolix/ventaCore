@@ -60,6 +60,24 @@
 				</a>
 			</div>
 
+			<!-- Envío generado: número de seguimiento y link del transportista. -->
+			<div v-if="pedido.seguimiento" class="glass-card flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4 sm:p-5">
+				<div class="min-w-0">
+					<p class="text-[11px] font-bold uppercase tracking-wide text-surface-400">{{ $t('public.pedido.trackingNumber') }}</p>
+					<p class="break-all text-base font-extrabold text-surface-900 dark:text-surface-0">{{ pedido.seguimiento.trackingNumber }}</p>
+					<p v-if="pedido.envio" class="text-xs text-surface-500">{{ pedido.envio.nombre }}</p>
+				</div>
+				<a
+					v-if="pedido.seguimiento.trackUrl"
+					:href="pedido.seguimiento.trackUrl"
+					target="_blank"
+					rel="noopener"
+					class="flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-contrast"
+				>
+					<i class="pi pi-map-marker" /> {{ $t('public.pedido.trackShipment') }}
+				</a>
+			</div>
+
 			<!-- Recorrido: cada paso es un hito CUMPLIDO (✓); el siguiente es el que se espera. -->
 			<ol v-if="!isClosed" class="glass-card rounded-2xl px-4 py-2 sm:px-5">
 				<li
@@ -141,7 +159,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { PedidoPublic } from '@base-template/shared';
+import type { PedidoPublic, PedidoStatus } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { formatPrice } from '@/modules/app/utils/price';
 
@@ -162,15 +180,20 @@ export default defineComponent({
 			pedido: null as PedidoPublic | null,
 			copied: '',
 			timer: 0,
-			steps: ['pendiente', 'confirmado', 'pagado', 'entregado'] as const,
 		};
 	},
 	computed: {
+		/** Hitos del recorrido: con envío se suma "Enviado" antes de "Entregado". */
+		steps(): PedidoStatus[] {
+			return this.pedido?.entrega === 'envio'
+				? ['pendiente', 'confirmado', 'pagado', 'enviado', 'entregado']
+				: ['pendiente', 'confirmado', 'pagado', 'entregado'];
+		},
 		isClosed(): boolean {
 			return this.pedido?.status === 'rechazado' || this.pedido?.status === 'cancelado';
 		},
 		stepIndex(): number {
-			return this.pedido ? this.steps.indexOf(this.pedido.status as (typeof this.steps)[number]) : 0;
+			return this.pedido ? this.steps.indexOf(this.pedido.status) : 0;
 		},
 		/** Mensaje principal según el estado. */
 		callout(): { title: string; body: string; icon: string; cls: string } {
@@ -179,6 +202,7 @@ export default defineComponent({
 				pendiente: ['pi pi-clock', 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200'],
 				confirmado: ['pi pi-check-circle', 'border-primary/30 bg-primary/10 text-primary'],
 				pagado: ['pi pi-wallet', 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'],
+				enviado: ['pi pi-truck', 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300'],
 				entregado: ['pi pi-gift', 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'],
 				rechazado: ['pi pi-times-circle', 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'],
 				cancelado: ['pi pi-times-circle', 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'],
@@ -206,7 +230,7 @@ export default defineComponent({
 		this.loading = false;
 		this.timer = window.setInterval(() => {
 			const s = this.pedido?.status;
-			if (s === 'pendiente' || s === 'confirmado' || s === 'pagado') void this.load();
+			if (s === 'pendiente' || s === 'confirmado' || s === 'pagado' || s === 'enviado') void this.load();
 		}, POLL_MS);
 	},
 	beforeUnmount() {

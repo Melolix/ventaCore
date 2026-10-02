@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthenticatedUser, Role } from '@base-template/shared';
 import { FirebaseAuthGuard } from '../../common/auth/firebase-auth.guard';
@@ -25,6 +25,18 @@ export class PedidosController {
 	@Get()
 	findAll(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string) {
 		return this.pedidos.findByRubro(rubroId, espacioDe(user));
+	}
+
+	/** Genera el envío en el transportista (etiqueta + seguimiento). En producción descuenta saldo. */
+	@Post(':id/envio')
+	generarEnvio(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string, @Param('id') id: string) {
+		return this.pedidos.generarEnvio(id, rubroId, espacioDe(user));
+	}
+
+	/** Anula el envío generado (recupera el saldo). */
+	@Delete(':id/envio')
+	anularEnvio(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string, @Param('id') id: string) {
+		return this.pedidos.anularEnvio(id, rubroId, espacioDe(user));
 	}
 
 	/** Aceptar, rechazar, registrar pago/entrega o cancelar. */

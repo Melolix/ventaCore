@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { DespachoConfig, Direccion, EnvioOpcion, Paquete } from '@base-template/shared';
+import type { DespachoConfig, Direccion, EnvioOpcion, Paquete, PedidoEtiqueta } from '@base-template/shared';
 import { RubroEntity } from './entities/rubro.entity';
 
 /** Transportistas nacionales que se cotizan si no se pudo leer la lista de la cuenta. */
@@ -9,6 +9,28 @@ const CARRIERS_FALLBACK = ['andreani', 'correoArgentino', 'oca', 'urbano'];
 /** Cuánto esperamos a cada transportista antes de seguir sin él. */
 const RATE_TIMEOUT_MS = 12_000;
 const CARRIERS_TTL_MS = 6 * 60 * 60 * 1000;
+
+/** Cuánto esperamos al generar/anular una etiqueta (el transportista puede tardar). */
+const GENERATE_TIMEOUT_MS = 45_000;
+
+interface EnviaGenerated {
+	trackingNumber?: string;
+	trackUrl?: string;
+	label?: string;
+	totalPrice?: number | string;
+}
+
+/** Lo que hace falta del pedido para generar su envío. */
+export interface EnvioAGenerar {
+	numero: number;
+	clienteNombre: string;
+	clienteTelefono: string;
+	destino: Direccion;
+	paquete: Paquete;
+	valorDeclarado: number;
+	carrier: string;
+	service: string;
+}
 
 interface EnviaRate {
 	carrier?: string;
@@ -101,6 +123,102 @@ export class EnviaService {
 		return CARRIERS_FALLBACK;
 	}
 
+	/** Dirección en el formato de envia. */
+	private address(name: string, phone: string, d: Direccion) {
+		return {
+			name,
+			company: '',
+			email: '',
+			phone: phone.replace(/\D/g, ''),
+			street: d.calle,
+			number: d.numero,
+			district: '',
+			city: d.ciudad,
+			state: d.provincia,
+			country: 'AR',
+			postalCode: d.cp,
+			reference: d.referencia ?? '',
+		};
+	}
+
+	/** El bulto en el formato de envia (cm y kg). */
+	private packages(paquete: Paquete, valorDeclarado: number) {
+		return [
+			{
+				content: 'Productos',
+				amount: 1,
+				type: 'box',
+				dimensions: { length: paquete.largo, width: paquete.ancho, height: paquete.alto },
+				weight: Math.max(0.1, Math.round(paquete.peso / 100) / 10), // g → kg (1 decimal)
+				insurance: 0,
+				declaredValue: Math.round(valorDeclarado),
+				weightUnit: 'KG',
+				lengthUnit: 'CM',
+			},
+		];
+	}
+
+	/** POST a la API de envia con el token dado. Devuelve el JSON tal cual. */
+	private async post<T>(token: string, path: string, body: unknown, timeoutMs: number): Promise<T> {
+		const res = await fetch(`${this.apiHost}${path}`, {
+			method: 'POST',
+			headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+			signal: AbortSignal.timeout(timeoutMs),
+		});
+		return (await res.json()) as T;
+	}
+
+	/**
+	 * Genera el envío en el transportista: devuelve el número de seguimiento y la
+	 * etiqueta para imprimir. En producción DESCUENTA SALDO de la cuenta de envia.
+	 */
+	async generar(rubro: RubroEntity, envio: EnvioAGenerar): Promise<PedidoEtiqueta> {
+		const token = await this.tokenFor(rubro);
+		if (!token || !rubro.despacho) throw new BadRequestException('Falta la dirección de despacho o la cuenta de envia');
+		const body = {
+			origin: this.address(rubro.despacho.nombre, rubro.despacho.telefono, rubro.despacho),
+			destination: this.address(envio.clienteNombre, envio.clienteTelefono, envio.destino),
+			packages: this.packages(envio.paquete, envio.valorDeclarado),
+			shipment: { carrier: envio.carrier, service: envio.service, type: 1 },
+			settings: { printFormat: 'PDF', printSize: 'STOCK_4X6', currency: 'ARS', comments: `Pedido #${envio.numero}` },
+		};
+		let json: { data?: EnviaGenerated[]; error?: { message?: string } };
+		try {
+			json = await this.post(token, '/ship/generate/', body, GENERATE_TIMEOUT_MS);
+		} catch (e: unknown) {
+			this.logger.error(`Generar envío del pedido #${envio.numero} falló: ${e instanceof Error ? e.message : e}`);
+			throw new BadRequestException('El transportista no respondió. Probá de nuevo en un momento.');
+		}
+		const data = json.data?.[0];
+		if (!data?.trackingNumber) {
+			throw new BadRequestException(json.error?.message || 'El transportista no pudo generar el envío');
+		}
+		return {
+			carrier: envio.carrier,
+			service: envio.service,
+			trackingNumber: data.trackingNumber,
+			trackUrl: data.trackUrl ?? null,
+			labelUrl: data.label ?? null,
+			costo: Math.round(Number(data.totalPrice) || 0),
+			prueba: this.sandbox,
+			createdAt: new Date().toISOString(),
+		};
+	}
+
+	/** Anula un envío generado (el transportista reintegra el saldo si todavía no lo retiró). */
+	async cancelar(rubro: RubroEntity, carrier: string, trackingNumber: string): Promise<void> {
+		const token = await this.tokenFor(rubro);
+		if (!token) throw new BadRequestException('Falta la cuenta de envia');
+		let json: { data?: unknown[]; error?: { message?: string } };
+		try {
+			json = await this.post(token, '/ship/cancel/', { carrier, trackingNumber }, GENERATE_TIMEOUT_MS);
+		} catch {
+			throw new BadRequestException('El transportista no respondió. Probá de nuevo en un momento.');
+		}
+		if (!Array.isArray(json.data)) throw new BadRequestException(json.error?.message || 'No se pudo anular el envío');
+	}
+
 	/** Cotiza con UN transportista. Devuelve [] si no cubre el trayecto o falla. */
 	private async rate(
 		token: string,
@@ -110,49 +228,17 @@ export class EnviaService {
 		paquete: Paquete,
 		valorDeclarado: number,
 	): Promise<EnvioOpcion[]> {
-		const address = (name: string, phone: string, d: Direccion) => ({
-			name,
-			company: '',
-			email: '',
-			phone,
-			street: d.calle,
-			number: d.numero,
-			district: '',
-			city: d.ciudad,
-			state: d.provincia,
-			country: 'AR',
-			postalCode: d.cp,
-			reference: d.referencia ?? '',
-		});
 		const body = {
-			origin: address(origen.nombre, origen.telefono, origen),
+			origin: this.address(origen.nombre, origen.telefono, origen),
 			// Al cotizar todavía no hay datos del cliente; algunos transportistas (DHL)
 			// exigen un teléfono en el destino, así que va el del despacho de relleno.
-			destination: address('Cliente', origen.telefono, destino),
-			packages: [
-				{
-					content: 'Productos',
-					amount: 1,
-					type: 'box',
-					dimensions: { length: paquete.largo, width: paquete.ancho, height: paquete.alto },
-					weight: Math.max(0.1, Math.round(paquete.peso / 100) / 10), // g → kg (1 decimal)
-					insurance: 0,
-					declaredValue: Math.round(valorDeclarado),
-					weightUnit: 'KG',
-					lengthUnit: 'CM',
-				},
-			],
+			destination: this.address('Cliente', origen.telefono, destino),
+			packages: this.packages(paquete, valorDeclarado),
 			shipment: { carrier, type: 1 },
 			settings: { currency: 'ARS' },
 		};
 		try {
-			const res = await fetch(`${this.apiHost}/ship/rate/`, {
-				method: 'POST',
-				headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-				body: JSON.stringify(body),
-				signal: AbortSignal.timeout(RATE_TIMEOUT_MS),
-			});
-			const json = (await res.json()) as { data?: EnviaRate[] };
+			const json = await this.post<{ data?: EnviaRate[] }>(token, '/ship/rate/', body, RATE_TIMEOUT_MS);
 			if (!Array.isArray(json.data)) return []; // sin cobertura / error del transportista
 			return json.data
 				.filter(r => r.service && Number(r.totalPrice) > 0)

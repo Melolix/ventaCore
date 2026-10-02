@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-import type { Direccion, EnvioOpcion, PedidoEntrega, PedidoItem, PedidoStatus } from '@base-template/shared';
+import type { Direccion, EnvioOpcion, Paquete, PedidoEntrega, PedidoEtiqueta, PedidoItem, PedidoStatus } from '@base-template/shared';
 
 /** TypeORM devuelve `numeric` como string; lo convertimos a number. */
 const numericTransformer = {
@@ -68,6 +68,14 @@ export class PedidoEntity {
 	/** Costo del envío incluido en `total`. */
 	@Column({ type: 'numeric', precision: 14, scale: 2, default: 0, transformer: numericTransformer })
 	envioCosto!: number;
+
+	/** Bulto con el que se cotizó (la etiqueta se genera con el mismo). */
+	@Column({ type: 'jsonb', nullable: true })
+	paquete!: Paquete | null;
+
+	/** Envío generado en el transportista (seguimiento + etiqueta). null = todavía no. */
+	@Column({ type: 'jsonb', nullable: true })
+	etiqueta!: PedidoEtiqueta | null;
 
 	/** Total a pagar: productos + envío. */
 	@Column({ type: 'numeric', precision: 14, scale: 2, transformer: numericTransformer })

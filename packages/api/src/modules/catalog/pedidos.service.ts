@@ -21,7 +21,7 @@ import { RubrosService } from './rubros.service';
 import { CotizarEnvioDto, CreatePedidoDto, CreatePedidoItemDto } from './dto/pedido.dto';
 
 /** Estados en los que el cliente ya puede ver los datos para transferir. */
-const PAGO_VISIBLE: PedidoStatus[] = ['confirmado', 'pagado', 'entregado'];
+const PAGO_VISIBLE: PedidoStatus[] = ['confirmado', 'pagado', 'enviado', 'entregado'];
 
 @Injectable()
 export class PedidosService {
@@ -131,6 +131,7 @@ export class PedidosService {
 						destino: dto.entrega === 'envio' ? (dto.destino ?? null) : null,
 						envio,
 						envioCosto,
+						paquete,
 						notas: dto.notas?.trim() || null,
 						items,
 						total,
@@ -181,6 +182,9 @@ export class PedidosService {
 			pago: PAGO_VISIBLE.includes(pedido.status)
 				? { alias: rubro.pagoAlias, cbu: rubro.pagoCbu, titular: rubro.pagoTitular }
 				: null,
+			seguimiento: pedido.etiqueta
+				? { carrier: pedido.etiqueta.carrier, trackingNumber: pedido.etiqueta.trackingNumber, trackUrl: pedido.etiqueta.trackUrl }
+				: null,
 		};
 	}
 
@@ -189,6 +193,51 @@ export class PedidosService {
 	async findByRubro(rubroId: string, espacioId: string): Promise<PedidoEntity[]> {
 		await this.rubros.findOne(rubroId, espacioId);
 		return this.repo.find({ where: { rubroId }, order: { createdAt: 'DESC' }, take: 300 });
+	}
+
+	/** El pedido del rubro, validando que el rubro sea del espacio. */
+	private async findOwned(id: string, rubroId: string, espacioId: string): Promise<{ pedido: PedidoEntity; rubro: RubroEntity }> {
+		const rubro = await this.rubros.findOne(rubroId, espacioId);
+		const pedido = await this.repo.findOne({ where: { id, rubroId } });
+		if (!pedido) throw new NotFoundException('Pedido no encontrado');
+		return { pedido, rubro };
+	}
+
+	/**
+	 * Genera el envío del pedido en el transportista que eligió el cliente:
+	 * guarda el número de seguimiento y la etiqueta, y pasa el pedido a "enviado".
+	 * Solo con el pedido pagado y un envío cotizado. En producción descuenta saldo.
+	 */
+	async generarEnvio(id: string, rubroId: string, espacioId: string): Promise<PedidoEntity> {
+		const { pedido, rubro } = await this.findOwned(id, rubroId, espacioId);
+		if (pedido.etiqueta) throw new BadRequestException('Este pedido ya tiene un envío generado');
+		if (pedido.status !== 'pagado') throw new BadRequestException('El envío se genera con el pedido pagado');
+		if (!pedido.envio || !pedido.destino) throw new BadRequestException('Este pedido no tiene un envío cotizado');
+
+		const subtotal = pedido.total - pedido.envioCosto;
+		pedido.etiqueta = await this.envia.generar(rubro, {
+			numero: pedido.numero,
+			clienteNombre: pedido.clienteNombre,
+			clienteTelefono: pedido.clienteTelefono,
+			destino: pedido.destino,
+			paquete: pedido.paquete ?? rubro.paqueteDefault ?? PAQUETE_FALLBACK,
+			valorDeclarado: subtotal,
+			carrier: pedido.envio.carrier,
+			service: pedido.envio.service,
+		});
+		pedido.status = 'enviado';
+		return this.repo.save(pedido);
+	}
+
+	/** Anula el envío generado (recupera el saldo) y el pedido vuelve a "pagado". */
+	async anularEnvio(id: string, rubroId: string, espacioId: string): Promise<PedidoEntity> {
+		const { pedido, rubro } = await this.findOwned(id, rubroId, espacioId);
+		if (!pedido.etiqueta) throw new BadRequestException('Este pedido no tiene un envío generado');
+		if (pedido.status === 'entregado') throw new BadRequestException('El pedido ya figura como entregado');
+		await this.envia.cancelar(rubro, pedido.etiqueta.carrier, pedido.etiqueta.trackingNumber);
+		pedido.etiqueta = null;
+		pedido.status = 'pagado';
+		return this.repo.save(pedido);
 	}
 
 	/**
@@ -204,6 +253,10 @@ export class PedidosService {
 			if (!pedido) throw new NotFoundException('Pedido no encontrado');
 			if (!PEDIDO_TRANSITIONS[pedido.status].includes(status)) {
 				throw new BadRequestException('Ese cambio de estado no está permitido');
+			}
+			// Con el envío ya generado, primero hay que anularlo (para recuperar el saldo).
+			if (status === 'cancelado' && pedido.etiqueta) {
+				throw new BadRequestException('Este pedido tiene un envío generado: anulalo antes de cancelar');
 			}
 
 			const descontar = status === 'pagado' && !pedido.stockDescontado;

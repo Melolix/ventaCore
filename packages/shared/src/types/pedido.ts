@@ -5,18 +5,38 @@
  * entrega.
  */
 
-import type { Direccion, EnvioOpcion } from './envio';
+import type { Direccion, EnvioOpcion, Paquete } from './envio';
 
-/** Estado del pedido. El camino feliz es pendiente → confirmado → pagado → entregado. */
-export type PedidoStatus = 'pendiente' | 'confirmado' | 'pagado' | 'entregado' | 'rechazado' | 'cancelado';
+/**
+ * Estado del pedido. El camino feliz es pendiente → confirmado → pagado →
+ * (enviado, si va por envío) → entregado.
+ */
+export type PedidoStatus = 'pendiente' | 'confirmado' | 'pagado' | 'enviado' | 'entregado' | 'rechazado' | 'cancelado';
 
-export const PEDIDO_STATUSES: PedidoStatus[] = ['pendiente', 'confirmado', 'pagado', 'entregado', 'rechazado', 'cancelado'];
+export const PEDIDO_STATUSES: PedidoStatus[] = ['pendiente', 'confirmado', 'pagado', 'enviado', 'entregado', 'rechazado', 'cancelado'];
+
+/** Envío generado en el transportista: número de seguimiento y etiqueta para imprimir. */
+export interface PedidoEtiqueta {
+	carrier: string;
+	service: string;
+	trackingNumber: string;
+	/** Página de rastreo para el cliente. */
+	trackUrl: string | null;
+	/** PDF de la etiqueta para pegar en el paquete. */
+	labelUrl: string | null;
+	/** Lo que cobró el transportista por la etiqueta. */
+	costo: number;
+	/** Generada en el entorno de pruebas de envia (no es un envío real). */
+	prueba: boolean;
+	createdAt: string;
+}
 
 /** A qué estados puede pasar el vendedor desde cada uno. */
 export const PEDIDO_TRANSITIONS: Record<PedidoStatus, PedidoStatus[]> = {
 	pendiente: ['confirmado', 'rechazado'],
 	confirmado: ['pagado', 'cancelado'],
-	pagado: ['entregado', 'cancelado'],
+	pagado: ['enviado', 'entregado', 'cancelado'],
+	enviado: ['entregado', 'cancelado'],
 	entregado: [],
 	rechazado: [],
 	cancelado: [],
@@ -63,6 +83,10 @@ export interface Pedido {
 	envio: EnvioOpcion | null;
 	/** Costo del envío incluido en `total` (0 si no hay). */
 	envioCosto: number;
+	/** Bulto con el que se cotizó (y con el que se genera la etiqueta). */
+	paquete: Paquete | null;
+	/** Envío ya generado en el transportista (null = todavía no). */
+	etiqueta: PedidoEtiqueta | null;
 	/** Total a pagar: productos + envío. */
 	total: number;
 	/** Motivo que el vendedor le da al cliente al rechazar o cancelar. */
@@ -107,4 +131,6 @@ export interface PedidoPublic {
 	rubroId: string;
 	whatsapp: string | null;
 	pago: PedidoPago | null;
+	/** Con el envío generado: número y link para rastrearlo. */
+	seguimiento: { carrier: string; trackingNumber: string; trackUrl: string | null } | null;
 }
