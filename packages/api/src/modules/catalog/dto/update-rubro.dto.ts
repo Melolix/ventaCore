@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { AppPlatform, IMAGE_FOCUS_RE, RubroStatus } from '@base-template/shared';
 
 export class UpdateRubroDto {
@@ -23,6 +23,14 @@ export class UpdateRubroDto {
 	@IsOptional()
 	@Matches(IMAGE_FOCUS_RE)
 	imageFocus?: string | null;
+
+	@ApiProperty({ required: false, type: [String], description: 'Categorías del catálogo, en el orden del menú de la tienda.' })
+	@IsOptional()
+	@IsArray()
+	@ArrayMaxSize(60)
+	@IsString({ each: true })
+	@MaxLength(40, { each: true })
+	categorias?: string[];
 
 	@ApiProperty({ required: false })
 	@IsOptional()
@@ -64,4 +72,19 @@ export class UpdateRubroDto {
 	@IsOptional()
 	@IsBoolean()
 	subscriptionsEnabled?: boolean;
+}
+
+/** Renombrar (o borrar, con `to` vacío) una categoría del rubro y sus productos. */
+export class RenameCategoriaDto {
+	@ApiProperty({ example: 'Herramientas' })
+	@IsString()
+	@MinLength(1)
+	@MaxLength(40)
+	from!: string;
+
+	@ApiProperty({ required: false, example: 'Herramientas manuales', description: 'Vacío o ausente = borrar la categoría.' })
+	@IsOptional()
+	@IsString()
+	@MaxLength(40)
+	to?: string;
 }

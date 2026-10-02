@@ -257,6 +257,38 @@
 					<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-instagram" /> {{ $t('admin.rubros.fields.instagram') }}</label>
 					<InputText v-model="edit.instagramUrl" class="w-full" placeholder="https://instagram.com/el.negocio" />
 				</div>
+				<!-- Categorías del catálogo: el orden de esta lista es el del menú de la tienda.
+				     Cada cambio se guarda al instante (renombrar/borrar también actualiza los
+				     productos), por eso no depende del botón "Guardar cambios". -->
+				<div v-if="!isApps" class="space-y-2 rounded-xl border border-surface-200 p-3 dark:border-surface-700">
+					<div>
+						<label class="text-sm font-medium">{{ $t('admin.rubros.categorias.title') }}</label>
+						<p class="text-xs text-surface-500">{{ $t('admin.rubros.categorias.hint') }}</p>
+					</div>
+					<p v-if="!editCategorias.length" class="text-xs text-surface-400">{{ $t('admin.rubros.categorias.empty') }}</p>
+					<div v-for="(cat, i) in editCategorias" :key="cat" class="flex items-center gap-1">
+						<InputText
+							:model-value="cat"
+							class="min-w-0 flex-1 !py-1.5 text-sm"
+							:aria-label="$t('admin.rubros.categorias.rename')"
+							:disabled="savingCats"
+							@change="renameCategoria(cat, ($event.target as HTMLInputElement).value)"
+						/>
+						<Button icon="pi pi-arrow-up" text rounded size="small" severity="secondary" :disabled="i === 0 || savingCats" :aria-label="$t('admin.rubros.categorias.up')" @click="moveCategoria(i, -1)" />
+						<Button icon="pi pi-arrow-down" text rounded size="small" severity="secondary" :disabled="i === editCategorias.length - 1 || savingCats" :aria-label="$t('admin.rubros.categorias.down')" @click="moveCategoria(i, 1)" />
+						<Button icon="pi pi-trash" text rounded size="small" severity="danger" :disabled="savingCats" :aria-label="$t('common.delete')" @click="removeCategoria(cat)" />
+					</div>
+					<div class="flex items-center gap-2">
+						<InputText
+							v-model="newCategoria"
+							class="min-w-0 flex-1 !py-1.5 text-sm"
+							maxlength="40"
+							:placeholder="$t('admin.rubros.categorias.addPlaceholder')"
+							@keydown.enter.prevent="addCategoria"
+						/>
+						<Button :label="$t('admin.rubros.categorias.add')" icon="pi pi-plus" size="small" outlined class="shrink-0" :disabled="!newCategoria.trim() || savingCats" @click="addCategoria" />
+					</div>
+				</div>
 				<template v-if="isApps">
 					<div class="space-y-1">
 						<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-th-large" /> {{ $t('admin.rubros.fields.platforms') }}</label>
@@ -334,6 +366,8 @@ export default defineComponent({
 			},
 			editVisible: false,
 			editId: '',
+			newCategoria: '',
+			savingCats: false,
 			edit: {
 				nombre: '',
 				descripcion: '',
@@ -356,6 +390,10 @@ export default defineComponent({
 		 *  (en ese caso crear es lo único que puede hacer). */
 		showCreate(): boolean {
 			return this.createOpen || !this.catalog.rubros.length;
+		},
+		/** Categorías del rubro en edición (viven en el store: se guardan al instante). */
+		editCategorias(): string[] {
+			return this.catalog.rubros.find(r => r.id === this.editId)?.categorias ?? [];
 		},
 		statusOptions(): { label: string; value: RubroStatus }[] {
 			return [
@@ -474,6 +512,63 @@ export default defineComponent({
 			} finally {
 				this.savingEdit = false;
 			}
+		},
+		/** Guarda la lista de categorías (alta o reorden) al instante. */
+		async saveCategorias(list: string[]) {
+			this.savingCats = true;
+			try {
+				await this.catalog.updateRubro(this.editId, { categorias: list });
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
+			} finally {
+				this.savingCats = false;
+			}
+		},
+		async addCategoria() {
+			const name = this.newCategoria.trim();
+			if (!name) return;
+			this.newCategoria = '';
+			if (this.editCategorias.some(c => c.toLowerCase() === name.toLowerCase())) return;
+			await this.saveCategorias([...this.editCategorias, name]);
+		},
+		async moveCategoria(i: number, dir: -1 | 1) {
+			const list = [...this.editCategorias];
+			const j = i + dir;
+			if (j < 0 || j >= list.length) return;
+			[list[i], list[j]] = [list[j], list[i]];
+			await this.saveCategorias(list);
+		},
+		/** Renombra la categoría y la de sus productos (si el nombre ya existe, se fusionan). */
+		async renameCategoria(from: string, value: string) {
+			const to = value.trim();
+			if (!to || to === from) return;
+			this.savingCats = true;
+			try {
+				await this.catalog.renameCategoria(this.editId, from, to);
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
+			} finally {
+				this.savingCats = false;
+			}
+		},
+		removeCategoria(name: string) {
+			this.$confirm.require({
+				message: this.$t('admin.rubros.categorias.deleteConfirm', { name }),
+				header: this.$t('admin.rubros.categorias.deleteTitle'),
+				icon: 'pi pi-exclamation-triangle',
+				rejectProps: { label: this.$t('common.cancel'), text: true },
+				acceptProps: { label: this.$t('common.delete'), severity: 'danger' },
+				accept: async () => {
+					this.savingCats = true;
+					try {
+						await this.catalog.renameCategoria(this.editId, name, '');
+					} catch (e: unknown) {
+						this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.delete')), life: 5000 });
+					} finally {
+						this.savingCats = false;
+					}
+				},
+			});
 		},
 		confirmDelete(rubro: Rubro) {
 			this.$confirm.require({

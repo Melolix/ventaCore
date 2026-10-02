@@ -42,13 +42,17 @@ export class ProductosService {
 	async create(rubroId: string, espacioId: string, dto: CreateProductoDto): Promise<ProductoEntity> {
 		await this.rubros.findOne(rubroId, espacioId);
 		const entity = this.repo.create({ ...dto, rubroId });
-		return this.repo.save(entity);
+		const saved = await this.repo.save(entity);
+		if (saved.seccion) await this.rubros.addCategorias(rubroId, [saved.seccion]);
+		return saved;
 	}
 
 	async update(id: string, rubroId: string, espacioId: string, dto: UpdateProductoDto): Promise<ProductoEntity> {
 		const producto = await this.findOwned(id, rubroId, espacioId);
 		Object.assign(producto, dto);
-		return this.repo.save(producto);
+		const saved = await this.repo.save(producto);
+		if (saved.seccion) await this.rubros.addCategorias(rubroId, [saved.seccion]);
+		return saved;
 	}
 
 	async remove(id: string, rubroId: string, espacioId: string): Promise<void> {
@@ -64,6 +68,8 @@ export class ProductosService {
 	async batchUpsert(espacioId: string, items: BatchProductoItemDto[]): Promise<BatchProductoResult[]> {
 		const rubrosOk = new Map<string, boolean>();
 		const results: BatchProductoResult[] = [];
+		// Categorías usadas por rubro: las nuevas se suman al menú de la tienda al final.
+		const categorias = new Map<string, Set<string>>();
 
 		for (let index = 0; index < items.length; index++) {
 			const { id, rubroId, ...fields } = items[index];
@@ -83,6 +89,10 @@ export class ProductosService {
 				} else {
 					saved = await this.repo.save(this.repo.create({ ...fields, rubroId }));
 				}
+				if (saved.seccion) {
+					if (!categorias.has(rubroId)) categorias.set(rubroId, new Set());
+					categorias.get(rubroId)?.add(saved.seccion);
+				}
 				results.push({ index, ok: true, id: saved.id, error: null });
 			} catch (e: unknown) {
 				const error = e instanceof Error ? e.message : 'Error al guardar el producto';
@@ -90,6 +100,7 @@ export class ProductosService {
 			}
 		}
 
+		for (const [rubroId, names] of categorias) await this.rubros.addCategorias(rubroId, names);
 		return results;
 	}
 

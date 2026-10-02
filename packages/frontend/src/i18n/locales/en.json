@@ -123,6 +123,8 @@
 		"sector": "Sector",
 		"detailTitle": "Category",
 		"showing": "Showing {n} products",
+		"categories": "Categories",
+		"otherCategory": "Other",
 		"showingScreens": "Showing {n} screenshots",
 		"searchPlaceholder": "Search product...",
 		"noProducts": "This category has no products yet.",
@@ -471,6 +473,11 @@
 				"missing": "{n} missing",
 				"draft": "Draft"
 			},
+			"categoria": {
+				"none": "No category",
+				"useMl": "Use “{name}” (from Mercado Libre)",
+				"bulkHint": "Pick or type the category for the {n} selected. Empty = remove their category."
+			},
 			"bulk": {
 				"asignarRubro": "Assign category",
 				"costoEnLote": "Set cost",
@@ -608,6 +615,18 @@
 			"created": "Category created",
 			"updated": "Category updated",
 			"deleted": "Category deleted",
+			"categorias": {
+				"title": "Catalog categories",
+				"hint": "They are your store's menu, in this order. Changes are saved instantly.",
+				"empty": "No categories yet. Add the first one or assign them from Load products.",
+				"add": "Add",
+				"addPlaceholder": "New category",
+				"rename": "Category name",
+				"up": "Move up",
+				"down": "Move down",
+				"deleteTitle": "Delete category",
+				"deleteConfirm": "Delete “{name}”? Its products are kept: they lose the category and show under \"Other\"."
+			},
 			"editTitle": "Edit Category",
 			"saveChanges": "Save changes",
 			"deleteTitle": "Delete category",

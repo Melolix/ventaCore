@@ -176,6 +176,13 @@
 					/>
 					<Menu ref="priceMenu" :model="priceMenuItems" popup />
 					<Button
+						:label="$t('admin.carga.bulk.asignarRubro')"
+						icon="pi pi-th-large"
+						size="small"
+						text
+						@click="openBulkCategoria"
+					/>
+					<Button
 						:label="$t('admin.carga.bulk.delete')"
 						icon="pi pi-trash"
 						size="small"
@@ -255,13 +262,14 @@
 
 			<!-- Grilla editable (desde md) -->
 			<div class="glass-card quiet hidden overflow-x-auto rounded-2xl md:block">
-				<table class="w-full min-w-[900px] table-fixed text-sm">
+				<table class="w-full min-w-[1040px] table-fixed text-sm">
 					<thead>
 						<tr
 							class="border-b border-surface-200/60 text-left text-[11px] uppercase tracking-wide text-surface-400 dark:border-surface-700/60"
 						>
 							<th class="w-9 px-2 py-2.5"></th>
 							<th class="px-2 py-2.5">{{ $t('admin.carga.cols.producto') }}</th>
+							<th class="w-40 px-2 py-2.5">{{ $t('admin.carga.cols.categoria') }}</th>
 							<th v-if="mlConnected" class="w-28 px-2 py-2.5">{{ $t('admin.carga.cols.categoriaMl') }}</th>
 							<th class="w-32 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.costo') }}</th>
 							<th class="w-20 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.margen') }}</th>
@@ -321,6 +329,30 @@
 										</div>
 									</div>
 								</div>
+							</td>
+							<!-- Categoría del catálogo (menú de la tienda): se elige de la lista o se
+							     escribe una nueva. Si no tiene y el producto trae categoría de ML, la
+							     sugerimos a un toque. -->
+							<td class="px-2 py-2 align-middle">
+								<Select
+									v-model="row.seccion"
+									:options="categoriaOptions"
+									editable
+									show-clear
+									size="small"
+									fluid
+									:placeholder="$t('admin.carga.categoria.none')"
+									@update:model-value="markDirty(row)"
+								/>
+								<button
+									v-if="!row.seccion && row.mlCategoryName"
+									type="button"
+									class="mt-1 block max-w-full truncate text-left text-[11px] font-semibold text-primary hover:underline"
+									:title="$t('admin.carga.categoria.useMl', { name: row.mlCategoryName })"
+									@click="useMlCategoria(row)"
+								>
+									+ {{ row.mlCategoryName }}
+								</button>
 							</td>
 							<td v-if="mlConnected" class="px-2 py-2 align-middle">
 								<button
@@ -499,6 +531,24 @@
 		</Dialog>
 
 		<!-- Dialog: margen en lote ("quiero ganar X%") -->
+		<Dialog v-model:visible="bulkCategoriaVisible" modal :header="$t('admin.carga.bulk.asignarRubro')" class="w-full max-w-sm">
+			<div class="space-y-3 pt-1">
+				<p class="text-sm text-surface-500">{{ $t('admin.carga.categoria.bulkHint', { n: selectedCount }) }}</p>
+				<Select
+					v-model="bulkCategoria"
+					:options="categoriaOptions"
+					editable
+					show-clear
+					fluid
+					:placeholder="$t('admin.carga.categoria.none')"
+				/>
+			</div>
+			<template #footer>
+				<Button :label="$t('common.cancel')" text @click="bulkCategoriaVisible = false" />
+				<Button :label="$t('common.apply')" @click="applyBulkCategoria" />
+			</template>
+		</Dialog>
+
 		<Dialog v-model:visible="bulkMargenVisible" modal :header="$t('admin.carga.bulk.margen')" class="w-full max-w-sm">
 			<div class="space-y-4 pt-1">
 				<p class="text-sm text-surface-500">{{ $t('admin.carga.bulk.margenHint') }}</p>
@@ -848,6 +898,28 @@
 					</div>
 				</div>
 
+				<!-- Categoría del catálogo (menú de la tienda) -->
+				<div class="space-y-1">
+					<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.categoria') }}</label>
+					<Select
+						v-model="sheetRow.seccion"
+						:options="categoriaOptions"
+						editable
+						show-clear
+						fluid
+						:placeholder="$t('admin.carga.categoria.none')"
+						@update:model-value="markDirty(sheetRow)"
+					/>
+					<button
+						v-if="!sheetRow.seccion && sheetRow.mlCategoryName"
+						type="button"
+						class="block max-w-full truncate text-left text-xs font-semibold text-primary"
+						@click="useMlCategoria(sheetRow)"
+					>
+						{{ $t('admin.carga.categoria.useMl', { name: sheetRow.mlCategoryName }) }}
+					</button>
+				</div>
+
 				<!-- Categoría de ML -->
 				<div
 					v-if="mlConnected"
@@ -954,6 +1026,8 @@ interface Row {
 	rubroId: string;
 	nombre: string;
 	descripcion: string;
+	/** Categoría del catálogo (menú de la tienda). null/'' = sin categoría. */
+	seccion: string | null;
 	precio: number | null;
 	precioCosto: number | null;
 	/** Margen (%) sobre el costo con el que se arma el precio de tienda. */
@@ -1014,6 +1088,8 @@ export default defineComponent({
 			bulkPrecio: null as number | null,
 			// Margen en lote ("quiero ganar X%")
 			bulkMargenVisible: false,
+			bulkCategoriaVisible: false,
+			bulkCategoria: null as string | null,
 			bulkMargen: 40 as number | null,
 			// Aumento % del costo (inflación)
 			bulkCostoUpVisible: false,
@@ -1188,10 +1264,28 @@ export default defineComponent({
 				{ label: this.$t('admin.carga.bulk.precioEnLote'), icon: 'pi pi-dollar', command: () => { this.bulkPrecioVisible = true; } },
 			];
 		},
+		/**
+		 * Categorías para elegir: las del rubro (en su orden) + las que ya están
+		 * escritas en filas sin guardar. Se puede tipear una nueva.
+		 */
+		categoriaOptions(): string[] {
+			const rubro = this.catalog.rubros.find(r => r.id === this.selectedRubroId);
+			const out = [...(rubro?.categorias ?? [])];
+			const seen = new Set(out.map(c => c.toLowerCase()));
+			for (const row of this.visibleRows) {
+				const name = row.seccion?.trim();
+				if (name && !seen.has(name.toLowerCase())) {
+					seen.add(name.toLowerCase());
+					out.push(name);
+				}
+			}
+			return out;
+		},
 		/** Menú "⋯" del lote en mobile: ajustes de precio + eliminar + deseleccionar. */
 		bulkMenuItems(): MenuItem[] {
 			return [
 				...this.priceMenuItems,
+				{ label: this.$t('admin.carga.bulk.asignarRubro'), icon: 'pi pi-th-large', command: () => this.openBulkCategoria() },
 				{ separator: true },
 				{ label: this.$t('admin.carga.bulk.delete'), icon: 'pi pi-trash', class: 'text-red-500', command: () => { this.bulkDeleteVisible = true; } },
 				{ label: this.$t('admin.carga.bulk.clearSelection'), icon: 'pi pi-times', command: () => this.clearSelection() },
@@ -1306,6 +1400,7 @@ export default defineComponent({
 				rubroId: p.rubroId,
 				nombre: p.nombre,
 				descripcion: p.descripcion ?? '',
+				seccion: p.seccion ?? null,
 				precio: p.precio,
 				precioCosto: p.precioCosto,
 				margen: p.margen,
@@ -1333,6 +1428,7 @@ export default defineComponent({
 				rubroId: this.selectedRubroId,
 				nombre: '',
 				descripcion: '',
+				seccion: null,
 				precio: null,
 				precioCosto: null,
 				margen: null,
@@ -1537,6 +1633,27 @@ export default defineComponent({
 		},
 
 		// ── Margen en lote: precio = costo * (1 + margen%) sobre las seleccionadas ──
+		/** Usa la categoría de Mercado Libre del producto como categoría del catálogo. */
+		useMlCategoria(row: Row) {
+			if (!row.mlCategoryName) return;
+			row.seccion = row.mlCategoryName;
+			this.markDirty(row);
+		},
+		openBulkCategoria() {
+			this.bulkCategoria = null;
+			this.bulkCategoriaVisible = true;
+		},
+		/** Asigna (o quita, si queda vacío) la categoría a los seleccionados. */
+		applyBulkCategoria() {
+			const name = this.bulkCategoria?.trim() || null;
+			for (const row of this.gridRows) {
+				if (!row.selected) continue;
+				row.seccion = name;
+				row.dirty = true;
+			}
+			this.dirty = true;
+			this.bulkCategoriaVisible = false;
+		},
 		applyBulkMargen() {
 			if (this.bulkMargen == null) return;
 			const factor = 1 + this.bulkMargen / 100;
@@ -1606,6 +1723,8 @@ export default defineComponent({
 				rubroId: r.rubroId,
 				nombre: r.nombre.trim(),
 				descripcion: r.descripcion.trim() || undefined,
+				// null explícito: permite QUITAR la categoría (undefined no la tocaría).
+				seccion: r.seccion?.trim() || null,
 				precio: r.precio ?? undefined,
 				precioCosto: r.precioCosto ?? undefined,
 				margen: r.margen ?? undefined,
@@ -1637,6 +1756,8 @@ export default defineComponent({
 				row.id = res.id;
 				row.dirty = false;
 				this.dirty = this.rows.some(r => r.dirty);
+				// El servidor suma las categorías nuevas a la lista del rubro: la refrescamos.
+				void this.catalog.fetchRubros().catch(() => undefined);
 				// Si ya está publicado en ML, empujamos el cambio (precio/stock/descripción)
 				// a la publicación: así editar acá se refleja en Mercado Libre.
 				let synced = false;
@@ -1692,6 +1813,8 @@ export default defineComponent({
 				});
 				// El indicador global refleja si quedó alguna fila sin guardar.
 				this.dirty = this.rows.some(r => r.dirty);
+				// El servidor suma las categorías nuevas a la lista del rubro: la refrescamos.
+				void this.catalog.fetchRubros().catch(() => undefined);
 
 				// Los que ya están publicados: empujamos el cambio a Mercado Libre.
 				let synced = 0;

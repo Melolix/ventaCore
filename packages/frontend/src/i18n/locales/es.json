@@ -123,6 +123,8 @@
 		"sector": "Sector",
 		"detailTitle": "Rubro",
 		"showing": "Mostrando {n} productos",
+		"categories": "Categorías",
+		"otherCategory": "Otros",
 		"showingScreens": "Mostrando {n} capturas",
 		"searchPlaceholder": "Buscar producto...",
 		"noProducts": "Este rubro todavía no tiene productos.",
@@ -471,6 +473,11 @@
 				"missing": "Faltan {n}",
 				"draft": "Borrador"
 			},
+			"categoria": {
+				"none": "Sin categoría",
+				"useMl": "Usar «{name}» (de Mercado Libre)",
+				"bulkHint": "Elegí o escribí la categoría para los {n} seleccionados. Vacío = quitarles la categoría."
+			},
 			"bulk": {
 				"asignarRubro": "Asignar categoría",
 				"costoEnLote": "Poner costo",
@@ -608,6 +615,18 @@
 			"created": "Rubro creado",
 			"updated": "Rubro actualizado",
 			"deleted": "Rubro eliminado",
+			"categorias": {
+				"title": "Categorías del catálogo",
+				"hint": "Son el menú de tu tienda, en este orden. Los cambios se guardan al instante.",
+				"empty": "Todavía no hay categorías. Agregá la primera o asignalas desde Cargar productos.",
+				"add": "Agregar",
+				"addPlaceholder": "Nueva categoría",
+				"rename": "Nombre de la categoría",
+				"up": "Subir",
+				"down": "Bajar",
+				"deleteTitle": "Borrar categoría",
+				"deleteConfirm": "¿Borrar «{name}»? Sus productos no se borran: quedan sin categoría y aparecen en \"Otros\"."
+			},
 			"editTitle": "Editar Rubro",
 			"saveChanges": "Guardar cambios",
 			"deleteTitle": "Eliminar rubro",

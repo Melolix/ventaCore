@@ -64,6 +64,7 @@ export type RubroInput = Partial<
 		| 'descripcion'
 		| 'imageUrl'
 		| 'imageFocus'
+		| 'categorias'
 		| 'logoUrl'
 		| 'instagramUrl'
 		| 'platforms'
@@ -138,6 +139,14 @@ export const useCatalogStore = defineStore('catalog', {
 				if (prev.imageUrl !== data.imageUrl) void deleteImage(prev.imageUrl);
 				if (prev.logoUrl !== data.logoUrl) void deleteImage(prev.logoUrl);
 			}
+			return data;
+		},
+
+		/** Renombra (o borra, con `to` vacío) una categoría del rubro y la de sus productos. */
+		async renameCategoria(id: string, from: string, to: string): Promise<Rubro> {
+			const { data } = await api.post<Rubro>(`/rubros/${id}/categorias/rename`, { from, to });
+			const i = this.rubros.findIndex(r => r.id === id);
+			if (i !== -1) this.rubros[i] = data;
 			return data;
 		},
 

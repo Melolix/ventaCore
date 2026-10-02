@@ -108,9 +108,47 @@
 				{{ isApps ? $t('public.noScreens') : $t('public.noProducts') }}
 			</div>
 
-			<div v-else class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3">
+			<!-- Con categorías: menú a la izquierda (lg+) o tira fija arriba (mobile) y
+			     los productos agrupados por categoría. Sin categorías (o en apps): un
+			     solo grupo sin título, igual que antes. -->
+			<div v-else :class="showCategorias ? 'lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8' : ''">
+				<nav
+					v-if="showCategorias"
+					ref="catNav"
+					class="cat-nav sticky top-16 z-30 -mx-6 mb-5 flex gap-2 overflow-x-auto border-b border-surface-200/70 bg-surface-50/95 px-6 py-2.5 backdrop-blur lg:top-24 lg:mx-0 lg:mb-0 lg:max-h-[calc(100dvh-7.5rem)] lg:flex-col lg:gap-1 lg:self-start lg:overflow-y-auto lg:overflow-x-hidden lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:border-surface-700/70 dark:bg-surface-950/95 lg:dark:bg-transparent"
+					:aria-label="$t('public.categories')"
+				>
+					<p class="mb-1 hidden px-3 text-[11px] font-bold uppercase tracking-widest text-surface-400 lg:block">{{ $t('public.categories') }}</p>
+					<button
+						v-for="g in groups"
+						:key="g.key"
+						type="button"
+						:data-cat="g.key"
+						class="flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors lg:w-full lg:whitespace-normal lg:rounded-xl lg:border-0 lg:px-3 lg:py-2 lg:text-left"
+						:class="activeCat === g.key
+							? 'border-primary bg-primary text-primary-contrast lg:bg-primary/10 lg:text-primary'
+							: 'border-surface-200 bg-surface-0 text-surface-600 hover:text-primary dark:border-surface-700 dark:bg-surface-900 dark:text-surface-300 lg:bg-transparent lg:hover:bg-surface-100 lg:dark:bg-transparent lg:dark:hover:bg-surface-800'"
+						:aria-current="activeCat === g.key ? 'true' : undefined"
+						@click="goToCat(g.key)"
+					>
+						<span class="min-w-0 lg:truncate">{{ g.label }}</span>
+						<span class="hidden text-xs font-medium opacity-60 lg:inline">{{ g.items.length }}</span>
+					</button>
+				</nav>
+				<div class="min-w-0 space-y-10">
+				<section
+					v-for="g in groups"
+					:key="g.key"
+					:data-cat-section="g.key"
+					class="scroll-mt-32 lg:scroll-mt-24"
+				>
+				<h2 v-if="showCategorias" class="mb-4 flex items-baseline gap-2 text-xl font-extrabold text-surface-900 dark:text-surface-0">
+					{{ g.label }}
+					<span class="text-sm font-medium text-surface-400">{{ g.items.length }}</span>
+				</h2>
+				<div class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3">
 				<div
-					v-for="producto in filtered"
+					v-for="producto in g.items"
 					:key="producto.id"
 					class="glass-card group flex flex-col overflow-hidden rounded-2xl transition-all hover:scale-[1.02]"
 				>
@@ -207,6 +245,9 @@
 						</template>
 					</div>
 				</div>
+				</div>
+				</section>
+				</div>
 			</div>
 		</div>
 
@@ -250,6 +291,14 @@ import { useUserStore } from '@/modules/auth/store/user';
 import { PLATFORM_ICON, effectivePlatforms } from '@/shared/utils/apps';
 
 type SortKey = 'relevance' | 'priceAsc' | 'priceDesc';
+/** Un grupo del catálogo: una categoría con sus productos. */
+interface CatGroup {
+	key: string;
+	label: string;
+	items: Producto[];
+}
+/** Clave del grupo de productos sin categoría. */
+const OTROS_KEY = '__otros';
 interface Download {
 	key: string;
 	url: string;
@@ -276,6 +325,9 @@ export default defineComponent({
 			lightboxVisible: false,
 			lightboxItem: null as Producto | null,
 			activeSeccion: '',
+			/** Categoría resaltada en el menú (la que se está viendo al hacer scroll). */
+			activeCat: '',
+			catObserver: null as IntersectionObserver | null,
 		};
 	},
 	computed: {
@@ -344,6 +396,41 @@ export default defineComponent({
 				{ label: this.$t('public.sort.priceDesc'), value: 'priceDesc' },
 			];
 		},
+		/**
+		 * Productos agrupados por categoría, en el orden del menú que armó el
+		 * vendedor (`rubro.categorias`). Después van las categorías que usan los
+		 * productos pero no están en la lista, y al final "Otros" (sin categoría).
+		 * Solo grupos con productos (el buscador los achica). En apps: un grupo.
+		 */
+		groups(): CatGroup[] {
+			if (this.isApps) return [{ key: 'all', label: '', items: this.filtered }];
+			const norm = (s: string | null | undefined) => (s ?? '').trim().toLowerCase();
+			const order: { key: string; label: string }[] = (this.rubro?.categorias ?? []).map(c => ({ key: norm(c), label: c.trim() }));
+			const known = new Set(order.map(o => o.key));
+			const buckets = new Map<string, Producto[]>();
+			for (const p of this.filtered) {
+				const key = norm(p.seccion);
+				if (key && !known.has(key)) {
+					known.add(key);
+					order.push({ key, label: (p.seccion ?? '').trim() });
+				}
+				const list = buckets.get(key);
+				if (list) list.push(p);
+				else buckets.set(key, [p]);
+			}
+			const out: CatGroup[] = [];
+			for (const o of order) {
+				const items = buckets.get(o.key);
+				if (items?.length) out.push({ key: o.key, label: o.label, items });
+			}
+			const sin = buckets.get('');
+			if (sin?.length) out.push({ key: OTROS_KEY, label: this.$t('public.otherCategory'), items: sin });
+			return out;
+		},
+		/** Hay menú de categorías si el catálogo (sin filtrar) usa al menos una. */
+		showCategorias(): boolean {
+			return !this.isApps && this.catalog.publicProductos.some(p => (p.seccion ?? '').trim());
+		},
 		filtered(): Producto[] {
 			const term = this.search.trim().toLowerCase();
 			let list = this.catalog.publicProductos.filter(p => !term || p.nombre.toLowerCase().includes(term));
@@ -355,6 +442,15 @@ export default defineComponent({
 			}
 			return list;
 		},
+	},
+	watch: {
+		// Las secciones cambian con el buscador/orden: re-enganchamos el seguimiento.
+		groups() {
+			this.$nextTick(() => this.observeSections());
+		},
+	},
+	beforeUnmount() {
+		this.catObserver?.disconnect();
 	},
 	async created() {
 		this.loading = true;
@@ -373,9 +469,50 @@ export default defineComponent({
 			if (!this.isHome) this.goBack();
 		} finally {
 			this.loading = false;
+			// Las secciones recién existen en el DOM cuando termina la carga.
+			this.$nextTick(() => this.observeSections());
 		}
 	},
 	methods: {
+		/** Baja hasta la sección de esa categoría. */
+		goToCat(key: string) {
+			this.activeCat = key;
+			const el = this.$el.querySelector(`[data-cat-section="${CSS.escape(key)}"]`) as HTMLElement | null;
+			el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		},
+		/**
+		 * Marca en el menú la categoría que se está viendo. En mobile además trae
+		 * su chip a la vista dentro de la tira (la tira scrollea sola, la página no).
+		 */
+		observeSections() {
+			this.catObserver?.disconnect();
+			if (!this.showCategorias) return;
+			const sections = [...this.$el.querySelectorAll('[data-cat-section]')] as HTMLElement[];
+			if (!sections.length) return;
+			if (!sections.some(s => s.dataset.catSection === this.activeCat)) this.activeCat = sections[0].dataset.catSection ?? '';
+			// El observer solo avisa de las secciones que CAMBIAN: llevamos la cuenta de
+			// cuáles están en la franja y la activa es la primera de ellas (orden del DOM).
+			const visible = new Set<Element>();
+			this.catObserver = new IntersectionObserver(
+				entries => {
+					for (const e of entries) {
+						if (e.isIntersecting) visible.add(e.target);
+						else visible.delete(e.target);
+					}
+					const top = sections.find(s => visible.has(s));
+					if (!top) return;
+					this.activeCat = top.dataset.catSection ?? '';
+					const nav = this.$refs.catNav as HTMLElement | undefined;
+					const chip = nav?.querySelector(`[data-cat="${CSS.escape(this.activeCat)}"]`) as HTMLElement | null;
+					if (nav && chip && nav.scrollWidth > nav.clientWidth) {
+						nav.scrollTo({ left: chip.offsetLeft - nav.clientWidth / 2 + chip.clientWidth / 2, behavior: 'smooth' });
+					}
+				},
+				// Franja de "lectura": debajo del header + menú fijos, mitad superior de la pantalla.
+				{ rootMargin: '-140px 0px -55% 0px' },
+			);
+			for (const s of sections) this.catObserver.observe(s);
+		},
 		goBack() {
 			this.$router.push('/');
 		},
@@ -405,3 +542,13 @@ export default defineComponent({
 	},
 });
 </script>
+
+<style scoped>
+/* La tira de categorías (mobile) se desliza con el dedo, sin barra a la vista. */
+.cat-nav {
+	scrollbar-width: none;
+}
+.cat-nav::-webkit-scrollbar {
+	display: none;
+}
+</style>
