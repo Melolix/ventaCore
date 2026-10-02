@@ -37,13 +37,24 @@ export class EnviaService {
 		private readonly rubros: Repository<RubroEntity>,
 	) {}
 
+	/**
+	 * Entorno de PRUEBAS de envia (`ENVIA_SANDBOX=true`, lo normal en desarrollo):
+	 * otros hosts y otro token. Ahí se cotiza y se generan etiquetas sin gastar
+	 * saldo. Los tokens no se cruzan: el de pruebas no sirve en producción ni al revés.
+	 */
+	get sandbox(): boolean {
+		return process.env.ENVIA_SANDBOX === 'true';
+	}
 	private get apiHost(): string {
+		if (this.sandbox) return 'https://api-test.envia.com';
 		return baseUrl(process.env.ENVIA_API_HOST, 'https://api.envia.com');
 	}
 	private get queriesHost(): string {
+		if (this.sandbox) return 'https://queries-test.envia.com';
 		return baseUrl(process.env.ENVIA_QUERIES_HOST, 'https://queries.envia.com');
 	}
 	private get platformToken(): string | null {
+		if (this.sandbox) return (process.env.ENVIA_TOKEN_PRUEBA ?? process.env.envia_token_prueba)?.trim() || null;
 		return process.env.ENVIA_TOKEN?.trim() || null;
 	}
 
@@ -115,7 +126,9 @@ export class EnviaService {
 		});
 		const body = {
 			origin: address(origen.nombre, origen.telefono, origen),
-			destination: address('Cliente', '', destino),
+			// Al cotizar todavía no hay datos del cliente; algunos transportistas (DHL)
+			// exigen un teléfono en el destino, así que va el del despacho de relleno.
+			destination: address('Cliente', origen.telefono, destino),
 			packages: [
 				{
 					content: 'Productos',
