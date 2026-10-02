@@ -177,7 +177,7 @@
 			</nav>
 		</header>
 
-		<main class="mx-auto max-w-7xl p-6">
+		<main class="mx-auto max-w-7xl p-4 sm:p-6">
 			<router-view v-if="ready" />
 			<div v-else class="py-24 text-center text-surface-400">
 				<i class="pi pi-spin pi-spinner text-3xl" />

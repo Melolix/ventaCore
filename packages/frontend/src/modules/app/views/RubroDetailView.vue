@@ -1,7 +1,12 @@
 <template>
 	<div>
 		<!-- Hero del rubro (3:1 en desktop → coincide con el recorte de la portada) -->
-		<section class="relative mb-10 min-h-[18rem] overflow-hidden rounded-[2rem] md:min-h-0 md:aspect-[3/1]">
+		<!-- En el celu el hero del catálogo es bajo (alto = su contenido) para que los
+		     productos asomen sin scrollear; en apps conserva el alto por los botones. -->
+		<section
+			class="relative mb-5 overflow-hidden rounded-3xl md:mb-10 md:min-h-0 md:rounded-[2rem] md:aspect-[3/1]"
+			:class="isApps ? 'min-h-[18rem]' : ''"
+		>
 			<div
 				class="absolute inset-0 bg-cover bg-center"
 				:style="rubro?.imageUrl ? { backgroundImage: `url('${rubro.imageUrl}')`, backgroundPosition: rubro.imageFocus || undefined } : {}"
@@ -14,7 +19,7 @@
 					:class="isApps ? 'bg-gradient-to-r from-black/80 via-black/60 to-black/40' : 'bg-gradient-to-r from-black/70 to-black/10'"
 				/>
 			</div>
-			<div class="relative flex h-full flex-col justify-center gap-3 p-8 md:p-12">
+			<div class="relative flex h-full flex-col justify-center gap-2 p-5 md:gap-3 md:p-12">
 				<!-- En modo "home" (negocio de un solo rubro) esta vista ES la vitrina:
 				     no hay a dónde "volver" ni sentido en la etiqueta de sector. -->
 				<Button
@@ -22,25 +27,36 @@
 					:label="$t('public.back')"
 					icon="pi pi-arrow-left"
 					text
-					class="w-fit !text-white"
+					size="small"
+					class="-ml-2 w-fit !text-white"
 					@click="goBack"
 				/>
-				<span v-if="!isHome" class="flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 backdrop-blur-md">
+				<span
+					v-if="!isHome"
+					class="w-fit items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 backdrop-blur-md"
+					:class="isApps ? 'flex' : 'hidden md:flex'"
+				>
 					<i :class="isApps ? 'pi pi-th-large' : 'pi pi-tag'" class="text-sm text-white" />
 					<span class="text-xs font-bold uppercase tracking-wide text-white">{{ isApps ? $t('public.app') : $t('public.sector') }}</span>
 				</span>
-				<div class="flex items-center gap-4">
+				<div class="flex items-center gap-3 md:gap-4">
 					<div
 						v-if="rubro?.logoUrl"
-						class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/20 shadow-lg md:h-16 md:w-16"
+						class="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-white/20 shadow-lg md:h-16 md:w-16 md:rounded-2xl"
 					>
 						<img :src="rubro.logoUrl" :alt="rubro?.nombre" class="h-full w-full object-cover" />
 					</div>
-					<h1 class="max-w-2xl text-3xl font-extrabold leading-tight text-white md:text-4xl">
+					<h1 class="max-w-2xl text-2xl font-extrabold leading-tight text-white md:text-4xl">
 						{{ rubro?.nombre || $t('public.detailTitle') }}
 					</h1>
 				</div>
-				<p v-if="rubro?.descripcion" class="max-w-xl text-white/85">{{ rubro.descripcion }}</p>
+				<p
+					v-if="rubro?.descripcion"
+					class="max-w-xl text-sm text-white/85 md:text-base"
+					:class="isApps ? '' : 'line-clamp-2 md:line-clamp-none'"
+				>
+					{{ rubro.descripcion }}
+				</p>
 				<div v-if="isApps" class="mt-3 flex flex-col gap-3">
 					<!-- Plataformas disponibles -->
 					<div v-if="appPlatforms.length" class="flex items-center gap-3 text-white/80">
@@ -86,16 +102,17 @@
 			</div>
 
 			<!-- Filtros -->
-			<div class="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-				<p class="text-surface-600 dark:text-surface-300">
+			<div class="mb-4 flex flex-wrap items-center justify-between gap-3 md:mb-8">
+				<p class="text-surface-600 dark:text-surface-300" :class="isApps ? '' : 'hidden md:block'">
 					{{ isApps ? $t('public.showingScreens', { n: filtered.length }) : $t('public.showing', { n: filtered.length }) }}
 				</p>
-				<div v-if="!isApps" class="flex flex-col gap-3 sm:flex-row">
-					<IconField>
+				<!-- Mobile: buscador y orden en una sola fila (el buscador se estira). -->
+				<div v-if="!isApps" class="flex w-full min-w-0 gap-2 md:w-auto">
+					<IconField class="min-w-0 flex-1">
 						<InputIcon class="pi pi-search" />
-						<InputText v-model="search" :placeholder="$t('public.searchPlaceholder')" class="w-full sm:w-64" />
+						<InputText v-model="search" :placeholder="$t('public.searchPlaceholder')" class="w-full md:w-64" />
 					</IconField>
-					<Select v-model="sort" :options="sortOptions" option-label="label" option-value="value" class="w-full sm:w-56" />
+					<Select v-model="sort" :options="sortOptions" option-label="label" option-value="value" class="w-36 shrink-0 sm:w-56" />
 				</div>
 			</div>
 
@@ -115,7 +132,7 @@
 				<nav
 					v-if="showCategorias"
 					ref="catNav"
-					class="cat-nav sticky top-16 z-30 -mx-6 mb-5 flex gap-2 overflow-x-auto border-b border-surface-200/70 bg-surface-50/95 px-6 py-2.5 backdrop-blur lg:top-24 lg:mx-0 lg:mb-0 lg:max-h-[calc(100dvh-7.5rem)] lg:flex-col lg:gap-1 lg:self-start lg:overflow-y-auto lg:overflow-x-hidden lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:border-surface-700/70 dark:bg-surface-950/95 lg:dark:bg-transparent"
+					class="cat-nav sticky top-16 z-30 -mx-4 mb-5 flex gap-2 overflow-x-auto border-b border-surface-200/70 bg-surface-50/95 px-4 py-2.5 sm:-mx-6 sm:px-6 backdrop-blur lg:top-24 lg:mx-0 lg:mb-0 lg:max-h-[calc(100dvh-7.5rem)] lg:flex-col lg:gap-1 lg:self-start lg:overflow-y-auto lg:overflow-x-hidden lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:border-surface-700/70 dark:bg-surface-950/95 lg:dark:bg-transparent"
 					:aria-label="$t('public.categories')"
 				>
 					<p class="mb-1 hidden px-3 text-[11px] font-bold uppercase tracking-widest text-surface-400 lg:block">{{ $t('public.categories') }}</p>
@@ -146,21 +163,17 @@
 					{{ g.label }}
 					<span class="text-sm font-medium text-surface-400">{{ g.items.length }}</span>
 				</h2>
-				<div class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3">
-				<div
-					v-for="producto in g.items"
-					:key="producto.id"
-					class="glass-card group flex flex-col overflow-hidden rounded-2xl transition-all hover:scale-[1.02]"
-				>
+				<!-- Apps: las "cards" son capturas grandes (se amplían en el lightbox). -->
+				<div v-if="isApps" class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3">
 					<div
-						class="relative overflow-hidden bg-surface-100 dark:bg-surface-800"
-						:class="isApps ? 'h-72' : 'h-56'"
+						v-for="producto in g.items"
+						:key="producto.id"
+						class="glass-card group flex flex-col overflow-hidden rounded-2xl transition-all hover:scale-[1.02]"
 					>
-						<template v-if="producto.imageUrl">
-							<!-- Apps: la captura se ve ENTERA (contain) sobre un fondo blur de sí
-							     misma → sirve igual para capturas de escritorio (apaisadas) y de
-							     celular (verticales), sin recortes feos. -->
-							<template v-if="isApps">
+						<div class="relative h-72 overflow-hidden bg-surface-100 dark:bg-surface-800">
+							<!-- La captura se ve ENTERA (contain) sobre un fondo blur de sí misma →
+							     sirve igual para capturas de escritorio (apaisadas) y de celular. -->
+							<template v-if="producto.imageUrl">
 								<div
 									class="absolute inset-0 scale-110 bg-cover bg-center opacity-40 blur-2xl"
 									:style="{ backgroundImage: `url('${producto.imageUrl}')` }"
@@ -171,12 +184,42 @@
 									class="relative h-full w-full cursor-zoom-in object-contain transition-transform duration-500 group-hover:scale-105"
 									@click="openLightbox(producto)"
 								/>
+								<button
+									type="button"
+									class="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100"
+									:aria-label="$t('public.viewFull')"
+									@click="openLightbox(producto)"
+								>
+									<i class="pi pi-search-plus" />
+								</button>
 							</template>
-							<!-- Catálogo: la foto entra ENTERA (contain) sobre un fondo borroso de
-							     sí misma. Las fotos que cargan los clientes vienen con cualquier
-							     relación de aspecto (collages, verticales, con carteles): así no se
-							     recorta nada y el marco queda uniforme entre todas las cards. -->
-							<template v-else>
+							<div v-else class="flex h-full w-full items-center justify-center text-surface-400">
+								<i class="pi pi-image text-4xl" />
+							</div>
+						</div>
+						<div class="flex flex-1 flex-col p-6">
+							<h3 class="mb-2 line-clamp-2 text-lg font-bold text-surface-900 dark:text-surface-0" :title="producto.nombre">
+								{{ producto.nombre }}
+							</h3>
+							<p class="line-clamp-4 flex-1 text-sm text-surface-500">{{ producto.descripcion || '' }}</p>
+						</div>
+					</div>
+				</div>
+
+				<!-- Catálogo: cards compactas (2 por fila en el celu). Toda la card abre el
+				     producto; el botón consulta directo por WhatsApp. -->
+				<div v-else class="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
+					<article
+						v-for="producto in g.items"
+						:key="producto.id"
+						class="glass-card group flex cursor-pointer flex-col overflow-hidden rounded-2xl transition-shadow hover:shadow-xl hover:shadow-primary/10"
+						@click="openProducto(producto)"
+					>
+						<div class="relative aspect-square overflow-hidden bg-surface-100 dark:bg-surface-800">
+							<!-- La foto entra ENTERA (contain) sobre un fondo borroso de sí misma: las
+							     fotos de los clientes vienen con cualquier proporción (collages,
+							     verticales) y así no se recorta nada y el marco queda parejo. -->
+							<template v-if="producto.imageUrl">
 								<div
 									class="absolute inset-0 scale-110 bg-cover bg-center opacity-40 blur-2xl"
 									:style="{ backgroundImage: `url('${producto.imageUrl}')` }"
@@ -184,72 +227,142 @@
 								<img
 									:src="producto.imageUrl"
 									:alt="producto.nombre"
+									loading="lazy"
 									class="relative h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
 								/>
 							</template>
-						</template>
-						<div v-else class="flex h-full w-full items-center justify-center text-surface-400">
-							<i :class="isApps ? 'pi pi-image' : 'pi pi-shopping-bag'" class="text-4xl" />
+							<div v-else class="flex h-full w-full items-center justify-center text-surface-400">
+								<i class="pi pi-shopping-bag text-3xl" />
+							</div>
+							<!-- Stock escrito (no solo color): "Sin stock" / "Quedan 2". -->
+							<span
+								v-if="stockTag(producto)"
+								class="absolute left-2 top-2 rounded-md px-1.5 py-0.5 text-[10px] font-bold"
+								:class="stockTag(producto)?.cls"
+							>{{ stockTag(producto)?.label }}</span>
 						</div>
-						<!-- Precio siempre presente para que todas las cards alineen igual:
-						     si el producto no tiene precio, mostramos "Consultar precio". -->
-						<span
-							v-if="!isApps"
-							class="absolute right-4 top-4 rounded-full px-3 py-1 shadow-sm backdrop-blur-sm"
-							:class="producto.precio != null
-								? 'bg-white/90 font-bold text-primary dark:bg-surface-900/80'
-								: 'bg-surface-900/70 text-xs font-semibold text-white/90'"
-						>
-							{{ producto.precio != null ? formatPrice(producto.precio) : $t('public.consultPrice') }}
-						</span>
-						<!-- Apps: hint de "ampliar" (abre el lightbox) -->
-						<button
-							v-if="isApps && producto.imageUrl"
-							type="button"
-							class="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100"
-							:aria-label="$t('public.viewFull')"
-							@click="openLightbox(producto)"
-						>
-							<i class="pi pi-search-plus" />
-						</button>
-					</div>
-					<div class="flex flex-1 flex-col p-6">
-						<!-- line-clamp-2: los títulos largos (típicos de import de ML) se cortan
-						     en 2 líneas con "…" → cards parejas. El texto completo, en el title. -->
-						<h3 class="mb-2 line-clamp-2 text-lg font-bold text-surface-900 dark:text-surface-0" :title="producto.nombre">
-							{{ producto.nombre }}
-						</h3>
-						<p class="flex-1 text-sm text-surface-500" :class="isApps ? 'line-clamp-4' : 'mb-4 line-clamp-2'">
-							{{ producto.descripcion || '' }}
-						</p>
-						<!-- En apps las cards son capturas: sin botones (la descarga va en el hero). -->
-						<template v-if="!isApps">
-							<!-- Admin logueado: publicar (por ahora abre el Instagram del rubro) -->
-							<Button
-								v-if="isAdmin"
-								:label="$t('public.generateAd')"
-								icon="pi pi-instagram"
-								:disabled="!rubro?.instagramUrl"
-								:title="rubro?.instagramUrl ? '' : $t('public.noInstagram')"
-								class="primary-gradient mt-auto w-full border-0 py-2.5 font-semibold text-white"
-								@click="publicar"
-							/>
-							<!-- Cliente/visitante: consultar al vendedor por WhatsApp -->
-							<Button
-								v-else-if="espacio?.whatsapp"
-								:label="$t('public.consultWhatsapp')"
-								icon="pi pi-whatsapp"
-								class="primary-gradient mt-auto w-full border-0 py-2.5 font-semibold text-white"
-								@click="consultarWhatsapp(producto)"
-							/>
-						</template>
-					</div>
-				</div>
+						<div class="flex flex-1 flex-col gap-1 p-3 sm:p-4">
+							<!-- 2 líneas fijas: los títulos largos (típicos de ML) se cortan con "…"
+							     y todas las cards quedan del mismo alto. -->
+							<h3
+								class="line-clamp-2 min-h-[2.5em] text-[13px] font-semibold leading-tight text-surface-900 sm:text-sm dark:text-surface-0"
+								:title="producto.nombre"
+							>
+								{{ producto.nombre }}
+							</h3>
+							<p v-if="producto.precio != null" class="text-base font-extrabold tabular-nums text-surface-900 sm:text-lg dark:text-surface-0">
+								{{ formatPrice(producto.precio) }}
+							</p>
+							<p v-else class="py-0.5 text-xs font-semibold text-surface-400 sm:py-1">{{ $t('public.consultPrice') }}</p>
+							<button
+								v-if="espacio?.whatsapp"
+								type="button"
+								class="mt-auto flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-primary/40 px-2 text-xs font-bold text-primary transition-colors hover:bg-primary/10"
+								@click.stop="consultarWhatsapp(producto)"
+							>
+								<i class="pi pi-whatsapp text-sm" /> {{ $t('public.consult') }}
+							</button>
+						</div>
+					</article>
 				</div>
 				</section>
 				</div>
 			</div>
 		</div>
+
+		<!-- Producto: fotos, descripción completa y consulta. En el celu ocupa toda la
+		     pantalla. Se abre con ?p=<id> en la URL → el botón "atrás" lo cierra y el
+		     link se puede compartir. -->
+		<Dialog
+			:visible="!!detail"
+			modal
+			dismissable-mask
+			block-scroll
+			:show-header="false"
+			class="w-full max-w-4xl"
+			:pt="{
+				root: { class: 'max-md:!m-0 max-md:!h-full max-md:!max-h-full max-md:!rounded-none' },
+				content: { class: '!p-0 md:!rounded-2xl max-md:!rounded-none max-md:h-full' },
+			}"
+			@update:visible="onDetailVisible"
+		>
+			<div v-if="detail" class="relative flex min-h-full flex-col md:grid md:min-h-0 md:grid-cols-2">
+				<button
+					type="button"
+					class="absolute left-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75 md:left-auto md:right-3"
+					:aria-label="$t('public.back')"
+					@click="closeProducto"
+				>
+					<span class="md:hidden"><i class="pi pi-arrow-left" /></span>
+					<span class="hidden md:inline"><i class="pi pi-times" /></span>
+				</button>
+				<!-- Galería -->
+				<div class="flex flex-col gap-2 bg-surface-100 md:p-4 dark:bg-surface-800">
+					<div class="relative aspect-square overflow-hidden md:rounded-xl">
+						<template v-if="detailImages.length">
+							<div
+								class="absolute inset-0 scale-110 bg-cover bg-center opacity-40 blur-2xl"
+								:style="{ backgroundImage: `url('${detailImages[detailImg]}')` }"
+							/>
+							<img :src="detailImages[detailImg]" :alt="detail.nombre" class="relative h-full w-full object-contain" />
+						</template>
+						<div v-else class="flex h-full w-full items-center justify-center text-surface-400">
+							<i class="pi pi-shopping-bag text-5xl" />
+						</div>
+					</div>
+					<div v-if="detailImages.length > 1" class="flex flex-wrap gap-2 px-3 pb-3 md:px-0 md:pb-0">
+						<button
+							v-for="(img, i) in detailImages"
+							:key="img"
+							type="button"
+							class="h-14 w-14 overflow-hidden rounded-lg border-2 transition-opacity"
+							:class="i === detailImg ? 'border-primary' : 'border-transparent opacity-60 hover:opacity-100'"
+							:aria-label="$t('public.photoN', { n: i + 1 })"
+							@click="detailImg = i"
+						>
+							<img :src="img" class="h-full w-full object-cover" alt="" />
+						</button>
+					</div>
+				</div>
+				<!-- Datos -->
+				<div class="flex flex-1 flex-col gap-3 p-5 md:max-h-[80vh] md:overflow-y-auto md:p-7">
+					<span
+						v-if="detail.seccion"
+						class="w-fit rounded-full border border-surface-200 px-2.5 py-0.5 text-xs font-semibold text-surface-500 dark:border-surface-700"
+					>{{ detail.seccion }}</span>
+					<h2 class="text-xl font-extrabold leading-tight text-surface-900 md:pr-10 md:text-2xl dark:text-surface-0">{{ detail.nombre }}</h2>
+					<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+						<span v-if="detail.precio != null" class="text-2xl font-extrabold tabular-nums text-surface-900 dark:text-surface-0">{{ formatPrice(detail.precio) }}</span>
+						<span v-else class="text-sm font-semibold text-surface-400">{{ $t('public.consultPrice') }}</span>
+						<span v-if="stockStatus(detail)" class="text-xs font-bold" :class="stockStatus(detail)?.cls">{{ stockStatus(detail)?.label }}</span>
+					</div>
+					<p v-if="detail.descripcion" class="whitespace-pre-line text-sm leading-relaxed text-surface-600 dark:text-surface-300">{{ detail.descripcion }}</p>
+					<!-- Acciones: pegadas abajo en el celu (al alcance del pulgar). -->
+					<div
+						class="sticky bottom-0 -mx-5 mt-auto flex flex-col gap-2 border-t border-surface-200 bg-surface-0 px-5 py-3 md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:pb-0 dark:border-surface-700 dark:bg-surface-900 md:dark:bg-transparent"
+					>
+						<button
+							v-if="espacio?.whatsapp"
+							type="button"
+							class="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-700"
+							@click="consultarWhatsapp(detail)"
+						>
+							<i class="pi pi-whatsapp" /> {{ $t('public.consultWhatsapp') }}
+						</button>
+						<!-- Admin logueado: armar la publicación (por ahora abre el Instagram del rubro). -->
+						<Button
+							v-if="isAdmin"
+							:label="$t('public.generateAd')"
+							icon="pi pi-instagram"
+							outlined
+							:disabled="!rubro?.instagramUrl"
+							:title="rubro?.instagramUrl ? '' : $t('public.noInstagram')"
+							@click="publicar"
+						/>
+					</div>
+				</div>
+			</div>
+		</Dialog>
 
 		<!-- Lightbox: captura ampliada al centro (solo apps) -->
 		<Dialog
@@ -297,6 +410,8 @@ interface CatGroup {
 	label: string;
 	items: Producto[];
 }
+/** Hasta cuántas unidades avisamos "Quedan N". */
+const LOW_STOCK = 3;
 /** Clave del grupo de productos sin categoría. */
 const OTROS_KEY = '__otros';
 interface Download {
@@ -324,6 +439,10 @@ export default defineComponent({
 			sort: 'relevance' as SortKey,
 			lightboxVisible: false,
 			lightboxItem: null as Producto | null,
+			/** Foto activa en la pantalla de producto. */
+			detailImg: 0,
+			/** ¿Abrimos nosotros el producto (push)? Entonces cerrar = volver atrás. */
+			detailPushed: false,
 			activeSeccion: '',
 			/** Categoría resaltada en el menú (la que se está viendo al hacer scroll). */
 			activeCat: '',
@@ -402,6 +521,18 @@ export default defineComponent({
 		 * productos pero no están en la lista, y al final "Otros" (sin categoría).
 		 * Solo grupos con productos (el buscador los achica). En apps: un grupo.
 		 */
+		/** Producto abierto: sale del `?p=<id>` de la URL (compartible, y "atrás" lo cierra). */
+		detail(): Producto | undefined {
+			const id = this.$route.query.p;
+			if (typeof id !== 'string' || !id || this.isApps) return undefined;
+			return this.catalog.publicProductos.find(p => p.id === id);
+		},
+		detailImages(): string[] {
+			const p = this.detail;
+			if (!p) return [];
+			const imgs = (p.imagenes ?? []).filter(Boolean);
+			return imgs.length ? imgs : p.imageUrl ? [p.imageUrl] : [];
+		},
 		groups(): CatGroup[] {
 			if (this.isApps) return [{ key: 'all', label: '', items: this.filtered }];
 			const norm = (s: string | null | undefined) => (s ?? '').trim().toLowerCase();
@@ -444,6 +575,10 @@ export default defineComponent({
 		},
 	},
 	watch: {
+		// Al cambiar de producto arrancamos en su primera foto.
+		'detail.id'() {
+			this.detailImg = 0;
+		},
 		// Las secciones cambian con el buscador/orden: re-enganchamos el seguimiento.
 		groups() {
 			this.$nextTick(() => this.observeSections());
@@ -474,6 +609,39 @@ export default defineComponent({
 		}
 	},
 	methods: {
+		/** Abre la pantalla del producto (queda en la URL como ?p=<id>). */
+		openProducto(producto: Producto) {
+			this.detailPushed = true;
+			void this.$router.push({ query: { ...this.$route.query, p: producto.id } });
+		},
+		/** Cierra el producto: si lo abrimos acá, es "atrás"; si llegó por link, limpia la URL. */
+		closeProducto() {
+			if (this.detailPushed) {
+				this.detailPushed = false;
+				this.$router.back();
+				return;
+			}
+			const query = { ...this.$route.query };
+			delete query.p;
+			void this.$router.replace({ query });
+		},
+		/** El diálogo pide cerrarse (clic afuera o Escape). */
+		onDetailVisible(visible: boolean) {
+			if (!visible) this.closeProducto();
+		},
+		/** Etiqueta sobre la foto de la card: solo cuando hay algo que avisar. */
+		stockTag(p: Producto): { label: string; cls: string } | null {
+			if (p.stock === 0) return { label: this.$t('public.stock.out'), cls: 'bg-red-600 text-white' };
+			if (p.stock != null && p.stock <= LOW_STOCK) return { label: this.$t('public.stock.low', p.stock), cls: 'bg-amber-400 text-amber-950' };
+			return null;
+		},
+		/** Estado de stock en la pantalla del producto (null = el negocio no lleva stock). */
+		stockStatus(p: Producto): { label: string; cls: string } | null {
+			if (p.stock == null) return null;
+			if (p.stock === 0) return { label: this.$t('public.stock.out'), cls: 'text-red-500' };
+			if (p.stock <= LOW_STOCK) return { label: this.$t('public.stock.low', p.stock), cls: 'text-amber-600 dark:text-amber-400' };
+			return { label: this.$t('public.stock.available'), cls: 'text-emerald-600 dark:text-emerald-400' };
+		},
 		/** Baja hasta la sección de esa categoría. */
 		goToCat(key: string) {
 			this.activeCat = key;
@@ -517,7 +685,8 @@ export default defineComponent({
 			this.$router.push('/');
 		},
 		formatPrice(value: number): string {
-			return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value);
+			// Sin ",00": los centavos solo se muestran si el precio los tiene.
+			return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(value);
 		},
 		platformIcon(p: AppPlatform): string {
 			return PLATFORM_ICON[p];

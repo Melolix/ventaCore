@@ -135,6 +135,13 @@
 		"noInstagram": "Configurá el Instagram de este rubro (Rubros → editar)",
 		"consultWhatsapp": "Consultar por WhatsApp",
 		"consultPrice": "Consultar precio",
+		"consult": "Consultar",
+		"photoN": "Foto {n}",
+		"stock": {
+			"out": "Sin stock",
+			"low": "Queda 1 | Quedan {n}",
+			"available": "Hay stock"
+		},
 		"whatsappMsg": "¡Hola! Quería consultar sobre {producto}.",
 		"download": {
 			"android": "Android",

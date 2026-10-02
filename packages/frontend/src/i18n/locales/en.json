@@ -135,6 +135,13 @@
 		"noInstagram": "Set this category's Instagram (Categories → edit)",
 		"consultWhatsapp": "Ask on WhatsApp",
 		"consultPrice": "Ask for price",
+		"consult": "Ask",
+		"photoN": "Photo {n}",
+		"stock": {
+			"out": "Out of stock",
+			"low": "1 left | {n} left",
+			"available": "In stock"
+		},
 		"whatsappMsg": "Hi! I wanted to ask about {producto}.",
 		"download": {
 			"android": "Android",
