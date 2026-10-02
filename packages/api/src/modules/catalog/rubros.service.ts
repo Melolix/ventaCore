@@ -7,6 +7,14 @@ import { ProductoEntity } from './entities/producto.entity';
 import { CreateRubroDto } from './dto/create-rubro.dto';
 import { UpdateRubroDto } from './dto/update-rubro.dto';
 
+/**
+ * Versión pública del rubro: sin los datos para transferir (el cliente los ve
+ * solo en su pedido, y recién cuando el vendedor lo confirma).
+ */
+function sinDatosPrivados(rubro: RubroEntity): RubroEntity {
+	return Object.assign(rubro, { pagoAlias: null, pagoCbu: null, pagoTitular: null });
+}
+
 /** Limpia la lista: sin vacíos ni repetidos (sin distinguir mayúsculas), respetando el orden. */
 function normalizeCategorias(list: string[]): string[] {
 	const seen = new Set<string>();
@@ -90,23 +98,36 @@ export class RubrosService {
 		await this.repo.remove(rubro);
 	}
 
+	// ── Uso interno (otros servicios): el rubro tal cual, con datos privados ──
+
+	/** Un rubro activo con TODOS sus datos (uso interno; no devolver al público). */
+	async findActive(id: string): Promise<RubroEntity> {
+		const rubro = await this.repo.findOne({ where: { id, status: RubroStatus.ACTIVE } });
+		if (!rubro) throw new NotFoundException('Rubro no encontrado');
+		return rubro;
+	}
+
+	/** Un rubro por id, sin filtros (uso interno). */
+	findRaw(id: string): Promise<RubroEntity | null> {
+		return this.repo.findOne({ where: { id } });
+	}
+
 	// ── Público: solo rubros activos de un espacio ──
 
 	/** Rubros activos de un espacio, con el conteo de productos. */
-	findPublicByEspacio(espacioId: string): Promise<RubroEntity[]> {
-		return this.repo
+	async findPublicByEspacio(espacioId: string): Promise<RubroEntity[]> {
+		const rubros = await this.repo
 			.createQueryBuilder('rubro')
 			.loadRelationCountAndMap('rubro.productCount', 'rubro.productos')
 			.where('rubro.espacioId = :espacioId', { espacioId })
 			.andWhere('rubro.status = :status', { status: RubroStatus.ACTIVE })
 			.orderBy('rubro.createdAt', 'DESC')
 			.getMany();
+		return rubros.map(sinDatosPrivados);
 	}
 
 	/** Un rubro activo (404 si no existe o está en borrador). */
 	async findPublicOne(id: string): Promise<RubroEntity> {
-		const rubro = await this.repo.findOne({ where: { id, status: RubroStatus.ACTIVE } });
-		if (!rubro) throw new NotFoundException('Rubro no encontrado');
-		return rubro;
+		return sinDatosPrivados(await this.findActive(id));
 	}
 }

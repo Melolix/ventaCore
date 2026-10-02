@@ -107,6 +107,14 @@
 				<p class="text-surface-600 dark:text-surface-300" :class="isApps ? '' : 'hidden md:block'">
 					{{ isApps ? $t('public.showingScreens', { n: filtered.length }) : $t('public.showing', { n: filtered.length }) }}
 				</p>
+				<!-- Si ya pidió en esta tienda, un acceso directo al seguimiento. -->
+				<router-link
+					v-if="ultimoPedido"
+					:to="{ name: 'app-pedido', params: { token: ultimoPedido.token } }"
+					class="order-last flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary md:order-none md:w-auto"
+				>
+					<i class="pi pi-map-marker text-xs" /> {{ $t('public.cart.trackN', { n: ultimoPedido.numero }) }}
+				</router-link>
 				<!-- Mobile: buscador y orden en una sola fila (el buscador se estira). -->
 				<div v-if="!isApps" class="flex w-full min-w-0 gap-2 md:w-auto">
 					<IconField class="min-w-0 flex-1">
@@ -618,6 +626,10 @@ export default defineComponent({
 		orderNumber(): string {
 			const own = this.rubro?.pedidosDestino === 'negocio' ? this.rubro.whatsapp : null;
 			return (own || this.espacio?.whatsapp || '').replace(/\D/g, '');
+		},
+		/** Último pedido que este cliente envió en esta tienda (si lo hay). */
+		ultimoPedido(): { token: string; numero: number } | null {
+			return this.canOrder ? (this.cart.ultimoPedido[this.rubroId] ?? null) : null;
 		},
 		/** Hay tienda con pedido si es un catálogo (no apps) y hay a quién mandarlo. */
 		canOrder(): boolean {

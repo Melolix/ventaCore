@@ -19,6 +19,12 @@ const appRoutes: RouteRecordRaw[] = [
 				component: () => import('./views/RubroDetailView.vue'),
 			},
 			{
+				// Seguimiento del pedido para el cliente (link que recibe al pedir).
+				path: 'pedido/:token',
+				name: 'app-pedido',
+				component: () => import('./views/PedidoView.vue'),
+			},
+			{
 				path: 'nosotros',
 				name: 'app-nosotros',
 				component: () => import('./views/AboutView.vue'),

@@ -6,6 +6,9 @@ import { FirebaseAuthGuard } from '../../common/auth/firebase-auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
 import { RubroEntity } from './entities/rubro.entity';
 import { ProductoEntity } from './entities/producto.entity';
+import { PedidoEntity } from './entities/pedido.entity';
+import { PedidosService } from './pedidos.service';
+import { PedidosController } from './pedidos.controller';
 import { RubrosService } from './rubros.service';
 import { ProductosService } from './productos.service';
 import { RubrosController } from './rubros.controller';
@@ -14,9 +17,9 @@ import { ProductosBatchController } from './productos-batch.controller';
 import { PublicController } from './public.controller';
 
 @Module({
-	imports: [TypeOrmModule.forFeature([RubroEntity, ProductoEntity]), UsersModule, SpacesModule],
-	controllers: [RubrosController, ProductosController, ProductosBatchController, PublicController],
-	providers: [RubrosService, ProductosService, FirebaseAuthGuard, RolesGuard],
+	imports: [TypeOrmModule.forFeature([RubroEntity, ProductoEntity, PedidoEntity]), UsersModule, SpacesModule],
+	controllers: [RubrosController, ProductosController, ProductosBatchController, PedidosController, PublicController],
+	providers: [RubrosService, ProductosService, PedidosService, FirebaseAuthGuard, RolesGuard],
 	exports: [RubrosService, ProductosService],
 })
 export class CatalogModule {}

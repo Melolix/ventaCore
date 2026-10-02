@@ -283,6 +283,16 @@
 						<InputText v-model="edit.whatsapp" class="w-full" type="tel" inputmode="tel" placeholder="5493511234567" />
 						<p class="text-xs text-surface-500">{{ $t('admin.rubros.pedidos.whatsappHint') }}</p>
 					</div>
+					<!-- Datos para transferir: el cliente los ve recién cuando confirmás su pedido. -->
+					<div class="space-y-2 border-t border-surface-200 pt-3 dark:border-surface-700">
+						<div>
+							<label class="text-sm font-medium">{{ $t('admin.rubros.pago.title') }}</label>
+							<p class="text-xs text-surface-500">{{ $t('admin.rubros.pago.hint') }}</p>
+						</div>
+						<InputText v-model.trim="edit.pagoAlias" class="w-full" maxlength="60" :placeholder="$t('admin.rubros.pago.alias')" :aria-label="$t('admin.rubros.pago.alias')" />
+						<InputText v-model.trim="edit.pagoCbu" class="w-full" maxlength="30" inputmode="numeric" :placeholder="$t('admin.rubros.pago.cbu')" :aria-label="$t('admin.rubros.pago.cbu')" />
+						<InputText v-model.trim="edit.pagoTitular" class="w-full" maxlength="80" :placeholder="$t('admin.rubros.pago.titular')" :aria-label="$t('admin.rubros.pago.titular')" />
+					</div>
 				</div>
 				<!-- Categorías del catálogo: el orden de esta lista es el del menú de la tienda.
 				     Cada cambio se guarda al instante (renombrar/borrar también actualiza los
@@ -412,6 +422,9 @@ export default defineComponent({
 				imageFocus: null as string | null,
 				pedidosDestino: 'cm' as PedidosDestino,
 				whatsapp: '',
+				pagoAlias: '',
+				pagoCbu: '',
+				pagoTitular: '',
 				logoUrl: '',
 				instagramUrl: '',
 				platforms: [] as string[],
@@ -516,6 +529,9 @@ export default defineComponent({
 				imageFocus: rubro.imageFocus ?? null,
 				pedidosDestino: rubro.pedidosDestino ?? 'cm',
 				whatsapp: rubro.whatsapp ?? '',
+				pagoAlias: rubro.pagoAlias ?? '',
+				pagoCbu: rubro.pagoCbu ?? '',
+				pagoTitular: rubro.pagoTitular ?? '',
 				logoUrl: rubro.logoUrl ?? '',
 				instagramUrl: rubro.instagramUrl ?? '',
 				platforms: [...(rubro.platforms ?? [])],
@@ -536,6 +552,9 @@ export default defineComponent({
 					imageFocus: this.edit.imageFocus,
 					pedidosDestino: this.edit.pedidosDestino,
 					whatsapp: this.edit.whatsapp.replace(/\D/g, '') || null,
+					pagoAlias: this.edit.pagoAlias || null,
+					pagoCbu: this.edit.pagoCbu || null,
+					pagoTitular: this.edit.pagoTitular || null,
 					logoUrl: this.edit.logoUrl.trim() || undefined,
 					instagramUrl: this.edit.instagramUrl.trim(),
 					...(this.isApps

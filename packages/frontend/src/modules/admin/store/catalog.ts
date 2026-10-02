@@ -2,6 +2,10 @@ import { defineStore } from 'pinia';
 import type {
 	Rubro,
 	Producto,
+	Pedido,
+	PedidoPublic,
+	PedidoStatus,
+	CreatePedidoInput,
 	ProductoWrite,
 	BatchProductoItem,
 	BatchProductoResult,
@@ -67,6 +71,9 @@ export type RubroInput = Partial<
 		| 'categorias'
 		| 'pedidosDestino'
 		| 'whatsapp'
+		| 'pagoAlias'
+		| 'pagoCbu'
+		| 'pagoTitular'
 		| 'logoUrl'
 		| 'instagramUrl'
 		| 'platforms'
@@ -141,6 +148,28 @@ export const useCatalogStore = defineStore('catalog', {
 				if (prev.imageUrl !== data.imageUrl) void deleteImage(prev.imageUrl);
 				if (prev.logoUrl !== data.logoUrl) void deleteImage(prev.logoUrl);
 			}
+			return data;
+		},
+
+		// ── Pedidos de la tienda ──
+		/** Panel: pedidos del rubro, del más nuevo al más viejo. */
+		async fetchPedidos(rubroId: string): Promise<Pedido[]> {
+			const { data } = await api.get<Pedido[]>(`/rubros/${rubroId}/pedidos`);
+			return data;
+		},
+		/** Panel: aceptar, rechazar, registrar pago/entrega o cancelar. */
+		async updatePedidoStatus(rubroId: string, id: string, status: PedidoStatus, motivo?: string): Promise<Pedido> {
+			const { data } = await api.patch<Pedido>(`/rubros/${rubroId}/pedidos/${id}/status`, { status, motivo });
+			return data;
+		},
+		/** Vitrina: el cliente envía su carrito. Devuelve el pedido con número y token de seguimiento. */
+		async createPedido(rubroId: string, input: CreatePedidoInput): Promise<PedidoPublic> {
+			const { data } = await api.post<PedidoPublic>(`/public/rubros/${rubroId}/pedidos`, input);
+			return data;
+		},
+		/** Vitrina: seguimiento del pedido por el token del link. */
+		async fetchPedidoPublic(token: string): Promise<PedidoPublic> {
+			const { data } = await api.get<PedidoPublic>(`/public/pedidos/${token}`);
 			return data;
 		},
 

@@ -9,8 +9,29 @@
 		:pt="{ content: { class: '!p-0 flex flex-col' } }"
 		@update:visible="$emit('update:visible', $event)"
 	>
+		<!-- Pedido enviado: quedó guardado con número; desde acá sigue su estado. -->
+		<div v-if="done" class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+			<span class="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+				<i class="pi pi-check text-2xl" />
+			</span>
+			<p class="text-lg font-extrabold text-surface-900 dark:text-surface-0">{{ $t('public.cart.doneTitle', { n: done.numero }) }}</p>
+			<p class="text-sm text-surface-500">{{ $t('public.cart.doneBody') }}</p>
+			<a
+				:href="done.waUrl"
+				target="_blank"
+				rel="noopener"
+				class="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700"
+			>
+				<i class="pi pi-whatsapp" /> {{ $t('public.cart.openWhatsapp') }}
+			</a>
+			<Button :label="$t('public.cart.track')" icon="pi pi-map-marker" outlined class="w-full" @click="goTrack" />
+			<button type="button" class="text-sm font-semibold text-surface-500 hover:text-primary" @click="closeDone">
+				{{ $t('public.cart.keepBrowsing') }}
+			</button>
+		</div>
+
 		<!-- Vacío -->
-		<div v-if="!lines.length" class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-surface-500">
+		<div v-else-if="!lines.length" class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-surface-500">
 			<i class="pi pi-shopping-cart text-4xl text-surface-300 dark:text-surface-600" />
 			<p class="font-semibold text-surface-700 dark:text-surface-200">{{ $t('public.cart.emptyTitle') }}</p>
 			<p class="text-sm">{{ $t('public.cart.emptyBody') }}</p>
@@ -19,18 +40,6 @@
 
 		<template v-else>
 			<div class="flex-1 space-y-5 overflow-y-auto px-5 pb-5">
-				<!-- Aviso tras abrir WhatsApp: no sabemos si lo envió, así que ofrecemos vaciar. -->
-				<div
-					v-if="sent"
-					class="flex flex-col gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300"
-				>
-					<p class="font-semibold">{{ $t('public.cart.sentTitle') }}</p>
-					<p>{{ $t('public.cart.sentBody') }}</p>
-					<button type="button" class="w-fit text-sm font-bold underline underline-offset-2" @click="clear">
-						{{ $t('public.cart.clear') }}
-					</button>
-				</div>
-
 				<!-- Ítems -->
 				<ul class="divide-y divide-surface-200 dark:divide-surface-700">
 					<li v-for="line in lines" :key="line.producto.id" class="flex gap-3 py-3">
@@ -132,13 +141,15 @@
 
 			<!-- Enviar: fijo abajo. La línea de arriba cuenta qué pasa después. -->
 			<div class="space-y-2 border-t border-surface-200 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 dark:border-surface-700">
-				<p class="text-xs text-surface-500">{{ $t('public.cart.nextStep') }}</p>
+				<p v-if="sendError" class="rounded-lg bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-300">{{ sendError }}</p>
+				<p v-else class="text-xs text-surface-500">{{ $t('public.cart.nextStep') }}</p>
 				<button
 					type="button"
-					class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-700"
+					class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
+					:disabled="sending"
 					@click="send"
 				>
-					<i class="pi pi-whatsapp" /> {{ $t('public.cart.send') }}
+					<i class="pi" :class="sending ? 'pi-spin pi-spinner' : 'pi-whatsapp'" /> {{ $t('public.cart.send') }}
 				</button>
 			</div>
 		</template>
@@ -147,7 +158,9 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
-import type { Producto } from '@base-template/shared';
+import type { PedidoPublic, Producto } from '@base-template/shared';
+import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { apiErrorMessage } from '@/shared/utils/apiError';
 import { useCartStore, type Entrega } from '@/modules/app/store/cart';
 import { formatPrice } from '@/modules/app/utils/price';
 
@@ -191,7 +204,11 @@ export default defineComponent({
 			cart: useCartStore(),
 			entregas: ['retiro', 'envio'] as Entrega[],
 			errors: {} as Partial<Record<'nombre' | 'telefono' | 'direccion', string>>,
-			sent: false,
+			sending: false,
+			/** Mensaje del servidor si no se pudo crear el pedido (ej. se quedó sin stock). */
+			sendError: '',
+			/** Pedido recién enviado (muestra la pantalla de confirmación). */
+			done: null as { numero: number; token: string; waUrl: string } | null,
 		};
 	},
 	computed: {
@@ -222,10 +239,14 @@ export default defineComponent({
 		setQty(line: CartLine, qty: number) {
 			this.cart.setQty(this.rubroId, line.producto.id, Math.min(qty, line.max));
 		},
-		clear() {
-			this.cart.clear(this.rubroId);
-			this.sent = false;
+		closeDone() {
+			this.done = null;
 			this.$emit('update:visible', false);
+		},
+		goTrack() {
+			const token = this.done?.token;
+			this.closeDone();
+			if (token) void this.$router.push({ name: 'app-pedido', params: { token } });
 		},
 		validate(): boolean {
 			const c = this.cart.cliente;
@@ -236,30 +257,65 @@ export default defineComponent({
 			this.errors = errors;
 			return !Object.keys(errors).length;
 		},
-		/** El pedido como texto de WhatsApp (los *asteriscos* son negrita en WhatsApp). */
-		buildMessage(): string {
+		/**
+		 * El pedido como texto de WhatsApp (los *asteriscos* son negrita en WhatsApp).
+		 * Usa lo que GUARDÓ el servidor (número, ítems y precios), más el link de seguimiento.
+		 */
+		buildMessage(pedido: PedidoPublic): string {
 			const c = this.cart.cliente;
-			const rows = this.lines.map(l => `• ${l.qty} × ${l.producto.nombre} — ${this.money(l.subtotal)}`);
+			const rows = pedido.items.map(it => `• ${it.cantidad} × ${it.nombre} — ${this.money(it.precio * it.cantidad)}`);
 			const parts = [
-				`*${this.$t('public.cart.msg.title', { tienda: this.tienda })}*`,
+				`*${this.$t('public.cart.msg.title', { n: pedido.numero, tienda: this.tienda })}*`,
 				`${this.$t('public.cart.msg.client')}: ${c.nombre}`,
 				`${this.$t('public.cart.msg.phone')}: ${c.telefono}`,
 				'',
 				...rows,
 				'',
-				`*${this.$t('public.cart.total')}: ${this.money(this.total)}*`,
+				`*${this.$t('public.cart.total')}: ${this.money(pedido.total)}*`,
 				c.entrega === 'envio'
 					? `${this.$t('public.cart.delivery')}: ${this.$t('public.cart.entrega.envio')} — ${c.direccion}`
 					: `${this.$t('public.cart.delivery')}: ${this.$t('public.cart.entrega.retiro')}`,
 			];
 			if (c.notas) parts.push(`${this.$t('public.cart.notes')}: ${c.notas}`);
+			parts.push('', `${this.$t('public.cart.msg.track')}: ${window.location.origin}/pedido/${pedido.token}`);
 			return parts.join('\n');
 		},
-		send() {
-			if (!this.validate()) return;
-			const url = `https://wa.me/${this.whatsapp}?text=${encodeURIComponent(this.buildMessage())}`;
-			window.open(url, '_blank', 'noopener');
-			this.sent = true;
+		/**
+		 * Guarda el pedido y abre WhatsApp con el mensaje armado. La pestaña se abre
+		 * ANTES de esperar al servidor (dentro del toque del usuario): si se abriera
+		 * después, el navegador la bloquearía como ventana emergente.
+		 */
+		async send() {
+			if (!this.validate() || this.sending) return;
+			this.sending = true;
+			this.sendError = '';
+			const tab = window.open('', '_blank');
+			try {
+				const c = this.cart.cliente;
+				const pedido = await useCatalogStore().createPedido(this.rubroId, {
+					clienteNombre: c.nombre,
+					clienteTelefono: c.telefono,
+					entrega: c.entrega,
+					direccion: c.entrega === 'envio' ? c.direccion : undefined,
+					notas: c.notas || undefined,
+					items: this.lines.map(l => ({ productoId: l.producto.id, cantidad: l.qty })),
+				});
+				const waUrl = `https://wa.me/${this.whatsapp}?text=${encodeURIComponent(this.buildMessage(pedido))}`;
+				if (tab) {
+					tab.opener = null;
+					tab.location.href = waUrl;
+				}
+				// El pedido ya está guardado: vaciamos el carrito y recordamos el seguimiento.
+				this.cart.setUltimoPedido(this.rubroId, pedido.token, pedido.numero);
+				this.cart.clear(this.rubroId);
+				this.cart.cliente.notas = '';
+				this.done = { numero: pedido.numero, token: pedido.token, waUrl };
+			} catch (e: unknown) {
+				tab?.close();
+				this.sendError = apiErrorMessage(e, this.$t('public.cart.err.send'));
+			} finally {
+				this.sending = false;
+			}
 		},
 	},
 });

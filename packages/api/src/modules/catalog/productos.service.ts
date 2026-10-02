@@ -107,6 +107,8 @@ export class ProductosService {
 	/** Público: productos de un rubro activo (404 si el rubro no es público). */
 	async findPublicByRubro(rubroId: string): Promise<ProductoEntity[]> {
 		await this.rubros.findPublicOne(rubroId);
-		return this.repo.find({ where: { rubroId }, order: { createdAt: 'DESC' } });
+		const productos = await this.repo.find({ where: { rubroId }, order: { createdAt: 'DESC' } });
+		// El costo y el margen son del negocio: no viajan a la vitrina.
+		return productos.map(p => Object.assign(p, { precioCosto: null, margen: null }));
 	}
 }

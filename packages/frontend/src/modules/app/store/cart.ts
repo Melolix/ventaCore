@@ -13,6 +13,8 @@ export const useCartStore = defineStore('cart', {
 	state: () => ({
 		/** `{ [rubroId]: { [productoId]: cantidad } }` */
 		carts: {} as Record<string, Record<string, number>>,
+		/** Último pedido enviado en cada rubro (para volver al seguimiento). */
+		ultimoPedido: {} as Record<string, { token: string; numero: number }>,
 		cliente: {
 			nombre: '',
 			telefono: '',
@@ -34,6 +36,9 @@ export const useCartStore = defineStore('cart', {
 			if (qty > 0) cart[productoId] = qty;
 			else delete cart[productoId];
 			this.carts = { ...this.carts, [rubroId]: cart };
+		},
+		setUltimoPedido(rubroId: string, token: string, numero: number): void {
+			this.ultimoPedido = { ...this.ultimoPedido, [rubroId]: { token, numero } };
 		},
 		clear(rubroId: string): void {
 			this.carts = { ...this.carts, [rubroId]: {} };

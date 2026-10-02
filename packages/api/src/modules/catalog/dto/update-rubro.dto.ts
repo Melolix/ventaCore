@@ -43,6 +43,24 @@ export class UpdateRubroDto {
 	@MaxLength(30)
 	whatsapp?: string | null;
 
+	@ApiProperty({ required: false, nullable: true, example: 'mi.negocio.mp', description: 'Alias para transferir.' })
+	@IsOptional()
+	@IsString()
+	@MaxLength(60)
+	pagoAlias?: string | null;
+
+	@ApiProperty({ required: false, nullable: true, description: 'CBU/CVU para transferir.' })
+	@IsOptional()
+	@IsString()
+	@MaxLength(30)
+	pagoCbu?: string | null;
+
+	@ApiProperty({ required: false, nullable: true, description: 'Titular de la cuenta.' })
+	@IsOptional()
+	@IsString()
+	@MaxLength(80)
+	pagoTitular?: string | null;
+
 	@ApiProperty({ required: false })
 	@IsOptional()
 	@IsString()

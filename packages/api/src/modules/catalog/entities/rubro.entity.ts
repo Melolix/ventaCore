@@ -57,6 +57,17 @@ export class RubroEntity {
 	@Column({ type: 'varchar', nullable: true })
 	whatsapp!: string | null;
 
+	// Datos para transferir: se cargan una vez y el cliente los ve en su pedido
+	// recién cuando el vendedor lo confirma. NO salen en los endpoints públicos del rubro.
+	@Column({ type: 'varchar', nullable: true })
+	pagoAlias!: string | null;
+
+	@Column({ type: 'varchar', nullable: true })
+	pagoCbu!: string | null;
+
+	@Column({ type: 'varchar', nullable: true })
+	pagoTitular!: string | null;
+
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	@Column({ type: 'varchar', nullable: true })
 	logoUrl!: string | null;

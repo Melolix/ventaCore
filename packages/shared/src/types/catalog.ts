@@ -57,6 +57,14 @@ export interface Rubro {
 	pedidosDestino: PedidosDestino;
 	/** WhatsApp propio del rubro (pedidos, cuando los lleva el negocio). */
 	whatsapp: string | null;
+	/**
+	 * Datos para transferir (alias, CBU/CVU, titular). Solo los ve el vendedor en el
+	 * panel; en la vitrina llegan en null y el cliente los recibe en su pedido
+	 * cuando el vendedor lo confirma.
+	 */
+	pagoAlias: string | null;
+	pagoCbu: string | null;
+	pagoTitular: string | null;
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	logoUrl: string | null;
 	/** Instagram propio del rubro (cada rubro es un negocio distinto). */

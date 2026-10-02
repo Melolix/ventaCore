@@ -196,18 +196,76 @@
 			"emptyTitle": "Tu pedido está vacío",
 			"emptyBody": "Agregá productos desde el catálogo y mandá el pedido por WhatsApp.",
 			"keepBrowsing": "Seguir mirando",
-			"sentTitle": "Abrimos WhatsApp con tu pedido",
-			"sentBody": "Si ya lo enviaste, podés vaciar el pedido. Si no se abrió, tocá de nuevo \"Enviar\".",
-			"clear": "Vaciar pedido",
 			"err": {
 				"name": "Escribí tu nombre.",
 				"phone": "Escribí un número de WhatsApp válido, con característica.",
-				"address": "Escribí la dirección para el envío."
+				"address": "Escribí la dirección para el envío.",
+				"send": "No pudimos enviar el pedido. Revisá tu conexión y probá de nuevo."
 			},
 			"msg": {
-				"title": "Pedido — {tienda}",
+				"title": "Pedido #{n} — {tienda}",
 				"client": "Cliente",
-				"phone": "WhatsApp"
+				"phone": "WhatsApp",
+				"track": "Seguimiento"
+			},
+			"doneTitle": "Pedido #{n} enviado",
+			"doneBody": "Ya le llegó a la tienda. Se abrió WhatsApp con tu pedido: mandá ese mensaje para avisarle al vendedor.",
+			"openWhatsapp": "Abrir WhatsApp",
+			"track": "Seguir mi pedido",
+			"trackN": "Seguir mi pedido #{n}"
+		},
+		"pedido": {
+			"title": "Pedido #{n}",
+			"madeOn": "Hecho el {date}",
+			"notFoundTitle": "No encontramos ese pedido",
+			"notFoundBody": "Revisá que el link esté completo, o escribile a la tienda.",
+			"backToStore": "Ir a la tienda",
+			"detail": "Tu pedido",
+			"contact": "Escribir a la tienda",
+			"reason": "Motivo: {motivo}",
+			"payTitle": "Datos para transferir",
+			"payMissing": "La tienda te pasa los datos para transferir por WhatsApp.",
+			"pay": {
+				"alias": "Alias",
+				"cbu": "CBU / CVU",
+				"titular": "Titular"
+			},
+			"copy": "Copiar",
+			"copied": "Copiado",
+			"sendReceipt": "Enviar comprobante por WhatsApp",
+			"waPaid": "Hola, ya transferí el pedido #{n}. Te mando el comprobante.",
+			"waAsk": "Hola, te escribo por el pedido #{n}.",
+			"step": {
+				"pendiente": "Pedido enviado",
+				"confirmado": "Confirmado por la tienda",
+				"pagado": "Pago recibido",
+				"entregado": "Entregado"
+			},
+			"state": {
+				"pendiente": {
+					"title": "Esperando la confirmación",
+					"body": "La tienda está revisando el stock. Cuando lo confirme, acá vas a ver los datos para transferir."
+				},
+				"confirmado": {
+					"title": "Pedido confirmado",
+					"body": "Hay stock de todo. Transferí el total y mandá el comprobante por WhatsApp."
+				},
+				"pagado": {
+					"title": "Pago recibido",
+					"body": "La tienda ya registró tu pago y está preparando el pedido."
+				},
+				"entregado": {
+					"title": "Pedido entregado",
+					"body": "Gracias por tu compra."
+				},
+				"rechazado": {
+					"title": "La tienda no pudo tomar el pedido",
+					"body": "No se realizó ningún cobro. Podés armar un pedido nuevo o escribirle a la tienda."
+				},
+				"cancelado": {
+					"title": "Pedido cancelado",
+					"body": "Si ya habías transferido, escribile a la tienda para coordinar la devolución."
+				}
 			}
 		}
 	},
@@ -348,7 +406,8 @@
 			"instagram": "Instagram",
 			"cobros": "Cobros",
 			"config": "Configuraciones",
-			"nosotros": "Sobre Nosotros"
+			"nosotros": "Sobre Nosotros",
+			"pedidos": "Pedidos"
 		},
 		"cobros": {
 			"title": "Cobros y suscripciones",
@@ -715,6 +774,13 @@
 				"negocioHint": "Llegan a un WhatsApp propio de este rubro.",
 				"whatsapp": "WhatsApp del rubro",
 				"whatsappHint": "Con código de país y sin espacios. Ej.: 5493511234567. Si queda vacío, se usa el general."
+			},
+			"pago": {
+				"title": "Datos para transferir",
+				"hint": "Se cargan una vez. El cliente los ve recién cuando aceptás su pedido.",
+				"alias": "Alias",
+				"cbu": "CBU / CVU",
+				"titular": "Titular de la cuenta"
 			}
 		},
 		"productos": {
@@ -1021,6 +1087,55 @@
 			"done": "Publicado con éxito",
 			"partial": "Publicado con algunos errores",
 			"failed": "No se pudo publicar"
+		},
+		"pedidos": {
+			"eyebrow": "Tienda",
+			"title": "Pedidos",
+			"refresh": "Actualizar",
+			"noPago": "Todavía no cargaste los datos para transferir. Sin eso, el cliente no sabe a dónde pagar cuando confirmás.",
+			"goConfig": "Cargarlos en Rubros",
+			"empty": "Todavía no llegaron pedidos. Cuando un cliente envíe su carrito, aparece acá.",
+			"emptyFilter": "No hay pedidos en este estado.",
+			"filter": {
+				"pendiente": "Pendientes",
+				"confirmado": "Por cobrar",
+				"pagado": "Pagados",
+				"entregado": "Entregados",
+				"cerrados": "Cerrados",
+				"todos": "Todos"
+			},
+			"status": {
+				"pendiente": "Pendiente",
+				"confirmado": "Por cobrar",
+				"pagado": "Pagado",
+				"entregado": "Entregado",
+				"rechazado": "Rechazado",
+				"cancelado": "Cancelado"
+			},
+			"accept": "Aceptar",
+			"reject": "Rechazar",
+			"cancel": "Cancelar pedido",
+			"cancelTitle": "Cancelar pedido",
+			"markPaid": "Marcar pagado",
+			"markDelivered": "Marcar entregado",
+			"sendPago": "Pasar datos para transferir",
+			"chat": "Escribirle",
+			"motivoLabel": "Motivo",
+			"motivoHint": "El cliente lo ve en el seguimiento de su pedido. Es opcional.",
+			"motivoPlaceholder": "Ej.: nos quedamos sin stock de un producto",
+			"waHello": "Hola {nombre}, te escribo por tu pedido #{n}.",
+			"toast": {
+				"confirmado": "Pedido #{n} aceptado. Pasale los datos para transferir.",
+				"pagado": "Pedido #{n} marcado como pagado. Se descontó el stock.",
+				"entregado": "Pedido #{n} entregado.",
+				"rechazado": "Pedido #{n} rechazado.",
+				"cancelado": "Pedido #{n} cancelado."
+			},
+			"msg": {
+				"confirmed": "Hola {nombre}! Confirmamos tu pedido #{n} de {tienda}. Hay stock de todo.",
+				"payIntro": "Para transferir:",
+				"track": "Seguí tu pedido"
+			}
 		}
 	},
 	"handoff": {
