@@ -149,7 +149,7 @@
 				<div class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3">
 				<div
 					v-for="producto in g.items"
-					:key="producto.id"
+					:key="producto.grupo || producto.id"
 					class="glass-card group flex flex-col overflow-hidden rounded-2xl transition-all hover:scale-[1.02]"
 				>
 					<div
@@ -222,6 +222,29 @@
 						<p class="flex-1 text-sm text-surface-500" :class="isApps ? 'line-clamp-4' : 'mb-4 line-clamp-2'">
 							{{ producto.descripcion || '' }}
 						</p>
+						<!-- Variantes (talle, color…): una sola card con selector, en vez de una
+						     card repetida por variante. Elegir una cambia precio, foto y stock. -->
+						<div v-if="!isApps && variantesDe(producto).length" class="mb-4 space-y-1.5">
+							<div class="flex flex-wrap gap-1.5" role="group" :aria-label="$t('public.variants')">
+								<button
+									v-for="v in variantesDe(producto)"
+									:key="v.id"
+									type="button"
+									class="min-h-9 min-w-9 rounded-lg border px-2.5 text-xs font-bold transition-colors"
+									:class="v.id === producto.id
+										? 'border-primary bg-primary text-primary-contrast'
+										: v.stock === 0
+											? 'border-surface-200 text-surface-400 line-through dark:border-surface-700'
+											: 'border-surface-300 text-surface-700 hover:border-primary hover:text-primary dark:border-surface-600 dark:text-surface-200'"
+									:aria-pressed="v.id === producto.id"
+									:title="v.stock === 0 ? $t('public.variantOut', { v: v.variante }) : (v.variante ?? '')"
+									@click="pickVariante(v)"
+								>
+									{{ v.variante || v.nombre }}
+								</button>
+							</div>
+							<p v-if="producto.stock === 0" class="text-xs font-semibold text-red-500">{{ $t('public.variantOut', { v: producto.variante }) }}</p>
+						</div>
 						<!-- En apps las cards son capturas: sin botones (la descarga va en el hero). -->
 						<template v-if="!isApps">
 							<!-- Admin logueado: publicar (por ahora abre el Instagram del rubro) -->
@@ -289,6 +312,7 @@ import { AppPlatform, EspacioType, Role, type Producto } from '@base-template/sh
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useUserStore } from '@/modules/auth/store/user';
 import { PLATFORM_ICON, effectivePlatforms } from '@/shared/utils/apps';
+import { groupVariantes, varianteInicial } from '@/modules/app/utils/variantes';
 
 type SortKey = 'relevance' | 'priceAsc' | 'priceDesc';
 /** Un grupo del catálogo: una categoría con sus productos. */
@@ -325,6 +349,8 @@ export default defineComponent({
 			lightboxVisible: false,
 			lightboxItem: null as Producto | null,
 			activeSeccion: '',
+			/** Variante elegida en cada card con variantes: `{ [grupo]: productoId }`. */
+			varianteSel: {} as Record<string, string>,
 			/** Categoría resaltada en el menú (la que se está viendo al hacer scroll). */
 			activeCat: '',
 			catObserver: null as IntersectionObserver | null,
@@ -431,11 +457,25 @@ export default defineComponent({
 		showCategorias(): boolean {
 			return !this.isApps && this.catalog.publicProductos.some(p => (p.seccion ?? '').trim());
 		},
+		/** Variantes por grupo (talles, colores…), ordenadas. Solo grupos de 2 o más. */
+		variantes(): Map<string, Producto[]> {
+			return this.isApps ? new Map() : groupVariantes(this.catalog.publicProductos);
+		},
 		filtered(): Producto[] {
 			const term = this.search.trim().toLowerCase();
 			let list = this.catalog.publicProductos.filter(p => !term || p.nombre.toLowerCase().includes(term));
 			// Apps con pestañas: mostrar solo las capturas de la sección activa.
 			if (this.showTabs) list = list.filter(p => p.seccion === this.activeSeccion);
+			// Variantes: cada grupo ocupa UNA card (en el lugar de su primera variante),
+			// mostrando la variante elegida.
+			const vistos = new Set<string>();
+			list = list.flatMap(p => {
+				const grupo = p.grupo && this.variantes.get(p.grupo);
+				if (!p.grupo || !grupo) return [p];
+				if (vistos.has(p.grupo)) return [];
+				vistos.add(p.grupo);
+				return [grupo.find(v => v.id === this.varianteSel[p.grupo as string]) ?? varianteInicial(grupo)];
+			});
 			if (this.sort !== 'relevance') {
 				const dir = this.sort === 'priceAsc' ? 1 : -1;
 				list = [...list].sort((a, b) => ((a.precio ?? 0) - (b.precio ?? 0)) * dir);
@@ -533,10 +573,20 @@ export default defineComponent({
 			if (url) window.open(url, '_blank', 'noopener');
 		},
 		/** Cliente: abre WhatsApp con una consulta sobre el producto. */
+		/** Las variantes del producto de la card ([] si es un producto suelto). */
+		variantesDe(producto: Producto): Producto[] {
+			return (producto.grupo && this.variantes.get(producto.grupo)) || [];
+		},
+		pickVariante(v: Producto) {
+			if (v.grupo) this.varianteSel = { ...this.varianteSel, [v.grupo]: v.id };
+		},
 		consultarWhatsapp(producto: Producto) {
 			const num = (this.espacio?.whatsapp || '').replace(/\D/g, '');
 			if (!num) return;
-			const msg = this.$t('public.whatsappMsg', { producto: producto.nombre });
+			// Con variantes, la consulta aclara cuál eligió ("Chomba piqué — L").
+			const esVariante = this.variantesDe(producto).length > 0 && producto.variante;
+			const nombre = esVariante ? `${producto.nombre} — ${producto.variante}` : producto.nombre;
+			const msg = this.$t('public.whatsappMsg', { producto: nombre });
 			window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
 		},
 	},

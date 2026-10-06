@@ -123,7 +123,6 @@
 		"sector": "Sector",
 		"detailTitle": "Category",
 		"showing": "Showing {n} products",
-		"categories": "Categories",
 		"otherCategory": "Other",
 		"showingScreens": "Showing {n} screenshots",
 		"searchPlaceholder": "Search product...",
@@ -162,7 +161,9 @@
 			"leads": "Leads Generated",
 			"support": "AI Support",
 			"catalogs": "Catalogs"
-		}
+		},
+		"variants": "Options",
+		"variantOut": "Out of stock in {v}"
 	},
 	"superadmin": {
 		"panelTitle": "Super Admin",

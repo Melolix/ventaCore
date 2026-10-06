@@ -78,7 +78,7 @@
 			"cta": "Explorar Catálogo"
 		},
 		"products": "Productos",
-		"categories": "Rubros",
+		"categories": "Categorías",
 		"business": "Negocio",
 		"nav": {
 			"home": "Inicio",
@@ -123,7 +123,6 @@
 		"sector": "Sector",
 		"detailTitle": "Rubro",
 		"showing": "Mostrando {n} productos",
-		"categories": "Categorías",
 		"otherCategory": "Otros",
 		"showingScreens": "Mostrando {n} capturas",
 		"searchPlaceholder": "Buscar producto...",
@@ -162,7 +161,9 @@
 			"leads": "Leads Generados",
 			"support": "Soporte IA",
 			"catalogs": "Catálogos"
-		}
+		},
+		"variants": "Opciones",
+		"variantOut": "Sin stock en {v}"
 	},
 	"superadmin": {
 		"panelTitle": "Super Admin",

@@ -65,6 +65,17 @@ export class ProductoEntity {
 	@Column({ type: 'varchar', nullable: true })
 	seccion!: string | null;
 
+	/**
+	 * Variantes: los productos del rubro con el mismo `grupo` son el mismo artículo
+	 * en distintas variantes (talle, color…). La vitrina los junta en una card.
+	 */
+	@Column({ type: 'varchar', nullable: true })
+	grupo!: string | null;
+
+	/** Qué variante es dentro del grupo ("M", "Azul / L"). */
+	@Column({ type: 'varchar', nullable: true })
+	variante!: string | null;
+
 	// ── Campos comerciales / Mercado Libre (ML-ready) ──
 
 	/** Código interno del negocio (SKU). */
