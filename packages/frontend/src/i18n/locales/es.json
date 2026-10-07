@@ -1,4 +1,8 @@
 {
+	"docTitle": {
+		"login": "Ingresar",
+		"panel": "Panel"
+	},
 	"common": {
 		"login": "Iniciar sesión",
 		"logout": "Cerrar sesión",

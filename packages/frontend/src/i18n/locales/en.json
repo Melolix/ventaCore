@@ -1,4 +1,8 @@
 {
+	"docTitle": {
+		"login": "Sign in",
+		"panel": "Dashboard"
+	},
 	"common": {
 		"login": "Sign in",
 		"logout": "Sign out",

@@ -2,8 +2,10 @@ import { watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useUserStore } from '@/modules/auth/store/user';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { i18n } from '@/i18n';
 
 const BASE = 'VentaCore';
+const t = (key: string) => i18n.global.t(key);
 
 /**
  * Mantiene el `document.title` sincronizado con el contexto, para poder
@@ -22,14 +24,14 @@ export function useDocumentTitle() {
 	const catalog = useCatalogStore();
 
 	function compute(): string {
-		if (route.meta.guestOnly) return `Ingresar · ${BASE}`;
+		if (route.meta.guestOnly) return `${t('docTitle.login')} · ${BASE}`;
 
 		switch (route.meta.area) {
 			case 'superadmin':
 				return `Superadmin · ${BASE}`;
 			case 'admin': {
 				const cliente = user.profile?.displayName || user.profile?.email;
-				return cliente ? `${cliente} · Panel · ${BASE}` : `Panel · ${BASE}`;
+				return cliente ? `${cliente} · ${t('docTitle.panel')} · ${BASE}` : `${t('docTitle.panel')} · ${BASE}`;
 			}
 			case 'app':
 				return catalog.currentEspacio?.nombre || BASE;
