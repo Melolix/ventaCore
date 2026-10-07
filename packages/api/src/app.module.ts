@@ -27,6 +27,12 @@ import { SalesModule } from './modules/sales/sales.module';
 import { MlNotificationEntity } from './modules/sales/entities/ml-notification.entity';
 import { MlOrderEntity } from './modules/sales/entities/ml-order.entity';
 import { MlQuestionEntity } from './modules/sales/entities/ml-question.entity';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
+import { WhatsappRecipientEntity } from './modules/whatsapp/entities/whatsapp-recipient.entity';
+import { WhatsappNotificationEntity } from './modules/whatsapp/entities/whatsapp-notification.entity';
+import { WhatsappInboundEntity } from './modules/whatsapp/entities/whatsapp-inbound.entity';
+import { InstagramModule } from './modules/instagram/instagram.module';
+import { InstagramMessageEntity } from './modules/instagram/entities/instagram-message.entity';
 
 @Module({
 	imports: [
@@ -56,6 +62,10 @@ import { MlQuestionEntity } from './modules/sales/entities/ml-question.entity';
 				MlNotificationEntity,
 				MlOrderEntity,
 				MlQuestionEntity,
+				WhatsappRecipientEntity,
+				WhatsappNotificationEntity,
+				WhatsappInboundEntity,
+				InstagramMessageEntity,
 			],
 			synchronize: process.env.DB_SYNCHRONIZE === 'true',
 		}),
@@ -70,6 +80,8 @@ import { MlQuestionEntity } from './modules/sales/entities/ml-question.entity';
 		MediaModule,
 		PaymentsModule,
 		SalesModule,
+		WhatsappModule,
+		InstagramModule,
 	],
 })
 export class AppModule {}

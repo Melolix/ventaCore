@@ -1,12 +1,14 @@
 <template>
 	<div class="mx-auto max-w-6xl">
-		<!-- Sub-pestañas de Mercado Libre: Publicaciones / Ventas -->
-		<div class="mb-6 flex flex-wrap gap-1 border-b border-surface-200 dark:border-surface-700">
+		<!-- Sub-pestañas de Mercado Libre. En mobile: 4 columnas iguales con el ícono
+		     arriba (entran todas en una fila, sin partirse ni esconderse en un scroll);
+		     desde sm: fila horizontal clásica. -->
+		<div class="mb-6 grid grid-cols-4 border-b border-surface-200 sm:flex sm:gap-1 dark:border-surface-700">
 			<router-link
 				v-for="tab in tabs"
 				:key="tab.name"
 				:to="{ name: tab.name }"
-				class="-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors"
+				class="-mb-px flex flex-col items-center justify-center gap-1 border-b-2 px-1 py-2 text-[11px] font-semibold transition-colors sm:flex-row sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-sm"
 				:class="
 					isActive(tab.name)
 						? 'border-amber-500 text-surface-900 dark:text-surface-0'

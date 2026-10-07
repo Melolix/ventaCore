@@ -56,9 +56,9 @@
 					</div>
 				</div>
 
-				<div class="flex items-center gap-4 text-sm text-surface-600 dark:text-surface-300">
-					<span class="flex items-center gap-1.5"><i class="pi pi-user text-surface-400" /> {{ espacio.adminEmail || '—' }}</span>
-					<span class="flex items-center gap-1.5"><i class="pi pi-tags text-surface-400" /> {{ $t('superadmin.espacios.rubros', { n: espacio.rubroCount ?? 0 }) }}</span>
+				<div class="flex min-w-0 items-center gap-4 text-sm text-surface-600 dark:text-surface-300">
+					<span class="flex min-w-0 items-center gap-1.5"><i class="pi pi-user shrink-0 text-surface-400" /> <span class="truncate">{{ espacio.adminEmail || '—' }}</span></span>
+					<span class="flex shrink-0 items-center gap-1.5"><i class="pi pi-tags text-surface-400" /> {{ $t('superadmin.espacios.rubros', espacio.rubroCount ?? 0) }}</span>
 				</div>
 
 				<div class="mt-auto flex flex-wrap gap-2 border-t border-surface-200/50 pt-4 dark:border-surface-700/50">

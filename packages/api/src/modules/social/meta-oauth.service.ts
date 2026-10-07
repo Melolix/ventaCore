@@ -20,6 +20,9 @@ const SCOPES = [
 	'business_management',
 	'instagram_basic',
 	'instagram_content_publish',
+	// DMs de Instagram: leer/responder mensajes directos. Requiere re-consentir las
+	// conexiones existentes.
+	'instagram_manage_messages',
 ];
 
 /** Payload del `signed_request` que Meta manda a los callbacks de la app. */

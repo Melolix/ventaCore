@@ -4,6 +4,8 @@
 		"panel": "Dashboard"
 	},
 	"common": {
+		"darkMode": "Dark mode",
+		"lightMode": "Light mode",
 		"login": "Sign in",
 		"logout": "Sign out",
 		"email": "Email",
@@ -27,7 +29,8 @@
 	},
 	"nav": {
 		"goToPanel": "Go to panel",
-		"backToPanel": "Back to panel"
+		"backToPanel": "Back to panel",
+		"panelShort": "Panel"
 	},
 	"auth": {
 		"signIn": "Sign in",
@@ -36,15 +39,20 @@
 		"forbidden": "You don't have access to this area",
 		"spaceSuspended": "Your site is suspended. Please contact the administrator."
 	},
+	"focusPicker": {
+		"hint": "Tap the most important part of the photo: on phones the crop centers there.",
+		"mobile": "On phones",
+		"reset": "Back to center"
+	},
 	"image": {
 		"upload": "Upload image",
 		"cropTitle": "Crop the image",
 		"cropSave": "Crop and upload",
 		"err": {
 			"type": "Invalid format. Use JPG, PNG or WebP.",
-			"size": "The image exceeds the maximum size (8 MB).",
+			"size": "The image exceeds the maximum size (40 MB).",
 			"dimensions": "The image is too small and would look blurry. Upload a higher-resolution one.",
-			"decode": "Could not read the image.",
+			"decode": "Could not read the image. Try another photo or save it as JPG.",
 			"upload": "Could not upload the image. Please try again.",
 			"removeBg": "Could not remove the background. Please try again."
 		},
@@ -78,7 +86,8 @@
 		"business": "Business",
 		"nav": {
 			"home": "Home",
-			"subscriptions": "Subscriptions"
+			"subscriptions": "Subscriptions",
+			"menu": "Menu"
 		},
 		"about": {
 			"nav": "About Us",
@@ -118,6 +127,7 @@
 		"sector": "Sector",
 		"detailTitle": "Category",
 		"showing": "Showing {n} products",
+		"otherCategory": "Other",
 		"showingScreens": "Showing {n} screenshots",
 		"searchPlaceholder": "Search product...",
 		"noProducts": "This category has no products yet.",
@@ -127,6 +137,7 @@
 		"generateAd": "Publish",
 		"noInstagram": "Set this category's Instagram (Categories → edit)",
 		"consultWhatsapp": "Ask on WhatsApp",
+		"consultPrice": "Ask for price",
 		"whatsappMsg": "Hi! I wanted to ask about {producto}.",
 		"download": {
 			"android": "Android",
@@ -154,7 +165,9 @@
 			"leads": "Leads Generated",
 			"support": "AI Support",
 			"catalogs": "Catalogs"
-		}
+		},
+		"variants": "Options",
+		"variantOut": "Out of stock in {v}"
 	},
 	"superadmin": {
 		"panelTitle": "Super Admin",
@@ -171,7 +184,7 @@
 			"empty": "No spaces created yet.",
 			"active": "Active",
 			"suspended": "Suspended",
-			"rubros": "{n} categories",
+			"rubros": "{n} category | {n} categories",
 			"suspend": "Suspend",
 			"activate": "Activate",
 			"createTitle": "Create Space",
@@ -212,6 +225,7 @@
 		"panelSubtitle": "VentaCore management",
 		"soon": "Coming soon",
 		"viewSite": "View site",
+		"menu": "Menu",
 		"sidebar": {
 			"general": "General"
 		},
@@ -247,6 +261,8 @@
 			"product": "Product",
 			"searchProduct": "Search product…",
 			"noPrice": "No price",
+			"change": "Change",
+			"pickerDone": "Done",
 			"template": "Template",
 			"caption": "Post caption",
 			"videoSoon": "Upload a video and trim it",
@@ -393,6 +409,11 @@
 			"delete": "Could not delete"
 		},
 		"carga": {
+			"selectedOfShort": "{sel} of {total}",
+			"addMenu": {
+				"button": "Add",
+				"manual": "Manual product"
+			},
 			"eyebrow": "Bulk upload",
 			"title": "Upload products",
 			"subtitle": "Bring in your products and publish them in bulk. The system fills in what it can.",
@@ -417,7 +438,17 @@
 			},
 			"addRow": "Add row",
 			"selectedOf": "{sel} selected of {total}",
-			"searchPlaceholder": "Search by name, brand, EAN…",
+			"searchPlaceholder": "Search…",
+			"searchHint": "Search by name, brand, EAN…",
+			"sheet": {
+				"title": "Edit product",
+				"untitled": "Untitled",
+				"noCost": "No cost",
+				"cost": "Cost {costo}",
+				"costMargin": "Cost {costo} · margin {margen}%",
+				"save": "Save",
+				"publish": "Publish to ML"
+			},
 			"searchNoResults": "No products match “{q}”.",
 			"cols": {
 				"producto": "Product",
@@ -446,6 +477,11 @@
 				"review": "Review",
 				"missing": "{n} missing",
 				"draft": "Draft"
+			},
+			"categoria": {
+				"none": "No category",
+				"useMl": "Use “{name}” (from Mercado Libre)",
+				"bulkHint": "Pick or type the category for the {n} selected. Empty = remove their category."
 			},
 			"bulk": {
 				"asignarRubro": "Assign category",
@@ -489,7 +525,6 @@
 			"mlNotConnected": "ML not connected",
 			"mlConnectHint": "Connect ML to publish",
 			"needName": "Give every selected product a name.",
-			"saveAll": "Save all",
 			"saveRow": "Save this row",
 			"saveSelected": "Save ({n})",
 			"unsavedN": "{n} unsaved",
@@ -503,7 +538,7 @@
 			},
 			"nothingSelected": "No rows selected.",
 			"noRubros": "Create at least one category first to upload products.",
-			"saved": "{n} products saved",
+			"saved": "1 product saved | {n} products saved",
 			"savedSynced": "Saved and synced to Mercado Libre",
 			"savedSyncedN": "{n} saved · {synced} synced to Mercado Libre",
 			"savedPartial": "{ok} saved · {fail} failed",
@@ -585,6 +620,18 @@
 			"created": "Category created",
 			"updated": "Category updated",
 			"deleted": "Category deleted",
+			"categorias": {
+				"title": "Catalog categories",
+				"hint": "They are your store's menu, in this order. Changes are saved instantly.",
+				"empty": "No categories yet. Add the first one or assign them from Load products.",
+				"add": "Add",
+				"addPlaceholder": "New category",
+				"rename": "Category name",
+				"up": "Move up",
+				"down": "Move down",
+				"deleteTitle": "Delete category",
+				"deleteConfirm": "Delete “{name}”? Its products are kept: they lose the category and show under \"Other\"."
+			},
 			"editTitle": "Edit Category",
 			"saveChanges": "Save changes",
 			"deleteTitle": "Delete category",
@@ -683,6 +730,7 @@
 			"missingScopesToast": "Connected, but some permissions are missing ({scopes}). Publishing won't work: reconnect and keep all permissions checked."
 		},
 		"ml": {
+			"mlPriceShort": "ML price",
 			"tabs": {
 				"publicaciones": "Listings",
 				"ventas": "Sales",
@@ -737,7 +785,23 @@
 				"answerError": "Could not post the answer.",
 				"closed": "Question closed without an answer."
 			},
+			"wa": {
+				"title": "WhatsApp alerts",
+				"subtitle": "We'll ping you on WhatsApp when a Mercado Libre question or an Instagram message comes in. Reply by quoting that message and we send your answer.",
+				"active": "Active",
+				"paused": "Paused",
+				"phoneLabel": "WhatsApp number",
+				"phoneHint": "International format, with + and country code. E.g. +54 9 351 123 4567.",
+				"save": "Save",
+				"saved": "Recipient saved.",
+				"saveError": "Could not save the recipient.",
+				"invalidPhone": "The number must be in international format (e.g. +5493511234567).",
+				"pause": "Pause",
+				"resume": "Resume",
+				"removed": "Recipient removed."
+			},
 			"ventas": {
+				"qtyShort": "{n} u.",
 				"eyebrow": "Mercado Libre",
 				"pageTitle": "Completed sales",
 				"pageSubtitle": "This business's paid sales on Mercado Libre.",
@@ -825,13 +889,30 @@
 			"storePriceHint": "Cost + margin. What you want to earn per unit.",
 			"mlPrice": "Mercado Libre price",
 			"calcBtn": "Calculate",
-			"needCategory": "Assign an ML category above to compute the fee.",
+			"needCategory": "Assign the category (in Listing) to compute the fee.",
 			"noCostHint": "Add cost",
 			"benefitNoShipping": "Shipping not included. Add the product's height, width, length and weight to compute the real profit.",
 			"benefitNoShippingShort": "no shipping",
 			"secPricing": "Price & profitability",
 			"secData": "Data",
 			"secFicha": "Mercado Libre listing",
+			"secShipping": "Shipping",
+			"youEarn": "You earn",
+			"earnNeedsCategory": "Pick the category to calculate it",
+			"steps": {
+				"ficha": "Listing",
+				"envio": "Shipping",
+				"precio": "Price",
+				"datos": "Data"
+			},
+			"rowReady": "Ready to publish",
+			"rowMissing": "Missing {campos}",
+			"missing": {
+				"category": "category",
+				"stock": "stock",
+				"price": "price",
+				"title": "title"
+			},
 			"pause": "Pause",
 			"activate": "Activate",
 			"pausedToast": "Listing paused",

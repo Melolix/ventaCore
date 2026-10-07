@@ -207,7 +207,10 @@ export default defineComponent({
 		await this.reload();
 	},
 	watch: {
-		'ctx.currentRubroId'() {
+		// Se mira el rubro RESUELTO, no el id: en carga directa el id ya viene
+		// persistido y lo que llega tarde es la lista de rubros (si no, quedaba
+		// "ML no conectado" hasta cambiar de pestaña).
+		'rubro.id'() {
 			void this.reload();
 		},
 	},

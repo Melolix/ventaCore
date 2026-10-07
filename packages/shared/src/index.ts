@@ -8,3 +8,4 @@ export * from './types/social';
 export * from './types/mercadolibre';
 export * from './types/payments';
 export * from './types/sales';
+export * from './types/whatsapp';

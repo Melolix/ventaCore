@@ -11,7 +11,7 @@
 			<i class="pi pi-spin pi-spinner text-2xl" />
 		</div>
 
-		<form v-else class="glass-card space-y-6 rounded-3xl p-8" @submit.prevent="save">
+		<form v-else class="glass-card space-y-6 rounded-3xl p-5 sm:p-8" @submit.prevent="save">
 			<div class="space-y-2">
 				<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 					{{ $t('admin.about.fields.headline') }}
@@ -106,9 +106,13 @@ export default defineComponent({
 		}
 	},
 	methods: {
-		/** El Editor emite null o "<p><br></p>" cuando queda vacío: lo normalizamos a "". */
+		/**
+		 * El Editor emite null o "<p><br></p>" cuando queda vacío: lo normalizamos a "".
+		 * Además mete `&nbsp;` (y U+00A0) entre palabras, que rompe el wrapping de la
+		 * vitrina → los pasamos a espacios comunes al guardar.
+		 */
 		normalizeAboutText(): string {
-			const html = this.form.aboutText || '';
+			const html = (this.form.aboutText || '').replace(/&nbsp;/gi, ' ').replace(/ /g, ' ');
 			const sinFormato = html.replace(/<[^>]+>/g, '').replace(/ /g, ' ').trim();
 			return sinFormato.length === 0 ? '' : html.trim();
 		},

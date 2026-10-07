@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
-import { AppPlatform, RubroStatus } from '@base-template/shared';
+import { IsArray, IsEnum, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { AppPlatform, IMAGE_FOCUS_RE, RubroStatus } from '@base-template/shared';
 
 export class CreateRubroDto {
 	@ApiProperty({ example: 'Bienes Raíces' })
@@ -17,6 +17,11 @@ export class CreateRubroDto {
 	@IsOptional()
 	@IsString()
 	imageUrl?: string;
+
+	@ApiProperty({ required: false, nullable: true, example: '30% 50%', description: 'Punto de foco de la portada (CSS object-position).' })
+	@IsOptional()
+	@Matches(IMAGE_FOCUS_RE)
+	imageFocus?: string | null;
 
 	@ApiProperty({ required: false, example: 'https://.../logo.png' })
 	@IsOptional()

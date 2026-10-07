@@ -12,7 +12,7 @@
 		</div>
 
 		<template v-else>
-			<form class="glass-card space-y-6 rounded-3xl p-8" @submit.prevent="save">
+			<form class="glass-card space-y-6 rounded-3xl p-5 sm:p-8" @submit.prevent="save">
 				<!-- Estado -->
 				<div class="flex flex-wrap items-center gap-2">
 					<span class="text-xs font-semibold uppercase tracking-wide text-surface-500">Lemon Squeezy</span>
@@ -29,9 +29,11 @@
 						{{ $t('admin.cobros.webhookUrl') }}
 					</label>
 					<div class="flex gap-2">
-						<InputText :model-value="config?.webhookUrl || ''" readonly class="w-full font-mono text-sm" />
+						<!-- min-w-0 + flex-1: el input cede ancho y el botón "Copiar" no se corta. -->
+						<InputText :model-value="config?.webhookUrl || ''" readonly class="min-w-0 flex-1 font-mono text-sm" />
 						<Button
 							type="button"
+							class="shrink-0"
 							:icon="copied ? 'pi pi-check' : 'pi pi-copy'"
 							:label="copied ? $t('admin.cobros.copied') : $t('admin.cobros.copy')"
 							severity="secondary"
@@ -105,7 +107,7 @@
 			</form>
 
 			<!-- Guía rápida -->
-			<div class="glass-card mt-6 rounded-3xl p-8">
+			<div class="glass-card mt-6 rounded-3xl p-5 sm:p-8">
 				<h3 class="mb-4 flex items-center gap-2 text-lg font-bold text-surface-900 dark:text-surface-0">
 					<i class="pi pi-info-circle text-primary" /> {{ $t('admin.cobros.guideTitle') }}
 				</h3>

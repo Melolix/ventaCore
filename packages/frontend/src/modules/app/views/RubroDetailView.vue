@@ -4,7 +4,7 @@
 		<section class="relative mb-10 min-h-[18rem] overflow-hidden rounded-[2rem] md:min-h-0 md:aspect-[3/1]">
 			<div
 				class="absolute inset-0 bg-cover bg-center"
-				:style="rubro?.imageUrl ? { backgroundImage: `url('${rubro.imageUrl}')` } : {}"
+				:style="rubro?.imageUrl ? { backgroundImage: `url('${rubro.imageUrl}')`, backgroundPosition: rubro.imageFocus || undefined } : {}"
 				:class="[{ 'primary-gradient': !rubro?.imageUrl }, isApps && rubro?.imageUrl ? 'scale-110 blur-xl' : '']"
 			>
 				<!-- En apps el fondo va desenfocado: el título se lee limpio y no compite
@@ -15,14 +15,17 @@
 				/>
 			</div>
 			<div class="relative flex h-full flex-col justify-center gap-3 p-8 md:p-12">
+				<!-- En modo "home" (negocio de un solo rubro) esta vista ES la vitrina:
+				     no hay a dónde "volver" ni sentido en la etiqueta de sector. -->
 				<Button
+					v-if="!isHome"
 					:label="$t('public.back')"
 					icon="pi pi-arrow-left"
 					text
 					class="w-fit !text-white"
 					@click="goBack"
 				/>
-				<span class="flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 backdrop-blur-md">
+				<span v-if="!isHome" class="flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 backdrop-blur-md">
 					<i :class="isApps ? 'pi pi-th-large' : 'pi pi-tag'" class="text-sm text-white" />
 					<span class="text-xs font-bold uppercase tracking-wide text-white">{{ isApps ? $t('public.app') : $t('public.sector') }}</span>
 				</span>
@@ -105,10 +108,48 @@
 				{{ isApps ? $t('public.noScreens') : $t('public.noProducts') }}
 			</div>
 
-			<div v-else class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3">
+			<!-- Con categorías: menú a la izquierda (lg+) o tira fija arriba (mobile) y
+			     los productos agrupados por categoría. Sin categorías (o en apps): un
+			     solo grupo sin título, igual que antes. -->
+			<div v-else :class="showCategorias ? 'lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8' : ''">
+				<nav
+					v-if="showCategorias"
+					ref="catNav"
+					class="cat-nav sticky top-16 z-30 -mx-6 mb-5 flex gap-2 overflow-x-auto border-b border-surface-200/70 bg-surface-50/95 px-6 py-2.5 backdrop-blur lg:top-24 lg:mx-0 lg:mb-0 lg:max-h-[calc(100dvh-7.5rem)] lg:flex-col lg:gap-1 lg:self-start lg:overflow-y-auto lg:overflow-x-hidden lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:border-surface-700/70 dark:bg-surface-950/95 lg:dark:bg-transparent"
+					:aria-label="$t('public.categories')"
+				>
+					<p class="mb-1 hidden px-3 text-[11px] font-bold uppercase tracking-widest text-surface-400 lg:block">{{ $t('public.categories') }}</p>
+					<button
+						v-for="g in groups"
+						:key="g.key"
+						type="button"
+						:data-cat="g.key"
+						class="flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors lg:w-full lg:whitespace-normal lg:rounded-xl lg:border-0 lg:px-3 lg:py-2 lg:text-left"
+						:class="activeCat === g.key
+							? 'border-primary bg-primary text-primary-contrast lg:bg-primary/10 lg:text-primary'
+							: 'border-surface-200 bg-surface-0 text-surface-600 hover:text-primary dark:border-surface-700 dark:bg-surface-900 dark:text-surface-300 lg:bg-transparent lg:hover:bg-surface-100 lg:dark:bg-transparent lg:dark:hover:bg-surface-800'"
+						:aria-current="activeCat === g.key ? 'true' : undefined"
+						@click="goToCat(g.key)"
+					>
+						<span class="min-w-0 lg:truncate">{{ g.label }}</span>
+						<span class="hidden text-xs font-medium opacity-60 lg:inline">{{ g.items.length }}</span>
+					</button>
+				</nav>
+				<div class="min-w-0 space-y-10">
+				<section
+					v-for="g in groups"
+					:key="g.key"
+					:data-cat-section="g.key"
+					class="scroll-mt-32 lg:scroll-mt-24"
+				>
+				<h2 v-if="showCategorias" class="mb-4 flex items-baseline gap-2 text-xl font-extrabold text-surface-900 dark:text-surface-0">
+					{{ g.label }}
+					<span class="text-sm font-medium text-surface-400">{{ g.items.length }}</span>
+				</h2>
+				<div class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3">
 				<div
-					v-for="producto in filtered"
-					:key="producto.id"
+					v-for="producto in g.items"
+					:key="producto.grupo || producto.id"
 					class="glass-card group flex flex-col overflow-hidden rounded-2xl transition-all hover:scale-[1.02]"
 				>
 					<div
@@ -131,22 +172,35 @@
 									@click="openLightbox(producto)"
 								/>
 							</template>
-							<!-- Catálogo: la foto llena la card (object-cover). -->
-							<img
-								v-else
-								:src="producto.imageUrl"
-								:alt="producto.nombre"
-								class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-							/>
+							<!-- Catálogo: la foto entra ENTERA (contain) sobre un fondo borroso de
+							     sí misma. Las fotos que cargan los clientes vienen con cualquier
+							     relación de aspecto (collages, verticales, con carteles): así no se
+							     recorta nada y el marco queda uniforme entre todas las cards. -->
+							<template v-else>
+								<div
+									class="absolute inset-0 scale-110 bg-cover bg-center opacity-40 blur-2xl"
+									:style="{ backgroundImage: `url('${producto.imageUrl}')` }"
+								/>
+								<img
+									:src="producto.imageUrl"
+									:alt="producto.nombre"
+									class="relative h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+								/>
+							</template>
 						</template>
 						<div v-else class="flex h-full w-full items-center justify-center text-surface-400">
 							<i :class="isApps ? 'pi pi-image' : 'pi pi-shopping-bag'" class="text-4xl" />
 						</div>
+						<!-- Precio siempre presente para que todas las cards alineen igual:
+						     si el producto no tiene precio, mostramos "Consultar precio". -->
 						<span
-							v-if="!isApps && producto.precio != null"
-							class="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 font-bold text-primary shadow-sm backdrop-blur-sm dark:bg-surface-900/80"
+							v-if="!isApps"
+							class="absolute right-4 top-4 rounded-full px-3 py-1 shadow-sm backdrop-blur-sm"
+							:class="producto.precio != null
+								? 'bg-white/90 font-bold text-primary dark:bg-surface-900/80'
+								: 'bg-surface-900/70 text-xs font-semibold text-white/90'"
 						>
-							{{ formatPrice(producto.precio) }}
+							{{ producto.precio != null ? formatPrice(producto.precio) : $t('public.consultPrice') }}
 						</span>
 						<!-- Apps: hint de "ampliar" (abre el lightbox) -->
 						<button
@@ -160,10 +214,37 @@
 						</button>
 					</div>
 					<div class="flex flex-1 flex-col p-6">
-						<h3 class="mb-2 text-lg font-bold text-surface-900 dark:text-surface-0">{{ producto.nombre }}</h3>
+						<!-- line-clamp-2: los títulos largos (típicos de import de ML) se cortan
+						     en 2 líneas con "…" → cards parejas. El texto completo, en el title. -->
+						<h3 class="mb-2 line-clamp-2 text-lg font-bold text-surface-900 dark:text-surface-0" :title="producto.nombre">
+							{{ producto.nombre }}
+						</h3>
 						<p class="flex-1 text-sm text-surface-500" :class="isApps ? 'line-clamp-4' : 'mb-4 line-clamp-2'">
 							{{ producto.descripcion || '' }}
 						</p>
+						<!-- Variantes (talle, color…): una sola card con selector, en vez de una
+						     card repetida por variante. Elegir una cambia precio, foto y stock. -->
+						<div v-if="!isApps && variantesDe(producto).length" class="mb-4 space-y-1.5">
+							<div class="flex flex-wrap gap-1.5" role="group" :aria-label="$t('public.variants')">
+								<button
+									v-for="v in variantesDe(producto)"
+									:key="v.id"
+									type="button"
+									class="min-h-9 min-w-9 rounded-lg border px-2.5 text-xs font-bold transition-colors"
+									:class="v.id === producto.id
+										? 'border-primary bg-primary text-primary-contrast'
+										: v.stock === 0
+											? 'border-surface-200 text-surface-400 line-through dark:border-surface-700'
+											: 'border-surface-300 text-surface-700 hover:border-primary hover:text-primary dark:border-surface-600 dark:text-surface-200'"
+									:aria-pressed="v.id === producto.id"
+									:title="v.stock === 0 ? $t('public.variantOut', { v: v.variante }) : (v.variante ?? '')"
+									@click="pickVariante(v)"
+								>
+									{{ v.variante || v.nombre }}
+								</button>
+							</div>
+							<p v-if="producto.stock === 0" class="text-xs font-semibold text-red-500">{{ $t('public.variantOut', { v: producto.variante }) }}</p>
+						</div>
 						<!-- En apps las cards son capturas: sin botones (la descarga va en el hero). -->
 						<template v-if="!isApps">
 							<!-- Admin logueado: publicar (por ahora abre el Instagram del rubro) -->
@@ -186,6 +267,9 @@
 							/>
 						</template>
 					</div>
+				</div>
+				</div>
+				</section>
 				</div>
 			</div>
 		</div>
@@ -228,8 +312,17 @@ import { AppPlatform, EspacioType, Role, type Producto } from '@base-template/sh
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useUserStore } from '@/modules/auth/store/user';
 import { PLATFORM_ICON, effectivePlatforms } from '@/shared/utils/apps';
+import { groupVariantes, varianteInicial } from '@/modules/app/utils/variantes';
 
 type SortKey = 'relevance' | 'priceAsc' | 'priceDesc';
+/** Un grupo del catálogo: una categoría con sus productos. */
+interface CatGroup {
+	key: string;
+	label: string;
+	items: Producto[];
+}
+/** Clave del grupo de productos sin categoría. */
+const OTROS_KEY = '__otros';
 interface Download {
 	key: string;
 	url: string;
@@ -240,6 +333,13 @@ interface Download {
 
 export default defineComponent({
 	name: 'RubroDetailView',
+	props: {
+		/** Rubro a mostrar cuando se reusa fuera de la ruta (negocio de un solo rubro).
+		 *  Si viene vacío, se toma el `:id` de la URL. */
+		forcedRubroId: { type: String, default: '' },
+		/** Modo vitrina: esta vista es la home del negocio (oculta "Volver" y la etiqueta). */
+		isHome: { type: Boolean, default: false },
+	},
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -249,11 +349,16 @@ export default defineComponent({
 			lightboxVisible: false,
 			lightboxItem: null as Producto | null,
 			activeSeccion: '',
+			/** Variante elegida en cada card con variantes: `{ [grupo]: productoId }`. */
+			varianteSel: {} as Record<string, string>,
+			/** Categoría resaltada en el menú (la que se está viendo al hacer scroll). */
+			activeCat: '',
+			catObserver: null as IntersectionObserver | null,
 		};
 	},
 	computed: {
 		rubroId(): string {
-			return this.$route.params.id as string;
+			return this.forcedRubroId || (this.$route.params.id as string);
 		},
 		/** Secciones/pestañas distintas de las capturas, en orden de aparición. */
 		secciones(): string[] {
@@ -317,17 +422,75 @@ export default defineComponent({
 				{ label: this.$t('public.sort.priceDesc'), value: 'priceDesc' },
 			];
 		},
+		/**
+		 * Productos agrupados por categoría, en el orden del menú que armó el
+		 * vendedor (`rubro.categorias`). Después van las categorías que usan los
+		 * productos pero no están en la lista, y al final "Otros" (sin categoría).
+		 * Solo grupos con productos (el buscador los achica). En apps: un grupo.
+		 */
+		groups(): CatGroup[] {
+			if (this.isApps) return [{ key: 'all', label: '', items: this.filtered }];
+			const norm = (s: string | null | undefined) => (s ?? '').trim().toLowerCase();
+			const order: { key: string; label: string }[] = (this.rubro?.categorias ?? []).map(c => ({ key: norm(c), label: c.trim() }));
+			const known = new Set(order.map(o => o.key));
+			const buckets = new Map<string, Producto[]>();
+			for (const p of this.filtered) {
+				const key = norm(p.seccion);
+				if (key && !known.has(key)) {
+					known.add(key);
+					order.push({ key, label: (p.seccion ?? '').trim() });
+				}
+				const list = buckets.get(key);
+				if (list) list.push(p);
+				else buckets.set(key, [p]);
+			}
+			const out: CatGroup[] = [];
+			for (const o of order) {
+				const items = buckets.get(o.key);
+				if (items?.length) out.push({ key: o.key, label: o.label, items });
+			}
+			const sin = buckets.get('');
+			if (sin?.length) out.push({ key: OTROS_KEY, label: this.$t('public.otherCategory'), items: sin });
+			return out;
+		},
+		/** Hay menú de categorías si el catálogo (sin filtrar) usa al menos una. */
+		showCategorias(): boolean {
+			return !this.isApps && this.catalog.publicProductos.some(p => (p.seccion ?? '').trim());
+		},
+		/** Variantes por grupo (talles, colores…), ordenadas. Solo grupos de 2 o más. */
+		variantes(): Map<string, Producto[]> {
+			return this.isApps ? new Map() : groupVariantes(this.catalog.publicProductos);
+		},
 		filtered(): Producto[] {
 			const term = this.search.trim().toLowerCase();
 			let list = this.catalog.publicProductos.filter(p => !term || p.nombre.toLowerCase().includes(term));
 			// Apps con pestañas: mostrar solo las capturas de la sección activa.
 			if (this.showTabs) list = list.filter(p => p.seccion === this.activeSeccion);
+			// Variantes: cada grupo ocupa UNA card (en el lugar de su primera variante),
+			// mostrando la variante elegida.
+			const vistos = new Set<string>();
+			list = list.flatMap(p => {
+				const grupo = p.grupo && this.variantes.get(p.grupo);
+				if (!p.grupo || !grupo) return [p];
+				if (vistos.has(p.grupo)) return [];
+				vistos.add(p.grupo);
+				return [grupo.find(v => v.id === this.varianteSel[p.grupo as string]) ?? varianteInicial(grupo)];
+			});
 			if (this.sort !== 'relevance') {
 				const dir = this.sort === 'priceAsc' ? 1 : -1;
 				list = [...list].sort((a, b) => ((a.precio ?? 0) - (b.precio ?? 0)) * dir);
 			}
 			return list;
 		},
+	},
+	watch: {
+		// Las secciones cambian con el buscador/orden: re-enganchamos el seguimiento.
+		groups() {
+			this.$nextTick(() => this.observeSections());
+		},
+	},
+	beforeUnmount() {
+		this.catObserver?.disconnect();
 	},
 	async created() {
 		this.loading = true;
@@ -342,12 +505,54 @@ export default defineComponent({
 			if (this.showTabs) this.activeSeccion = this.secciones[0];
 		} catch {
 			// Rubro inexistente o en borrador → volver a la vitrina del negocio.
-			this.goBack();
+			// (En modo home no redirigimos: esta vista ya ES la vitrina.)
+			if (!this.isHome) this.goBack();
 		} finally {
 			this.loading = false;
+			// Las secciones recién existen en el DOM cuando termina la carga.
+			this.$nextTick(() => this.observeSections());
 		}
 	},
 	methods: {
+		/** Baja hasta la sección de esa categoría. */
+		goToCat(key: string) {
+			this.activeCat = key;
+			const el = this.$el.querySelector(`[data-cat-section="${CSS.escape(key)}"]`) as HTMLElement | null;
+			el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		},
+		/**
+		 * Marca en el menú la categoría que se está viendo. En mobile además trae
+		 * su chip a la vista dentro de la tira (la tira scrollea sola, la página no).
+		 */
+		observeSections() {
+			this.catObserver?.disconnect();
+			if (!this.showCategorias) return;
+			const sections = [...this.$el.querySelectorAll('[data-cat-section]')] as HTMLElement[];
+			if (!sections.length) return;
+			if (!sections.some(s => s.dataset.catSection === this.activeCat)) this.activeCat = sections[0].dataset.catSection ?? '';
+			// El observer solo avisa de las secciones que CAMBIAN: llevamos la cuenta de
+			// cuáles están en la franja y la activa es la primera de ellas (orden del DOM).
+			const visible = new Set<Element>();
+			this.catObserver = new IntersectionObserver(
+				entries => {
+					for (const e of entries) {
+						if (e.isIntersecting) visible.add(e.target);
+						else visible.delete(e.target);
+					}
+					const top = sections.find(s => visible.has(s));
+					if (!top) return;
+					this.activeCat = top.dataset.catSection ?? '';
+					const nav = this.$refs.catNav as HTMLElement | undefined;
+					const chip = nav?.querySelector(`[data-cat="${CSS.escape(this.activeCat)}"]`) as HTMLElement | null;
+					if (nav && chip && nav.scrollWidth > nav.clientWidth) {
+						nav.scrollTo({ left: chip.offsetLeft - nav.clientWidth / 2 + chip.clientWidth / 2, behavior: 'smooth' });
+					}
+				},
+				// Franja de "lectura": debajo del header + menú fijos, mitad superior de la pantalla.
+				{ rootMargin: '-140px 0px -55% 0px' },
+			);
+			for (const s of sections) this.catObserver.observe(s);
+		},
 		goBack() {
 			this.$router.push('/');
 		},
@@ -368,12 +573,32 @@ export default defineComponent({
 			if (url) window.open(url, '_blank', 'noopener');
 		},
 		/** Cliente: abre WhatsApp con una consulta sobre el producto. */
+		/** Las variantes del producto de la card ([] si es un producto suelto). */
+		variantesDe(producto: Producto): Producto[] {
+			return (producto.grupo && this.variantes.get(producto.grupo)) || [];
+		},
+		pickVariante(v: Producto) {
+			if (v.grupo) this.varianteSel = { ...this.varianteSel, [v.grupo]: v.id };
+		},
 		consultarWhatsapp(producto: Producto) {
 			const num = (this.espacio?.whatsapp || '').replace(/\D/g, '');
 			if (!num) return;
-			const msg = this.$t('public.whatsappMsg', { producto: producto.nombre });
+			// Con variantes, la consulta aclara cuál eligió ("Chomba piqué — L").
+			const esVariante = this.variantesDe(producto).length > 0 && producto.variante;
+			const nombre = esVariante ? `${producto.nombre} — ${producto.variante}` : producto.nombre;
+			const msg = this.$t('public.whatsappMsg', { producto: nombre });
 			window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
 		},
 	},
 });
 </script>
+
+<style scoped>
+/* La tira de categorías (mobile) se desliza con el dedo, sin barra a la vista. */
+.cat-nav {
+	scrollbar-width: none;
+}
+.cat-nav::-webkit-scrollbar {
+	display: none;
+}
+</style>

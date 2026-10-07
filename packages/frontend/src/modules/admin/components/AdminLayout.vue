@@ -2,17 +2,31 @@
 	<div class="min-h-screen bg-surface-50 dark:bg-surface-950">
 		<!-- Topbar -->
 		<header
-			class="fixed top-0 left-0 z-50 flex h-16 w-full items-center justify-between border-b border-surface-200/60 bg-surface-0/70 px-6 backdrop-blur-xl dark:border-surface-700/60 dark:bg-surface-900/70"
+			class="fixed top-0 left-0 z-50 flex h-16 w-full items-center justify-between border-b border-surface-200/60 bg-surface-0/70 px-3 backdrop-blur-xl sm:px-6 dark:border-surface-700/60 dark:bg-surface-900/70"
 		>
-			<BrandLogo :size="30" />
+			<!-- Hamburguesa: abre el sidebar como drawer en mobile (oculta desde md). -->
+			<button
+				type="button"
+				class="-ml-2 mr-1 flex h-9 w-9 items-center justify-center rounded-lg text-surface-600 transition-colors hover:bg-surface-100 md:hidden dark:text-surface-300 dark:hover:bg-surface-800"
+				:aria-label="$t('admin.menu')"
+				@click="sidebarOpen = !sidebarOpen"
+			>
+				<i class="pi pi-bars text-lg" />
+			</button>
+			<!-- Logo. En mobile, con "viendo como" activo, va solo el isotipo para que
+			     entre el cartel (si no, "Salir" se pisaba con el botón de tema). -->
+			<span :class="imp.active ? 'hidden sm:inline-flex' : 'inline-flex'"><BrandLogo :size="30" /></span>
+			<span v-if="imp.active" class="inline-flex sm:hidden"><BrandLogo :size="30" :wordmark="false" /></span>
 
 			<!-- "Viendo como": un superadmin está impersonando a un cliente. -->
 			<div
 				v-if="imp.active"
-				class="mx-3 flex min-w-0 items-center gap-2 rounded-full bg-amber-500/15 px-3 py-1 text-sm text-amber-700 dark:text-amber-300"
+				class="mx-2 flex min-w-0 items-center gap-2 rounded-full bg-amber-500/15 px-2 py-1 text-sm text-amber-700 sm:mx-3 sm:px-3 dark:text-amber-300"
 			>
 				<i class="pi pi-eye shrink-0" />
-				<span class="truncate">{{ $t('admin.impersonating', { nombre: imp.espacioNombre }) }}</span>
+				<!-- En mobile solo el nombre (el ojo ya dice "viendo como"); desde sm, la frase. -->
+				<span class="truncate sm:hidden">{{ imp.espacioNombre }}</span>
+				<span class="hidden truncate sm:inline">{{ $t('admin.impersonating', { nombre: imp.espacioNombre }) }}</span>
 				<button
 					type="button"
 					class="shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold hover:bg-amber-500/30"
@@ -30,11 +44,12 @@
 					size="small"
 					outlined
 					:disabled="!catalog.miEspacio"
-					class="hidden sm:inline-flex"
+					class="!hidden sm:!inline-flex"
 					@click="openSite"
 				/>
 				<!-- Divisor: separa la acción de la app de los controles de la cuenta. -->
 				<span class="mx-1 hidden h-6 w-px bg-surface-200 dark:bg-surface-700 sm:block" />
+				<!-- Tema: en mobile va dentro del menú del avatar (no entra en el header). -->
 				<Button
 					:icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
 					severity="secondary"
@@ -42,6 +57,7 @@
 					text
 					rounded
 					aria-label="Cambiar tema"
+					class="!hidden sm:!inline-flex"
 					@click="toggleTheme"
 				/>
 				<button
@@ -56,7 +72,9 @@
 					>
 						{{ nombre }}
 					</span>
-					<i class="pi pi-chevron-down text-xs text-surface-400" />
+					<!-- El chevron solo desde sm (en mobile el avatar solo ya es tocable).
+					     Envuelto en un span: `hidden` sobre el <i> lo pisa el display de .pi. -->
+					<span class="hidden sm:inline"><i class="pi pi-chevron-down text-xs text-surface-400" /></span>
 				</button>
 				<Menu ref="userMenu" :model="userMenuItems" popup>
 					<template #start>
@@ -73,16 +91,32 @@
 			</div>
 		</header>
 
-		<!-- Sidebar -->
+		<!-- Overlay oscuro detrás del drawer en mobile: cierra al tocar (oculto en md+). -->
+		<div
+			v-if="sidebarOpen"
+			class="fixed inset-0 z-30 bg-black/50 md:hidden"
+			@click="sidebarOpen = false"
+		/>
+
+		<!-- Sidebar: fijo en md+, drawer off-canvas en mobile (se desliza con sidebarOpen).
+		     top-16 + bottom-0 (no h-[100vh]): en el celu 100vh ignora la barra del
+		     navegador y el pie ("Ver el sitio") quedaba tapado, había que scrollear. -->
 		<aside
-			class="fixed top-16 left-0 z-40 flex h-[calc(100vh-64px)] w-64 flex-col border-r border-surface-200/60 bg-surface-0/60 p-4 backdrop-blur-2xl dark:border-surface-700/60 dark:bg-surface-900/60"
+			class="sidebar-drawer fixed top-16 bottom-0 left-0 z-40 flex w-64 flex-col border-r border-surface-200/60 bg-surface-0/95 p-4 backdrop-blur-2xl md:bg-surface-0/60 dark:border-surface-700/60 dark:bg-surface-900/95 md:dark:bg-surface-900/60"
+			:class="{ 'is-open': sidebarOpen }"
 		>
 			<nav class="flex flex-1 flex-col gap-1 overflow-y-auto">
 				<!-- Grupo GENERAL: cosas del CM, no dependen del negocio elegido. -->
 				<p class="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
 					{{ $t('admin.sidebar.general') }}
 				</p>
-				<router-link v-for="item in navGeneral" :key="item.key" :to="item.to" :class="linkClass(item)">
+				<router-link
+					v-for="item in navGeneral"
+					:key="item.key"
+					:to="item.to"
+					:class="linkClass(item)"
+					@click="sidebarOpen = false"
+				>
 					<i :class="item.icon" />
 					<span>{{ $t(item.label) }}</span>
 				</router-link>
@@ -110,7 +144,7 @@
 					:key="item.key"
 					:to="item.to"
 					:class="linkClass(item)"
-					@click="item.disabled && $event.preventDefault()"
+					@click="item.disabled ? $event.preventDefault() : (sidebarOpen = false)"
 				>
 					<i :class="item.icon" />
 					<span>{{ $t(item.label) }}</span>
@@ -134,8 +168,8 @@
 			</div>
 		</aside>
 
-		<!-- Contenido -->
-		<main class="mt-16 ml-64 min-h-[calc(100vh-64px)] p-6">
+		<!-- Contenido: sin margen izquierdo en mobile (el sidebar es drawer). -->
+		<main class="mt-16 ml-0 min-h-[calc(100vh-64px)] p-4 sm:p-6 md:ml-64">
 			<router-view />
 		</main>
 
@@ -173,6 +207,8 @@ export default defineComponent({
 	},
 	data() {
 		return {
+			// Drawer del sidebar en mobile (en md+ el sidebar es fijo y esto se ignora).
+			sidebarOpen: false,
 			// GENERAL: del CM / la cuenta, no dependen del negocio elegido.
 			navGeneral: [
 				{ key: 'rubros', label: 'admin.nav.rubros', icon: 'pi pi-tags', to: '/admin' },
@@ -217,7 +253,21 @@ export default defineComponent({
 			return (this.nombre.trim()[0] || '?').toUpperCase();
 		},
 		userMenuItems() {
-			return [{ label: this.$t('common.logout'), icon: 'pi pi-sign-out', command: () => this.onLogout() }];
+			return [
+				// El botón de tema del header se oculta en mobile; acá queda siempre a mano.
+				{
+					label: this.$t(this.isDark ? 'common.lightMode' : 'common.darkMode'),
+					icon: this.isDark ? 'pi pi-sun' : 'pi pi-moon',
+					command: () => this.toggleTheme(),
+				},
+				{ label: this.$t('common.logout'), icon: 'pi pi-sign-out', command: () => this.onLogout() },
+			];
+		},
+	},
+	watch: {
+		// Cerrar el drawer al navegar (cubre navegación programática, no solo clicks).
+		$route() {
+			this.sidebarOpen = false;
 		},
 	},
 	async created() {
@@ -286,3 +336,22 @@ export default defineComponent({
 	},
 });
 </script>
+
+<style scoped>
+/* Sidebar como drawer en mobile; fijo (siempre visible) desde md. Se hace con CSS
+   explícito y no con utilidades `translate` de Tailwind para evitar conflictos de
+   orden en v4 (donde `md:translate-x-0` no le ganaba a `-translate-x-full` y el
+   `!important` del variant se filtraba a mobile). */
+.sidebar-drawer {
+	transform: translateX(-100%);
+	transition: transform 0.2s ease;
+}
+.sidebar-drawer.is-open {
+	transform: translateX(0);
+}
+@media (min-width: 768px) {
+	.sidebar-drawer {
+		transform: translateX(0) !important;
+	}
+}
+</style>

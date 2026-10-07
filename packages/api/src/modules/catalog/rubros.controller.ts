@@ -7,7 +7,7 @@ import { Roles } from '../../common/auth/roles.decorator';
 import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { RubrosService } from './rubros.service';
 import { CreateRubroDto } from './dto/create-rubro.dto';
-import { UpdateRubroDto } from './dto/update-rubro.dto';
+import { RenameCategoriaDto, UpdateRubroDto } from './dto/update-rubro.dto';
 
 /** Devuelve el espacio del admin o rechaza si no tiene uno asignado. */
 function espacioDe(user: AuthenticatedUser): string {
@@ -41,6 +41,12 @@ export class RubrosController {
 	@Patch(':id')
 	update(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: UpdateRubroDto) {
 		return this.rubros.update(id, espacioDe(user), dto);
+	}
+
+	/** Renombra o borra una categoría del catálogo (actualiza también los productos). */
+	@Post(':id/categorias/rename')
+	renameCategoria(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: RenameCategoriaDto) {
+		return this.rubros.renameCategoria(id, espacioDe(user), dto.from, dto.to);
 	}
 
 	@Delete(':id')

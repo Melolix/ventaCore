@@ -1,11 +1,12 @@
 <template>
-	<div class="mx-auto max-w-6xl">
+	<!-- max-lg:pb-40: en mobile la barra de publicar va fija abajo y no debe tapar el final. -->
+	<div class="mx-auto max-w-6xl max-lg:pb-40">
 		<!-- Encabezado -->
-		<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+		<div class="mb-4 flex flex-wrap items-end justify-between gap-3 md:mb-6">
 			<div>
 				<p class="ig-eyebrow text-xs font-extrabold uppercase tracking-widest">{{ $t('admin.estudio.eyebrow') }}</p>
 				<h1 class="text-2xl font-extrabold text-surface-900 dark:text-surface-0">{{ $t('admin.estudio.title') }}</h1>
-				<p class="mt-1 text-sm text-surface-500">{{ $t('admin.estudio.subtitle') }}</p>
+				<p class="mt-1 hidden text-sm text-surface-500 md:block">{{ $t('admin.estudio.subtitle') }}</p>
 			</div>
 			<div v-if="igUsername" class="flex items-center gap-2 rounded-full border border-surface-200 px-3 py-1.5 text-xs font-semibold dark:border-surface-700">
 				<span class="ig-badge" /> {{ '@' + igUsername }} · {{ $t('admin.estudio.connected') }}
@@ -35,12 +36,36 @@
 			<div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-[244px_minmax(0,1fr)_320px]">
 				<!-- A: producto -->
 				<div class="glass-card rounded-2xl">
-					<p class="px-4 pt-3 text-xs font-bold uppercase tracking-wide text-surface-400">{{ $t('admin.estudio.product') }}</p>
-					<div class="relative m-3">
+					<!-- Mobile: el producto elegido en una fila; "Cambiar" despliega el buscador
+					     y la lista (antes la lista entera iba arriba de la vista previa). -->
+					<div class="flex items-center gap-3 p-3 lg:hidden">
+						<div class="h-11 w-11 flex-none overflow-hidden rounded-lg bg-surface-100 dark:bg-surface-800">
+							<img v-if="selectedProduct?.imageUrl" :src="selectedProduct.imageUrl" class="h-full w-full object-cover" alt="" />
+							<div v-else class="flex h-full w-full items-center justify-center text-surface-400"><i class="pi pi-image text-xs" /></div>
+						</div>
+						<div class="min-w-0 flex-1">
+							<p class="truncate text-sm font-semibold text-surface-800 dark:text-surface-100">{{ selectedProduct?.nombre ?? '—' }}</p>
+							<p class="text-xs font-semibold text-pink-500">
+								{{ selectedProduct?.precio != null ? money(selectedProduct.precio) : $t('admin.estudio.noPrice') }}
+							</p>
+						</div>
+						<Button
+							:label="pickerOpen ? $t('admin.estudio.pickerDone') : $t('admin.estudio.change')"
+							:icon="pickerOpen ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+							icon-pos="right"
+							size="small"
+							outlined
+							class="shrink-0"
+							@click="pickerOpen = !pickerOpen"
+						/>
+					</div>
+					<div :class="pickerOpen ? '' : 'hidden lg:block'">
+					<p class="hidden px-4 pt-3 text-xs font-bold uppercase tracking-wide text-surface-400 lg:block">{{ $t('admin.estudio.product') }}</p>
+					<div class="relative m-3 max-lg:mt-0">
 						<i class="pi pi-search pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-surface-400" />
 						<InputText v-model="search" :placeholder="$t('admin.estudio.searchProduct')" class="w-full !py-1.5 !pl-8 text-sm" />
 					</div>
-					<div class="max-h-[460px] space-y-0.5 overflow-auto px-2 pb-3">
+					<div class="max-h-[50vh] space-y-0.5 overflow-auto px-2 pb-3 lg:max-h-[460px]">
 						<button
 							v-for="p in filteredProducts"
 							:key="p.id"
@@ -60,6 +85,7 @@
 								</p>
 							</div>
 						</button>
+					</div>
 					</div>
 				</div>
 
@@ -125,7 +151,8 @@
 				<div class="flex flex-col gap-4">
 					<div class="glass-card rounded-2xl">
 						<p class="px-4 pt-3 text-xs font-bold uppercase tracking-wide text-surface-400">{{ $t('admin.estudio.template') }}</p>
-						<div class="grid grid-cols-3 gap-2 p-3">
+						<!-- Mobile: las 4 en una fila (en 3 columnas quedaba una sola abajo). -->
+						<div class="grid grid-cols-4 gap-2 p-3 lg:grid-cols-3">
 							<button
 								v-for="t in templates"
 								:key="t.id"
@@ -135,7 +162,7 @@
 								@click="templateId = t.id"
 							>
 								<canvas :ref="'thumb_' + t.id" class="block w-full" style="aspect-ratio:1/1" />
-								<span class="block border-t border-surface-100 py-1 text-center text-[10px] font-bold text-surface-500 dark:border-surface-800">
+								<span class="block truncate border-t border-surface-100 px-0.5 py-1 text-center text-[10px] font-bold text-surface-500 dark:border-surface-800">
 									{{ $t('admin.estudio.tpl.' + t.id_label) }}
 								</span>
 							</button>
@@ -151,15 +178,19 @@
 								</div>
 								<Textarea v-model="caption" class="w-full !max-h-36 overflow-y-auto" rows="4" />
 							</template>
-							<div v-if="publishAs !== 'story'" class="mt-2.5 flex items-center gap-2 rounded-lg border border-dashed border-surface-300 px-3 py-2 text-xs text-surface-400 dark:border-surface-600">
+							<div v-if="publishAs !== 'story'" class="mt-2.5 hidden items-center gap-2 lg:flex rounded-lg border border-dashed border-surface-300 px-3 py-2 text-xs text-surface-400 dark:border-surface-600">
 								<i class="pi pi-video" /> {{ $t('admin.estudio.videoSoon') }}
 								<span class="ml-auto rounded-full bg-surface-100 px-2 py-0.5 text-[10px] font-bold uppercase text-surface-400 dark:bg-surface-800">{{ $t('admin.estudio.optional') }}</span>
 							</div>
 						</div>
 					</div>
 
-					<div class="glass-card flex flex-col gap-2 rounded-2xl p-4">
-						<p class="text-xs font-bold uppercase tracking-wide text-surface-400">{{ $t('admin.estudio.publishAs') }}</p>
+					<!-- Publicar. Mobile: barra fija abajo (siempre a mano, sin bajar hasta el
+					     final); fondo opaco porque el glass dejaba ver la página debajo. -->
+					<div
+						class="glass-card flex flex-col gap-2 rounded-2xl p-4 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-30 max-lg:gap-2 max-lg:rounded-b-none max-lg:!bg-surface-0 max-lg:px-4 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-lg:pt-3 max-lg:shadow-[0_-8px_24px_rgba(0,0,0,0.25)] md:max-lg:left-64 dark:max-lg:!bg-surface-900"
+					>
+						<p class="hidden text-xs font-bold uppercase tracking-wide text-surface-400 lg:block">{{ $t('admin.estudio.publishAs') }}</p>
 						<div class="mb-1 flex gap-1.5">
 							<button
 								v-for="k in publishAsOptions"
@@ -176,19 +207,32 @@
 								{{ $t('admin.estudio.kind.' + k) }}
 							</button>
 						</div>
-						<Button
-							:label="$t('admin.estudio.publishNow')"
-							icon="pi pi-send"
-							class="ig-fill w-full border-0 font-bold text-white"
-							:loading="publishing"
-							:disabled="!selectedId || imgLoading"
-							@click="publish"
-						/>
-						<div class="grid grid-cols-2 gap-2">
+						<div class="flex gap-2">
+							<!-- Mobile: descargar como ícono al lado de Publicar -->
+							<Button
+								icon="pi pi-download"
+								outlined
+								class="shrink-0 lg:!hidden"
+								:title="$t('admin.estudio.download')"
+								:aria-label="$t('admin.estudio.download')"
+								:disabled="!selectedId || imgLoading"
+								@click="download"
+							/>
+							<Button
+								:label="$t('admin.estudio.publishNow')"
+								icon="pi pi-send"
+								class="ig-fill min-w-0 flex-1 !border-0 font-bold !text-white"
+								:loading="publishing"
+								:disabled="!selectedId || imgLoading"
+								@click="publish"
+							/>
+						</div>
+						<!-- Programar y Campaña (todavía "pronto"): solo en desktop. -->
+						<div class="hidden grid-cols-2 gap-2 lg:grid">
 							<Button :label="$t('admin.estudio.schedule')" icon="pi pi-clock" size="small" outlined disabled :title="$t('admin.estudio.soon')" />
 							<Button :label="$t('admin.estudio.download')" icon="pi pi-download" size="small" outlined :disabled="!selectedId || imgLoading" @click="download" />
 						</div>
-						<Button :label="$t('admin.estudio.campaign')" icon="pi pi-megaphone" size="small" outlined disabled class="justify-start">
+						<Button :label="$t('admin.estudio.campaign')" icon="pi pi-megaphone" size="small" outlined disabled class="!hidden justify-start lg:!flex">
 							<template #default>
 								<span class="flex w-full items-center gap-2">
 									<i class="pi pi-megaphone" /> {{ $t('admin.estudio.campaign') }}
@@ -261,6 +305,8 @@ export default defineComponent({
 			catalog: useCatalogStore(),
 			loading: false,
 			search: '',
+			/** Mobile: lista de productos desplegada (con "Cambiar"). */
+			pickerOpen: false,
 			selectedId: '',
 			templateId: TEMPLATES[0].id,
 			/** Qué se publica: al feed, como Historia, o las dos. */
@@ -385,7 +431,7 @@ export default defineComponent({
 			try {
 				await this.catalog.fetchProductos(this.rubroId);
 				this.metaState = await this.catalog.fetchMetaState(this.rubroId).catch(() => null);
-				// Historial real de publicaciones (en simulación arranca vacío y se llena al publicar).
+				// Historial real de publicaciones.
 				this.posts = await this.catalog.fetchMetaPosts(this.rubroId).catch(() => []);
 				// Logo del negocio para componerlo en las plantillas (si tiene; si no, va el nombre).
 				this.logoBmp = await loadProductImage(this.rubro?.logoUrl);
@@ -404,6 +450,7 @@ export default defineComponent({
 		selectProduct(p: Producto) {
 			this.selectedId = p.id;
 			this.caption = this.buildCaption(p);
+			this.pickerOpen = false;
 		},
 		buildCaption(p?: Producto): string {
 			const prod = p ?? this.selectedProduct;

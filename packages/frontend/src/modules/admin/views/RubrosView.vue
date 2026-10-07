@@ -13,20 +13,28 @@
 		<div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
 			<!-- Crear nuevo rubro -->
 			<section class="flex flex-col gap-6 lg:col-span-5">
-				<div class="glass-card rounded-3xl p-8 shadow-sm">
-					<div class="mb-8 flex items-center gap-3">
-						<div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+				<div class="glass-card rounded-3xl p-5 shadow-sm sm:p-8">
+					<!-- En mobile el formulario arranca colapsado (se abre tocando este
+					     encabezado) para que la lista de rubros quede a la vista.
+					     Desde lg siempre está abierto. -->
+					<div
+						class="flex cursor-pointer items-center gap-3 lg:mb-8 lg:cursor-default"
+						:class="{ 'mb-8': showCreate }"
+						@click="createOpen = !createOpen"
+					>
+						<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
 							<i class="pi pi-plus-circle text-2xl" />
 						</div>
-						<div>
+						<div class="min-w-0 flex-1">
 							<h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0">
 								{{ $t('admin.rubros.createTitle') }}
 							</h3>
 							<p class="text-xs text-surface-500">{{ $t('admin.rubros.createSubtitle') }}</p>
 						</div>
+						<span class="lg:hidden"><i class="pi text-surface-400" :class="showCreate ? 'pi-chevron-up' : 'pi-chevron-down'" /></span>
 					</div>
 
-					<form class="space-y-6" @submit.prevent="submitCreate">
+					<form class="space-y-6" :class="showCreate ? '' : 'hidden lg:block'" @submit.prevent="submitCreate">
 						<div class="space-y-2">
 							<label class="px-1 text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">
 								{{ $t('admin.rubros.fields.name') }}
@@ -51,7 +59,10 @@
 								:aspect-ratio="3"
 								:min-width="900"
 								:hint="$t('admin.rubros.fields.imageHint')"
+								@update:model-value="form.imageFocus = null"
 							/>
+							<!-- Foco de la portada: dónde centrar el recorte en el celu. -->
+							<FocusPicker v-if="form.imageUrl" v-model="form.imageFocus" :src="form.imageUrl" />
 						</div>
 
 						<div class="space-y-2">
@@ -133,8 +144,8 @@
 
 			<!-- Rubros existentes -->
 			<section class="space-y-6 lg:col-span-7">
-				<div class="flex items-center justify-between">
-					<h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0">
+				<div class="flex flex-wrap items-center justify-between gap-2">
+					<h3 class="text-lg font-semibold text-surface-900 sm:text-xl dark:text-surface-0">
 						{{ $t('admin.rubros.existingTitle') }}
 					</h3>
 					<div class="flex gap-2">
@@ -159,17 +170,24 @@
 					<div
 						v-for="rubro in catalog.rubros"
 						:key="rubro.id"
-						class="glass-card flex flex-col gap-6 rounded-2xl border-l-4 p-6 md:flex-row md:items-center"
+						class="glass-card flex flex-wrap items-start gap-4 rounded-2xl border-l-4 p-5 sm:p-6 md:flex-nowrap md:items-center md:gap-6"
 						:class="rubro.status === 'active' ? 'border-l-primary' : 'border-l-surface-300'"
 					>
-						<div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-surface-100 dark:bg-surface-800">
-							<img v-if="rubro.imageUrl" :src="rubro.imageUrl" class="h-full w-full object-cover" :alt="rubro.nombre" />
+						<!-- Slot cuadrado → va el LOGO (1:1); si no hay, caemos a la portada.
+						     En mobile queda al lado del nombre (no en una fila propia). -->
+						<div class="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-surface-100 sm:h-16 sm:w-16 dark:bg-surface-800">
+							<img
+								v-if="rubro.logoUrl || rubro.imageUrl"
+								:src="rubro.logoUrl || rubro.imageUrl || undefined"
+								class="h-full w-full object-cover"
+								:alt="rubro.nombre"
+							/>
 							<div v-else class="flex h-full w-full items-center justify-center text-surface-400">
 								<i class="pi pi-box text-2xl" />
 							</div>
 						</div>
 
-						<div class="flex-1">
+						<div class="min-w-0 flex-1">
 							<div class="mb-1 flex flex-wrap items-center gap-2">
 								<h4 class="text-lg font-bold text-surface-900 dark:text-surface-0">{{ rubro.nombre }}</h4>
 								<Tag
@@ -193,7 +211,8 @@
 							</div>
 						</div>
 
-						<div class="flex flex-row gap-2 md:flex-col">
+						<!-- En mobile los botones van en su propia fila, a todo el ancho. -->
+						<div class="flex w-full flex-row gap-2 md:w-auto md:flex-col">
 							<Button
 								:label="$t('admin.rubros.configure')"
 								icon="pi pi-cog"
@@ -225,7 +244,8 @@
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.rubros.fields.imageUrl') }}</label>
-					<ImageUpload v-model="edit.imageUrl" folder="rubros" :aspect-ratio="3" :min-width="900" />
+					<ImageUpload v-model="edit.imageUrl" folder="rubros" :aspect-ratio="3" :min-width="900" @update:model-value="edit.imageFocus = null" />
+					<FocusPicker v-if="edit.imageUrl" v-model="edit.imageFocus" :src="edit.imageUrl" class="pt-1" />
 				</div>
 				<div class="space-y-1">
 					<label class="text-sm font-medium">{{ $t('admin.rubros.fields.logoUrl') }}</label>
@@ -236,6 +256,38 @@
 				<div class="space-y-1">
 					<label class="flex items-center gap-1.5 text-sm font-medium"><i class="pi pi-instagram" /> {{ $t('admin.rubros.fields.instagram') }}</label>
 					<InputText v-model="edit.instagramUrl" class="w-full" placeholder="https://instagram.com/el.negocio" />
+				</div>
+				<!-- Categorías del catálogo: el orden de esta lista es el del menú de la tienda.
+				     Cada cambio se guarda al instante (renombrar/borrar también actualiza los
+				     productos), por eso no depende del botón "Guardar cambios". -->
+				<div v-if="!isApps" class="space-y-2 rounded-xl border border-surface-200 p-3 dark:border-surface-700">
+					<div>
+						<label class="text-sm font-medium">{{ $t('admin.rubros.categorias.title') }}</label>
+						<p class="text-xs text-surface-500">{{ $t('admin.rubros.categorias.hint') }}</p>
+					</div>
+					<p v-if="!editCategorias.length" class="text-xs text-surface-400">{{ $t('admin.rubros.categorias.empty') }}</p>
+					<div v-for="(cat, i) in editCategorias" :key="cat" class="flex items-center gap-1">
+						<InputText
+							:model-value="cat"
+							class="min-w-0 flex-1 !py-1.5 text-sm"
+							:aria-label="$t('admin.rubros.categorias.rename')"
+							:disabled="savingCats"
+							@change="renameCategoria(cat, ($event.target as HTMLInputElement).value)"
+						/>
+						<Button icon="pi pi-arrow-up" text rounded size="small" severity="secondary" :disabled="i === 0 || savingCats" :aria-label="$t('admin.rubros.categorias.up')" @click="moveCategoria(i, -1)" />
+						<Button icon="pi pi-arrow-down" text rounded size="small" severity="secondary" :disabled="i === editCategorias.length - 1 || savingCats" :aria-label="$t('admin.rubros.categorias.down')" @click="moveCategoria(i, 1)" />
+						<Button icon="pi pi-trash" text rounded size="small" severity="danger" :disabled="savingCats" :aria-label="$t('common.delete')" @click="removeCategoria(cat)" />
+					</div>
+					<div class="flex items-center gap-2">
+						<InputText
+							v-model="newCategoria"
+							class="min-w-0 flex-1 !py-1.5 text-sm"
+							maxlength="40"
+							:placeholder="$t('admin.rubros.categorias.addPlaceholder')"
+							@keydown.enter.prevent="addCategoria"
+						/>
+						<Button :label="$t('admin.rubros.categorias.add')" icon="pi pi-plus" size="small" outlined class="shrink-0" :disabled="!newCategoria.trim() || savingCats" @click="addCategoria" />
+					</div>
 				</div>
 				<template v-if="isApps">
 					<div class="space-y-1">
@@ -285,14 +337,17 @@ import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
 import ApkUpload from '@/shared/components/ApkUpload.vue';
+import FocusPicker from '@/shared/components/FocusPicker.vue';
 
 export default defineComponent({
 	name: 'RubrosView',
-	components: { ImageUpload, ApkUpload },
+	components: { ImageUpload, ApkUpload, FocusPicker },
 	data() {
 		return {
 			catalog: useCatalogStore(),
 			ctx: useAdminContext(),
+			// Form "Crear nuevo rubro" desplegado en mobile (desde lg siempre visible).
+			createOpen: false,
 			loading: false,
 			saving: false,
 			savingEdit: false,
@@ -300,6 +355,7 @@ export default defineComponent({
 				nombre: '',
 				descripcion: '',
 				imageUrl: '',
+				imageFocus: null as string | null,
 				logoUrl: '',
 				instagramUrl: '',
 				platforms: [] as string[],
@@ -310,10 +366,13 @@ export default defineComponent({
 			},
 			editVisible: false,
 			editId: '',
+			newCategoria: '',
+			savingCats: false,
 			edit: {
 				nombre: '',
 				descripcion: '',
 				imageUrl: '',
+				imageFocus: null as string | null,
 				logoUrl: '',
 				instagramUrl: '',
 				platforms: [] as string[],
@@ -327,6 +386,15 @@ export default defineComponent({
 		};
 	},
 	computed: {
+		/** Form de crear visible en mobile: si lo abrió, o si todavía no hay rubros
+		 *  (en ese caso crear es lo único que puede hacer). */
+		showCreate(): boolean {
+			return this.createOpen || !this.catalog.rubros.length;
+		},
+		/** Categorías del rubro en edición (viven en el store: se guardan al instante). */
+		editCategorias(): string[] {
+			return this.catalog.rubros.find(r => r.id === this.editId)?.categorias ?? [];
+		},
 		statusOptions(): { label: string; value: RubroStatus }[] {
 			return [
 				{ label: this.$t('admin.status.active'), value: RubroStatus.ACTIVE },
@@ -371,6 +439,7 @@ export default defineComponent({
 					nombre: this.form.nombre.trim(),
 					descripcion: this.form.descripcion.trim() || undefined,
 					imageUrl: this.form.imageUrl.trim() || undefined,
+					imageFocus: this.form.imageUrl.trim() ? this.form.imageFocus : undefined,
 					logoUrl: this.form.logoUrl.trim() || undefined,
 					instagramUrl: this.form.instagramUrl.trim() || undefined,
 					platforms: this.isApps ? (this.form.platforms as AppPlatform[]) : undefined,
@@ -384,6 +453,7 @@ export default defineComponent({
 					nombre: '',
 					descripcion: '',
 					imageUrl: '',
+					imageFocus: null,
 					logoUrl: '',
 					instagramUrl: '',
 					platforms: [],
@@ -404,6 +474,7 @@ export default defineComponent({
 				nombre: rubro.nombre,
 				descripcion: rubro.descripcion ?? '',
 				imageUrl: rubro.imageUrl ?? '',
+				imageFocus: rubro.imageFocus ?? null,
 				logoUrl: rubro.logoUrl ?? '',
 				instagramUrl: rubro.instagramUrl ?? '',
 				platforms: [...(rubro.platforms ?? [])],
@@ -421,6 +492,7 @@ export default defineComponent({
 					nombre: this.edit.nombre.trim(),
 					descripcion: this.edit.descripcion.trim() || undefined,
 					imageUrl: this.edit.imageUrl.trim() || undefined,
+					imageFocus: this.edit.imageFocus,
 					logoUrl: this.edit.logoUrl.trim() || undefined,
 					instagramUrl: this.edit.instagramUrl.trim(),
 					...(this.isApps
@@ -440,6 +512,63 @@ export default defineComponent({
 			} finally {
 				this.savingEdit = false;
 			}
+		},
+		/** Guarda la lista de categorías (alta o reorden) al instante. */
+		async saveCategorias(list: string[]) {
+			this.savingCats = true;
+			try {
+				await this.catalog.updateRubro(this.editId, { categorias: list });
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
+			} finally {
+				this.savingCats = false;
+			}
+		},
+		async addCategoria() {
+			const name = this.newCategoria.trim();
+			if (!name) return;
+			this.newCategoria = '';
+			if (this.editCategorias.some(c => c.toLowerCase() === name.toLowerCase())) return;
+			await this.saveCategorias([...this.editCategorias, name]);
+		},
+		async moveCategoria(i: number, dir: -1 | 1) {
+			const list = [...this.editCategorias];
+			const j = i + dir;
+			if (j < 0 || j >= list.length) return;
+			[list[i], list[j]] = [list[j], list[i]];
+			await this.saveCategorias(list);
+		},
+		/** Renombra la categoría y la de sus productos (si el nombre ya existe, se fusionan). */
+		async renameCategoria(from: string, value: string) {
+			const to = value.trim();
+			if (!to || to === from) return;
+			this.savingCats = true;
+			try {
+				await this.catalog.renameCategoria(this.editId, from, to);
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
+			} finally {
+				this.savingCats = false;
+			}
+		},
+		removeCategoria(name: string) {
+			this.$confirm.require({
+				message: this.$t('admin.rubros.categorias.deleteConfirm', { name }),
+				header: this.$t('admin.rubros.categorias.deleteTitle'),
+				icon: 'pi pi-exclamation-triangle',
+				rejectProps: { label: this.$t('common.cancel'), text: true },
+				acceptProps: { label: this.$t('common.delete'), severity: 'danger' },
+				accept: async () => {
+					this.savingCats = true;
+					try {
+						await this.catalog.renameCategoria(this.editId, name, '');
+					} catch (e: unknown) {
+						this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.delete')), life: 5000 });
+					} finally {
+						this.savingCats = false;
+					}
+				},
+			});
 		},
 		confirmDelete(rubro: Rubro) {
 			this.$confirm.require({

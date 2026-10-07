@@ -11,7 +11,13 @@ const ALLOWED_ATTR = ['href', 'target', 'rel'];
  * si el contenido no parece HTML, convierte los saltos de línea en párrafos.
  */
 export function renderRichText(raw: string | null | undefined): string {
-	const value = (raw || '').trim();
+	// Los editores contenteditable suelen guardar `&nbsp;` (espacio de NO-quiebre)
+	// entre palabras. Eso impide que el texto corte y desborda/rompe el layout de la
+	// vitrina. Los normalizamos a espacios comunes (entidad y carácter U+00A0).
+	const value = (raw || '')
+		.replace(/&nbsp;/gi, ' ')
+		.replace(/ /g, ' ')
+		.trim();
 	if (!value) return '';
 
 	const pareceHtml = /<[a-z][\s\S]*>/i.test(value);

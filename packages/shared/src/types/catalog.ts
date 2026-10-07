@@ -29,6 +29,9 @@ export const ALL_APP_PLATFORMS: AppPlatform[] = [
 	AppPlatform.DESKTOP,
 ];
 
+/** Punto de foco de una portada: "x% y%" con enteros 0–100 (CSS object-position). */
+export const IMAGE_FOCUS_RE = /^(100|[1-9]?\d)% (100|[1-9]?\d)%$/;
+
 export interface Rubro {
 	id: string;
 	/** Espacio (negocio) al que pertenece el rubro */
@@ -36,6 +39,16 @@ export interface Rubro {
 	nombre: string;
 	descripcion: string | null;
 	imageUrl: string | null;
+	/**
+	 * Punto de foco de la portada ("x% y%"). La portada es 3:1 y en el celu se
+	 * muestra casi cuadrada: el recorte se centra acá. null = centro.
+	 */
+	imageFocus: string | null;
+	/**
+	 * Categorías del catálogo, en el orden del menú de la tienda. Cada producto
+	 * apunta a una por nombre en `seccion`; los que no tienen van a "Otros".
+	 */
+	categorias: string[];
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	logoUrl: string | null;
 	/** Instagram propio del rubro (cada rubro es un negocio distinto). */
@@ -135,12 +148,20 @@ export interface Producto {
 	/** Galería completa de imágenes (la primera es la portada). Todas van a ML. */
 	imagenes: string[];
 	/**
-	 * Pestaña/sección a la que pertenece (solo apps con varias audiencias, ej.
-	 * Athlix: "usuario" | "entrenador" | "admin"). null = sin sección. Si un
-	 * rubro tiene productos con >= 2 secciones distintas, la vitrina muestra
-	 * pestañas; si no, galería plana.
+	 * Categoría del catálogo a la que pertenece (por nombre; el orden del menú lo
+	 * da `rubro.categorias`). null = sin categoría ("Otros" en la tienda).
+	 * En apps es la pestaña/audiencia (ej. Athlix: "usuario" | "entrenador"): con
+	 * >= 2 distintas la vitrina muestra pestañas; si no, galería plana.
 	 */
 	seccion: string | null;
+	/**
+	 * Variantes: los productos de un rubro con el MISMO `grupo` son el mismo
+	 * artículo en distintas variantes (talle, color…) y la vitrina los muestra en
+	 * UNA sola card con un selector. null = producto suelto.
+	 */
+	grupo: string | null;
+	/** Qué variante es dentro del grupo, para el selector ("M", "Azul / L"). */
+	variante: string | null;
 	// ── Campos comerciales / Mercado Libre (ML-ready) ──
 	/** Código interno del negocio (SKU). */
 	sku: string | null;

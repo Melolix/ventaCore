@@ -150,7 +150,10 @@ export default defineComponent({
 		await this.reload();
 	},
 	watch: {
-		'ctx.currentRubroId'() {
+		// Se mira el rubro RESUELTO, no el id: en carga directa el id ya viene
+		// persistido y lo que llega tarde es la lista de rubros (si no, quedaba
+		// "ML no conectado" hasta cambiar de pestaña).
+		'rubro.id'() {
 			void this.reload();
 		},
 	},
@@ -161,9 +164,14 @@ export default defineComponent({
 			try {
 				const state = await this.catalog.fetchMlState(this.rubro.id);
 				this.mlConnected = !!state.connection;
-				this.questions = this.mlConnected
-					? await this.catalog.fetchMlQuestions(this.rubro.id, this.filter === 'unanswered' ? 'UNANSWERED' : undefined)
-					: [];
+				if (this.mlConnected) {
+					this.questions = await this.catalog.fetchMlQuestions(
+						this.rubro.id,
+						this.filter === 'unanswered' ? 'UNANSWERED' : undefined,
+					);
+				} else {
+					this.questions = [];
+				}
 			} catch (e) {
 				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.ml.preguntas.loadError')), life: 4000 });
 			} finally {

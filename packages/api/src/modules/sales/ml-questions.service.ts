@@ -1,9 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import type { MlQuestionView, MlQuestionsSyncResult } from '@base-template/shared';
 import { MlConnectionService } from '../mercadolibre/ml-connection.service';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
+import { RubroEntity } from '../catalog/entities/rubro.entity';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { MlQuestionEntity } from './entities/ml-question.entity';
 
 /** Forma cruda de una pregunta de Mercado Libre (solo lo que usamos). */
@@ -35,7 +37,11 @@ export class MlQuestionsService {
 		private readonly questions: Repository<MlQuestionEntity>,
 		@InjectRepository(ProductoEntity)
 		private readonly productos: Repository<ProductoEntity>,
+		@InjectRepository(RubroEntity)
+		private readonly rubros: Repository<RubroEntity>,
 		private readonly connections: MlConnectionService,
+		@Inject(forwardRef(() => WhatsappService))
+		private readonly whatsapp: WhatsappService,
 	) {}
 
 	// ── Entrada por webhook ──
@@ -48,7 +54,24 @@ export class MlQuestionsService {
 		const mlQuestionId = resource.split('/').filter(Boolean).pop() ?? '';
 		if (!mlQuestionId) throw new Error(`Resource de pregunta inválido: ${resource}`);
 		const raw = await this.fetchQuestion(owner.rubroId, owner.espacioId, mlQuestionId);
-		await this.upsertFromMl(owner.rubroId, owner.espacioId, raw);
+		const question = await this.upsertFromMl(owner.rubroId, owner.espacioId, raw);
+
+		// Aviso saliente por WhatsApp solo si la pregunta quedó sin responder. Es
+		// best-effort (no lanza) y dedupea por pregunta, así que no rompe ni duplica.
+		if (question.status === 'UNANSWERED') {
+			const [prod, rubro] = await Promise.all([
+				this.productos.findOne({ where: { rubroId: owner.rubroId, mlItemId: question.mlItemId } }),
+				this.rubros.findOne({ where: { id: owner.rubroId } }),
+			]);
+			await this.whatsapp.notifyNewQuestion({
+				questionId: question.id,
+				rubroId: owner.rubroId,
+				espacioId: owner.espacioId,
+				text: question.text,
+				itemTitle: prod?.nombre ?? null,
+				businessName: rubro?.nombre ?? null,
+			});
+		}
 	}
 
 	// ── Backfill ──
@@ -111,12 +134,17 @@ export class MlQuestionsService {
 		const question = await this.questions.findOne({ where: { id: questionId, rubroId, espacioId } });
 		if (!question) throw new NotFoundException('Pregunta no encontrada');
 		if (question.status === 'ANSWERED') throw new BadRequestException('Esa pregunta ya fue respondida');
+		// Las preguntas simuladas (seed/demo) no tienen id numérico de ML → no se pueden publicar.
+		if (!/^\d+$/.test(question.mlQuestionId)) {
+			throw new BadRequestException('La pregunta no tiene un id válido de Mercado Libre (¿es una pregunta simulada?)');
+		}
 
 		const { accessToken } = await this.connections.getValidAccessToken(rubroId, espacioId);
 		const res = await fetch(`${this.apiHost}/answers`, {
 			method: 'POST',
 			headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json', accept: 'application/json' },
-			body: JSON.stringify({ question_id: question.mlQuestionId, text: clean }),
+			// ML espera question_id numérico (no string) o rechaza con "Error unmarshaling json body".
+			body: JSON.stringify({ question_id: Number(question.mlQuestionId), text: clean }),
 		});
 		const body = (await res.json().catch(() => ({}))) as { message?: string };
 		if (!res.ok) throw new BadRequestException(`Mercado Libre no aceptó la respuesta: ${body.message || res.statusText}`);

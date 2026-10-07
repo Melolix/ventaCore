@@ -1,5 +1,10 @@
 <template>
 	<div class="mx-auto max-w-7xl">
+		<!-- Negocio de un solo rubro: la vitrina va directa al catálogo (banner del
+		     rubro + productos), sin la card selectora de un único ítem. -->
+		<RubroDetailView v-if="soloRubro" :forced-rubro-id="soloRubro.id" is-home />
+
+		<template v-else>
 		<!-- Hero del negocio -->
 		<header class="mb-12 flex flex-col items-center gap-5 rounded-[2rem] px-6 py-14 text-center">
 			<div v-if="espacio?.logoUrl" class="h-24 w-24 overflow-hidden rounded-3xl shadow-lg">
@@ -84,6 +89,7 @@
 							:src="rubro.imageUrl"
 							:alt="rubro.nombre"
 							class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+							:style="{ objectPosition: rubro.imageFocus || undefined }"
 						/>
 						<div v-else class="primary-gradient flex h-full w-full items-center justify-center opacity-90">
 							<i class="pi pi-tag text-5xl text-white/70" />
@@ -106,6 +112,7 @@
 				</router-link>
 			</div>
 		</section>
+		</template>
 	</div>
 </template>
 
@@ -114,6 +121,7 @@ import { defineComponent } from 'vue';
 import { AppPlatform, EspacioType, type Espacio, type Rubro } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { PLATFORM_ICON, effectivePlatforms } from '@/shared/utils/apps';
+import RubroDetailView from './RubroDetailView.vue';
 
 const SPAN_CYCLE = [
 	'md:col-span-8',
@@ -127,6 +135,7 @@ const SPAN_CYCLE = [
 
 export default defineComponent({
 	name: 'AppHome',
+	components: { RubroDetailView },
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -138,6 +147,10 @@ export default defineComponent({
 		},
 		rubros(): Rubro[] {
 			return this.catalog.publicRubros;
+		},
+		/** Negocio de un solo rubro → mostramos su catálogo directo (sin selector). */
+		soloRubro(): Rubro | null {
+			return this.rubros.length === 1 ? this.rubros[0] : null;
 		},
 		/** Espacios tipo "apps": cada rubro es una app con links de descarga. */
 		isApps(): boolean {

@@ -4,6 +4,8 @@
 		"panel": "Panel"
 	},
 	"common": {
+		"darkMode": "Modo oscuro",
+		"lightMode": "Modo claro",
 		"login": "Iniciar sesión",
 		"logout": "Cerrar sesión",
 		"email": "Email",
@@ -27,7 +29,8 @@
 	},
 	"nav": {
 		"goToPanel": "Ir al panel",
-		"backToPanel": "Volver al panel"
+		"backToPanel": "Volver al panel",
+		"panelShort": "Panel"
 	},
 	"auth": {
 		"signIn": "Iniciar sesión",
@@ -36,15 +39,20 @@
 		"forbidden": "No tenés permiso para esta área",
 		"spaceSuspended": "Tu sitio está suspendido. Contactá al administrador."
 	},
+	"focusPicker": {
+		"hint": "Tocá lo más importante de la foto: en el celu el recorte se centra ahí.",
+		"mobile": "En el celu",
+		"reset": "Volver al centro"
+	},
 	"image": {
 		"upload": "Subir imagen",
 		"cropTitle": "Recortá la imagen",
 		"cropSave": "Recortar y subir",
 		"err": {
 			"type": "Formato no válido. Usá JPG, PNG o WebP.",
-			"size": "La imagen supera el tamaño máximo (8 MB).",
+			"size": "La imagen supera el tamaño máximo (40 MB).",
 			"dimensions": "La imagen es muy chica y se vería borrosa. Subí una de mayor resolución.",
-			"decode": "No se pudo leer la imagen.",
+			"decode": "No se pudo leer la imagen. Probá con otra foto o guardala como JPG.",
 			"upload": "No se pudo subir la imagen. Probá de nuevo.",
 			"removeBg": "No se pudo quitar el fondo. Probá de nuevo."
 		},
@@ -74,11 +82,12 @@
 			"cta": "Explorar Catálogo"
 		},
 		"products": "Productos",
-		"categories": "Rubros",
+		"categories": "Categorías",
 		"business": "Negocio",
 		"nav": {
 			"home": "Inicio",
-			"subscriptions": "Suscripciones"
+			"subscriptions": "Suscripciones",
+			"menu": "Menú"
 		},
 		"about": {
 			"nav": "Sobre Nosotros",
@@ -118,6 +127,7 @@
 		"sector": "Sector",
 		"detailTitle": "Rubro",
 		"showing": "Mostrando {n} productos",
+		"otherCategory": "Otros",
 		"showingScreens": "Mostrando {n} capturas",
 		"searchPlaceholder": "Buscar producto...",
 		"noProducts": "Este rubro todavía no tiene productos.",
@@ -127,6 +137,7 @@
 		"generateAd": "Publicar",
 		"noInstagram": "Configurá el Instagram de este rubro (Rubros → editar)",
 		"consultWhatsapp": "Consultar por WhatsApp",
+		"consultPrice": "Consultar precio",
 		"whatsappMsg": "¡Hola! Quería consultar sobre {producto}.",
 		"download": {
 			"android": "Android",
@@ -154,7 +165,9 @@
 			"leads": "Leads Generados",
 			"support": "Soporte IA",
 			"catalogs": "Catálogos"
-		}
+		},
+		"variants": "Opciones",
+		"variantOut": "Sin stock en {v}"
 	},
 	"superadmin": {
 		"panelTitle": "Super Admin",
@@ -171,7 +184,7 @@
 			"empty": "Todavía no hay espacios creados.",
 			"active": "Activo",
 			"suspended": "Suspendido",
-			"rubros": "{n} rubros",
+			"rubros": "{n} rubro | {n} rubros",
 			"suspend": "Suspender",
 			"activate": "Activar",
 			"createTitle": "Crear Espacio",
@@ -212,6 +225,7 @@
 		"panelSubtitle": "Gestión VentaCore",
 		"soon": "Próximamente",
 		"viewSite": "Ver el sitio",
+		"menu": "Menú",
 		"sidebar": {
 			"general": "General"
 		},
@@ -247,6 +261,8 @@
 			"product": "Producto",
 			"searchProduct": "Buscar producto…",
 			"noPrice": "Sin precio",
+			"change": "Cambiar",
+			"pickerDone": "Listo",
 			"template": "Plantilla",
 			"caption": "Texto del posteo",
 			"videoSoon": "Subir un video y recortarlo",
@@ -393,6 +409,11 @@
 			"delete": "No se pudo eliminar"
 		},
 		"carga": {
+			"selectedOfShort": "{sel} de {total}",
+			"addMenu": {
+				"button": "Agregar",
+				"manual": "Producto a mano"
+			},
 			"eyebrow": "Carga masiva",
 			"title": "Cargar productos",
 			"subtitle": "Traé tus productos y publicalos en lote. El sistema completa lo que puede solo.",
@@ -417,7 +438,17 @@
 			},
 			"addRow": "Agregar fila",
 			"selectedOf": "{sel} seleccionados de {total}",
-			"searchPlaceholder": "Buscar por nombre, marca, EAN…",
+			"searchPlaceholder": "Buscar…",
+			"searchHint": "Buscar por nombre, marca, EAN…",
+			"sheet": {
+				"title": "Editar producto",
+				"untitled": "Sin nombre",
+				"noCost": "Sin costo",
+				"cost": "Costo {costo}",
+				"costMargin": "Costo {costo} · margen {margen}%",
+				"save": "Guardar",
+				"publish": "Publicar en ML"
+			},
 			"searchNoResults": "No hay productos que coincidan con «{q}».",
 			"cols": {
 				"producto": "Producto",
@@ -446,6 +477,11 @@
 				"review": "Revisar",
 				"missing": "Faltan {n}",
 				"draft": "Borrador"
+			},
+			"categoria": {
+				"none": "Sin categoría",
+				"useMl": "Usar «{name}» (de Mercado Libre)",
+				"bulkHint": "Elegí o escribí la categoría para los {n} seleccionados. Vacío = quitarles la categoría."
 			},
 			"bulk": {
 				"asignarRubro": "Asignar categoría",
@@ -489,7 +525,6 @@
 			"mlNotConnected": "ML sin conectar",
 			"mlConnectHint": "Conectá ML para publicar",
 			"needName": "Poné un nombre a cada producto seleccionado.",
-			"saveAll": "Guardar todo",
 			"saveRow": "Guardar esta fila",
 			"saveSelected": "Guardar ({n})",
 			"unsavedN": "{n} sin guardar",
@@ -503,7 +538,7 @@
 			},
 			"nothingSelected": "No hay filas seleccionadas.",
 			"noRubros": "Primero creá al menos un rubro para poder cargar productos.",
-			"saved": "Se guardaron {n} productos",
+			"saved": "Se guardó 1 producto | Se guardaron {n} productos",
 			"savedSynced": "Guardado y sincronizado con Mercado Libre",
 			"savedSyncedN": "{n} guardados · {synced} sincronizados con Mercado Libre",
 			"savedPartial": "{ok} guardados · {fail} con error",
@@ -585,6 +620,18 @@
 			"created": "Rubro creado",
 			"updated": "Rubro actualizado",
 			"deleted": "Rubro eliminado",
+			"categorias": {
+				"title": "Categorías del catálogo",
+				"hint": "Son el menú de tu tienda, en este orden. Los cambios se guardan al instante.",
+				"empty": "Todavía no hay categorías. Agregá la primera o asignalas desde Cargar productos.",
+				"add": "Agregar",
+				"addPlaceholder": "Nueva categoría",
+				"rename": "Nombre de la categoría",
+				"up": "Subir",
+				"down": "Bajar",
+				"deleteTitle": "Borrar categoría",
+				"deleteConfirm": "¿Borrar «{name}»? Sus productos no se borran: quedan sin categoría y aparecen en \"Otros\"."
+			},
 			"editTitle": "Editar Rubro",
 			"saveChanges": "Guardar cambios",
 			"deleteTitle": "Eliminar rubro",
@@ -683,6 +730,7 @@
 			"missingScopesToast": "Conectado, pero faltan permisos ({scopes}). Sin ellos no se puede publicar: reconectá y dejá todos los permisos marcados."
 		},
 		"ml": {
+			"mlPriceShort": "Precio en ML",
 			"tabs": {
 				"publicaciones": "Publicaciones",
 				"ventas": "Ventas",
@@ -737,7 +785,23 @@
 				"answerError": "No se pudo publicar la respuesta.",
 				"closed": "Pregunta cerrada sin responder."
 			},
+			"wa": {
+				"title": "Avisos por WhatsApp",
+				"subtitle": "Te avisamos por WhatsApp cuando entra una pregunta de Mercado Libre o un mensaje de Instagram. Respondé citando ese mensaje y lo contestamos por vos.",
+				"active": "Activo",
+				"paused": "Pausado",
+				"phoneLabel": "Número de WhatsApp",
+				"phoneHint": "En formato internacional, con + y código de país. Ej: +54 9 351 123 4567.",
+				"save": "Guardar",
+				"saved": "Destinatario guardado.",
+				"saveError": "No se pudo guardar el destinatario.",
+				"invalidPhone": "El número debe estar en formato internacional (ej: +5493511234567).",
+				"pause": "Pausar",
+				"resume": "Reactivar",
+				"removed": "Destinatario eliminado."
+			},
 			"ventas": {
+				"qtyShort": "{n} u.",
 				"eyebrow": "Mercado Libre",
 				"pageTitle": "Ventas concretadas",
 				"pageSubtitle": "Las ventas pagadas de este negocio en Mercado Libre.",
@@ -825,13 +889,30 @@
 			"storePriceHint": "Costo + margen. Es lo que querés ganar por unidad.",
 			"mlPrice": "Precio en Mercado Libre",
 			"calcBtn": "Calcular",
-			"needCategory": "Asigná una categoría de ML arriba para calcular la comisión.",
+			"needCategory": "Asigná la categoría (en Ficha) para calcular la comisión.",
 			"noCostHint": "Poné el costo",
 			"benefitNoShipping": "No incluye el envío. Cargá alto, ancho, largo y peso del producto para calcular la ganancia real.",
 			"benefitNoShippingShort": "falta envío",
 			"secPricing": "Precio y rentabilidad",
 			"secData": "Datos",
 			"secFicha": "Ficha de Mercado Libre",
+			"secShipping": "Envío",
+			"youEarn": "Ganás",
+			"earnNeedsCategory": "Elegí la categoría para calcularlo",
+			"steps": {
+				"ficha": "Ficha",
+				"envio": "Envío",
+				"precio": "Precio",
+				"datos": "Datos"
+			},
+			"rowReady": "Lista para publicar",
+			"rowMissing": "Falta {campos}",
+			"missing": {
+				"category": "categoría",
+				"stock": "stock",
+				"price": "precio",
+				"title": "título"
+			},
 			"pause": "Pausar",
 			"activate": "Activar",
 			"pausedToast": "Publicación pausada",

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsEnum, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
 import { ML_LISTING_TYPES, ProductoSource, type MlListingType, type ProductoAtributos } from '@base-template/shared';
 
 export class CreateProductoDto {
@@ -53,10 +53,11 @@ export class CreateProductoDto {
 	@IsString({ each: true })
 	imagenes?: string[];
 
-	@ApiProperty({ required: false, example: 'usuario' })
+	@ApiProperty({ required: false, nullable: true, example: 'Herramientas', description: 'Categoría del catálogo (o pestaña, en apps). null = sin categoría.' })
 	@IsOptional()
 	@IsString()
-	seccion?: string;
+	@MaxLength(40)
+	seccion?: string | null;
 
 	// ── Campos comerciales / Mercado Libre ──
 
