@@ -14,16 +14,23 @@ import { createHmac, timingSafeEqual } from 'crypto';
  * un portfolio comercial: sin él, `/me/accounts` no la devuelve y el negocio
  * queda "sin destinos".
  */
-const SCOPES = [
+const BASE_SCOPES = [
 	'pages_show_list',
 	'pages_read_engagement',
 	'business_management',
 	'instagram_basic',
 	'instagram_content_publish',
-	// DMs de Instagram: leer/responder mensajes directos. Requiere re-consentir las
-	// conexiones existentes.
-	'instagram_manage_messages',
 ];
+
+/**
+ * DMs de Instagram (leer/responder mensajes directos) solo con `META_DM_ENABLED=true`:
+ * `instagram_manage_messages` todavía no pasó el App Review, y pedirlo en el
+ * consentimiento hace que el revisor vea un permiso no justificado. Activarlo
+ * requiere re-consentir las conexiones existentes.
+ */
+function scopes(): string[] {
+	return process.env.META_DM_ENABLED === 'true' ? [...BASE_SCOPES, 'instagram_manage_messages'] : BASE_SCOPES;
+}
 
 /** Payload del `signed_request` que Meta manda a los callbacks de la app. */
 export interface MetaSignedRequest {
@@ -122,7 +129,7 @@ export class MetaOauthService {
 			client_id: appId,
 			redirect_uri: this.redirectUri,
 			state,
-			scope: SCOPES.join(','),
+			scope: scopes().join(','),
 			response_type: 'code',
 		});
 		return `https://www.facebook.com/${this.version}/dialog/oauth?${params.toString()}`;
@@ -164,7 +171,7 @@ export class MetaOauthService {
 
 	/** Permisos que pedimos y el usuario no concedió (vacío = todo en orden). */
 	missingScopes(granted: string[]): string[] {
-		return SCOPES.filter(s => !granted.includes(s));
+		return scopes().filter(s => !granted.includes(s));
 	}
 
 	// ── signed_request (callbacks de desautorización y borrado de datos) ──

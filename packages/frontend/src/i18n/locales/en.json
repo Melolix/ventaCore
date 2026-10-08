@@ -1,4 +1,8 @@
 {
+	"docTitle": {
+		"login": "Sign in",
+		"panel": "Dashboard"
+	},
 	"common": {
 		"darkMode": "Dark mode",
 		"lightMode": "Light mode",
@@ -746,13 +750,20 @@
 				"predictError": "Couldn't predict the category",
 				"attrsError": "Couldn't fetch the attributes",
 				"assignInline": "Suggest category",
-				"catalogTitle": "Is it in the Mercado Libre catalog?",
+				"modeCategory": "Category only",
+				"modeCategoryDesc": "I already loaded the product: I pick the category and fill in what it asks. My data stays.",
+				"modeCatalog": "Already on Mercado Libre",
+				"modeCatalogDesc": "I search the product and bring its data, no manual entry.",
+				"catalogPicked": "You picked: {name}",
+				"catalogPickFirst": "Pick a product above",
+				"categoryHint": "We suggest categories from the product name. Your photo, description and price don't change.",
+				"catalogTitle": "Find the product on Mercado Libre",
 				"catalogPlaceholder": "Search by name or barcode",
 				"catalogFilling": "Fetching catalog data…",
-				"catalogHint": "For branded products, ML fills category, attributes, photos and description.",
+				"catalogHint": "Replaces the category, attributes, cover photo and description with Mercado Libre's. Name, price and stock stay as you entered them.",
 				"catalogNone": "Not found in the catalog.",
 				"catalogError": "Couldn't search the catalog",
-				"catalogFilled": "Catalog data loaded"
+				"catalogFilled": "Data loaded from Mercado Libre"
 			},
 			"images": {
 				"title": "Product images",

@@ -1,4 +1,8 @@
 {
+	"docTitle": {
+		"login": "Ingresar",
+		"panel": "Panel"
+	},
 	"common": {
 		"darkMode": "Modo oscuro",
 		"lightMode": "Modo claro",
@@ -746,13 +750,20 @@
 				"predictError": "No se pudo predecir la categoría",
 				"attrsError": "No se pudieron traer los atributos",
 				"assignInline": "Sugerir categoría",
-				"catalogTitle": "¿Está en el catálogo de Mercado Libre?",
+				"modeCategory": "Solo la categoría",
+				"modeCategoryDesc": "Ya cargué el producto: elijo la categoría y completo lo que pida. No cambia mis datos.",
+				"modeCatalog": "Ya está en Mercado Libre",
+				"modeCatalogDesc": "Busco el producto y traigo sus datos, sin cargar todo a mano.",
+				"catalogPicked": "Elegiste: {name}",
+				"catalogPickFirst": "Elegí un producto arriba",
+				"categoryHint": "Sugerimos categorías según el nombre del producto. Tu foto, descripción y precio no cambian.",
+				"catalogTitle": "Buscá el producto en Mercado Libre",
 				"catalogPlaceholder": "Buscá por nombre o código de barras",
 				"catalogFilling": "Trayendo datos del catálogo…",
-				"catalogHint": "Si es un producto de marca, ML completa categoría, atributos, fotos y descripción.",
+				"catalogHint": "Reemplaza la categoría, la ficha, la foto de portada y la descripción por las de Mercado Libre. El nombre, el precio y el stock quedan como los cargaste.",
 				"catalogNone": "No lo encontramos en el catálogo.",
 				"catalogError": "No se pudo buscar en el catálogo",
-				"catalogFilled": "Datos del catálogo cargados"
+				"catalogFilled": "Datos traídos de Mercado Libre"
 			},
 			"images": {
 				"title": "Imágenes del producto",

@@ -678,8 +678,32 @@
 				<p class="text-sm font-semibold text-surface-800 dark:text-surface-100">
 					{{ mlRow.nombre || $t('admin.carga.placeholders.nombre') }}
 				</p>
-				<!-- Buscar en el catálogo de ML (autocompleta) -->
-				<div class="space-y-2 rounded-xl bg-primary/5 p-3">
+				<!-- Dos caminos SEPARADOS (antes estaban mezclados y el catálogo pisaba
+				     lo cargado sin avisar):
+				     · categoría → solo asigna categoría + sus datos; no toca lo cargado.
+				     · catálogo  → el producto ya existe en ML: trae todos sus datos. -->
+				<div class="grid grid-cols-2 gap-2">
+					<button
+						v-for="m in mlModes"
+						:key="m.key"
+						type="button"
+						class="rounded-xl border p-3 text-left transition-colors"
+						:class="
+							mlMode === m.key
+								? 'border-primary bg-primary/5'
+								: 'border-surface-200 hover:bg-surface-50 dark:border-surface-700 dark:hover:bg-surface-800'
+						"
+						@click="setMlMode(m.key)"
+					>
+						<span class="flex items-center gap-2 text-sm font-semibold text-surface-800 dark:text-surface-100">
+							<i :class="[m.icon, mlMode === m.key ? 'text-primary' : 'text-surface-400']" /> {{ $t(m.title) }}
+						</span>
+						<span class="mt-1 block text-xs leading-snug text-surface-500">{{ $t(m.desc) }}</span>
+					</button>
+				</div>
+
+				<!-- Camino "ya está en Mercado Libre": buscar en el catálogo y traer todo -->
+				<div v-if="mlMode === 'catalogo'" class="space-y-2 rounded-xl bg-primary/5 p-3">
 					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.carga.ml.catalogTitle') }}</label>
 					<div class="flex gap-2">
 						<InputText v-model="mlCatalogQuery" class="w-full" :placeholder="$t('admin.carga.ml.catalogPlaceholder')" @keyup.enter="searchCatalog" />
@@ -693,7 +717,12 @@
 							<span class="line-clamp-2 text-sm">{{ r.name }}</span>
 						</button>
 					</div>
-					<p class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.catalogHint') }}</p>
+					<p v-if="mlCatalogPicked" class="flex items-start gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
+						<i class="pi pi-check-circle mt-px" /> {{ $t('admin.carga.ml.catalogPicked', { name: mlCatalogPicked }) }}
+					</p>
+					<p class="flex items-start gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+						<i class="pi pi-info-circle mt-px" /> {{ $t('admin.carga.ml.catalogHint') }}
+					</p>
 				</div>
 				<!-- Categoría -->
 				<div class="space-y-2">
@@ -704,9 +733,11 @@
 						<span
 							class="flex-1 text-sm"
 							:class="mlPendingCategoryName ? 'text-surface-800 dark:text-surface-100' : 'text-surface-400'"
-							>{{ mlPendingCategoryName || $t('admin.carga.ml.noCategory') }}</span
+							>{{ mlPendingCategoryName || $t(mlMode === 'catalogo' ? 'admin.carga.ml.catalogPickFirst' : 'admin.carga.ml.noCategory') }}</span
 						>
+						<!-- Sugerir solo en el camino "categoría": en el de catálogo la define el producto elegido. -->
 						<Button
+							v-if="mlMode === 'categoria'"
 							:label="$t('admin.carga.ml.suggest')"
 							icon="pi pi-sparkles"
 							size="small"
@@ -715,7 +746,8 @@
 							@click="suggestCategories"
 						/>
 					</div>
-					<div v-if="mlPredictions.length" class="space-y-1">
+					<p v-if="mlMode === 'categoria'" class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.categoryHint') }}</p>
+					<div v-if="mlMode === 'categoria' && mlPredictions.length" class="space-y-1">
 						<button
 							v-for="p in mlPredictions"
 							:key="p.categoryId"
@@ -1132,6 +1164,14 @@ export default defineComponent({
 			// ¿Hay cambios en la grilla sin guardar?
 			dirty: false,
 			// Buscador de catálogo ML (dentro del modal)
+			/** Camino elegido en el diálogo de ML: solo categoría, o traer del catálogo. */
+			mlMode: 'categoria' as 'categoria' | 'catalogo',
+			mlModes: [
+				{ key: 'categoria', icon: 'pi pi-tag', title: 'admin.carga.ml.modeCategory', desc: 'admin.carga.ml.modeCategoryDesc' },
+				{ key: 'catalogo', icon: 'pi pi-shopping-bag', title: 'admin.carga.ml.modeCatalog', desc: 'admin.carga.ml.modeCatalogDesc' },
+			] as { key: 'categoria' | 'catalogo'; icon: string; title: string; desc: string }[],
+			/** Nombre del producto del catálogo recién elegido (confirmación visible). */
+			mlCatalogPicked: '',
 			mlCatalogQuery: '',
 			mlCatalogSearching: false,
 			mlCatalogResults: [] as MlCatalogSearchResult[],
@@ -2017,10 +2057,24 @@ export default defineComponent({
 			this.mlPendingImageUrl = row.imageUrl;
 			this.mlPendingDescription = row.descripcion;
 			this.mlPendingCatalogId = row.mlCatalogProductId;
+			this.mlCatalogPicked = '';
+			// Arranca en el camino que ya venía usando esa fila.
+			this.mlMode = row.mlCatalogProductId ? 'catalogo' : 'categoria';
 			this.mlVisible = true;
 			if (row.mlCategoryId && !this.attrsByCategory[row.mlCategoryId]) {
 				void this.loadAttrs(row.rubroId, row.mlCategoryId);
 			}
+			this.autoSuggest();
+		},
+		/** Cambia de camino (solo categoría / traer del catálogo de ML). */
+		setMlMode(mode: 'categoria' | 'catalogo') {
+			this.mlMode = mode;
+			this.autoSuggest();
+		},
+		/** En "solo categoría", si todavía no hay ninguna, sugerimos sin que lo pidan. */
+		autoSuggest() {
+			if (this.mlMode !== 'categoria' || this.mlPendingCategoryId || this.mlPredictions.length || this.mlPredicting) return;
+			if (this.mlRow?.nombre.trim()) void this.suggestCategories();
 		},
 		async suggestCategories() {
 			const row = this.mlRow;
@@ -2047,8 +2101,21 @@ export default defineComponent({
 		async pickCategory(pred: MlCategoryPrediction) {
 			this.mlPendingCategoryId = pred.categoryId;
 			this.mlPendingCategoryName = pred.categoryName;
-			this.mlAttrValues = {};
+			// Categoría elegida a mano: deja de estar atada a un producto del catálogo.
+			// Si antes había traído uno, descartamos su foto y descripción pendientes:
+			// este camino no toca lo que el usuario cargó.
+			this.mlPendingCatalogId = '';
+			this.mlCatalogPicked = '';
+			if (this.mlRow) {
+				this.mlPendingImageUrl = this.mlRow.imageUrl;
+				this.mlPendingDescription = this.mlRow.descripcion;
+			}
+			// No vaciamos los atributos ya completados: los que la categoría nueva
+			// comparte (marca, modelo…) siguen cargados; el resto se descarta para
+			// no mandarle a ML atributos que esa categoría no tiene.
 			if (this.mlRow) await this.loadAttrs(this.mlRow.rubroId, pred.categoryId);
+			const valid = new Set(this.mlAttrs.map(a => a.id));
+			this.mlAttrValues = Object.fromEntries(Object.entries(this.mlAttrValues).filter(([k]) => valid.has(k)));
 		},
 		async loadAttrs(rubroId: string, categoryId: string) {
 			this.mlLoadingAttrs = true;
@@ -2075,9 +2142,12 @@ export default defineComponent({
 			for (const [k, v] of Object.entries(this.mlAttrValues)) if (v && v.trim()) clean[k] = v.trim();
 			row.atributos = clean;
 			row.mlCatalogProductId = this.mlPendingCatalogId;
-			if (this.mlPendingImageUrl) {
-				row.imageUrl = this.mlPendingImageUrl;
-				if (!row.imagenes.length) row.imagenes = [this.mlPendingImageUrl];
+			if (this.mlPendingImageUrl && this.mlPendingImageUrl !== row.imageUrl) {
+				// Foto traída del catálogo: pasa a ser la portada (primera de la galería);
+				// las que ya tenía quedan detrás, no se pierden.
+				const url = this.mlPendingImageUrl;
+				row.imagenes = [url, ...row.imagenes.filter(i => i !== url)];
+				row.imageUrl = url;
 			}
 			if (this.mlPendingDescription) row.descripcion = this.mlPendingDescription;
 			row.dirty = true;
@@ -2150,7 +2220,12 @@ export default defineComponent({
 			this.mlFillingCatalog = true;
 			try {
 				const p = await this.catalog.fetchMlCatalogProduct(row.rubroId, result.id);
+				// Camino "ya está en ML": el producto elegido trae TODOS sus datos
+				// (categoría, ficha, foto y descripción) y reemplaza los cargados. Es
+				// explícito: el usuario eligió este camino y el diálogo lo avisa. Nada
+				// se aplica a la fila hasta "Aplicar" (salvo el nombre si estaba vacío).
 				this.mlPendingCatalogId = p.catalogProductId;
+				this.mlCatalogPicked = p.name;
 				if (p.imageUrl) this.mlPendingImageUrl = p.imageUrl;
 				if (p.description) this.mlPendingDescription = p.description;
 				if (!row.nombre.trim()) row.nombre = p.name;
