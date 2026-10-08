@@ -1,6 +1,8 @@
 <template>
-	<!-- pb-24: cuando hay pedido, la barra fija de abajo no tapa el final de la página. -->
-	<div :class="cartCount ? 'pb-24 md:pb-0' : ''">
+	<div ref="root" :class="cartCount ? 'pb-24 md:pb-0' : ''">
+		<!-- OJO: nada antes de este div (ni comentarios). Con dos nodos raíz la vista pasa
+		     a ser un fragmento y deja de tener un elemento propio. -->
+		<!-- pb-24: cuando hay pedido, la barra fija de abajo no tapa el final de la página. -->
 		<!-- Hero del rubro (3:1 en desktop → coincide con el recorte de la portada) -->
 		<!-- En el celu el hero del catálogo es bajo (alto = su contenido) para que los
 		     productos asomen sin scrollear; en apps conserva el alto por los botones. -->
@@ -847,7 +849,7 @@ export default defineComponent({
 		/** Baja hasta la sección de esa categoría. */
 		goToCat(key: string) {
 			this.activeCat = key;
-			const el = this.$el.querySelector(`[data-cat-section="${CSS.escape(key)}"]`) as HTMLElement | null;
+			const el = (this.$refs.root as HTMLElement | undefined)?.querySelector(`[data-cat-section="${CSS.escape(key)}"]`) as HTMLElement | null | undefined;
 			el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 		},
 		/**
@@ -857,7 +859,9 @@ export default defineComponent({
 		observeSections() {
 			this.catObserver?.disconnect();
 			if (!this.showCategorias) return;
-			const sections = [...this.$el.querySelectorAll('[data-cat-section]')] as HTMLElement[];
+			const root = this.$refs.root as HTMLElement | undefined;
+			if (!root) return;
+			const sections = [...root.querySelectorAll('[data-cat-section]')] as HTMLElement[];
 			if (!sections.length) return;
 			if (!sections.some(s => s.dataset.catSection === this.activeCat)) this.activeCat = sections[0].dataset.catSection ?? '';
 			// El observer solo avisa de las secciones que CAMBIAN: llevamos la cuenta de
