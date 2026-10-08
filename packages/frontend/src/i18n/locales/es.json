@@ -372,7 +372,26 @@
 			"metaHint": "Publicá en el Instagram/Facebook de este negocio.",
 			"cobrosHint": "Conectá tu cuenta de cobros y gestioná los planes de suscripción del negocio.",
 			"cobrosSetup": "Configurar cobros",
-			"cobrosPlans": "Gestionar planes"
+			"cobrosPlans": "Gestionar planes",
+			"tienda": {
+				"title": "Tienda",
+				"hint": "A dónde llegan los pedidos, desde dónde despachás y cómo te pagan.",
+				"whatsapp": "WhatsApp de la tienda",
+				"whatsappHint": "Acá llegan los pedidos y las consultas. Con código de país y sin espacios.",
+				"whatsappFallback": "Si lo dejás vacío, llegan al WhatsApp general del negocio ({n}).",
+				"whatsappNone": "Todavía no hay ningún WhatsApp cargado: sin un número, los clientes no pueden hacer pedidos.",
+				"despacho": "Desde dónde despachás",
+				"despachoHint": "La dirección de tu local o depósito. Con esto, cuando el cliente pone dónde vive, le mostramos el costo del envío.",
+				"advanced": "Más opciones de envío",
+				"save": "Guardar",
+				"unsaved": "Hay cambios sin guardar",
+				"savedToast": "Configuración de la tienda guardada",
+				"estado": {
+					"ok": "Listo: tus clientes ven el costo del envío al poner su dirección.",
+					"empty": "Sin dirección de despacho, el envío se coordina por WhatsApp con cada cliente.",
+					"incomplete": "Faltan datos de la dirección: completá calle, número, ciudad, provincia y código postal."
+				}
+			}
 		},
 		"instagram": {
 			"eyebrow": "Redes",

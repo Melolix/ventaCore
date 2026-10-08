@@ -372,7 +372,26 @@
 			"metaHint": "Post to this business's Instagram/Facebook.",
 			"cobrosHint": "Connect your billing account and manage the business's subscription plans.",
 			"cobrosSetup": "Set up billing",
-			"cobrosPlans": "Manage plans"
+			"cobrosPlans": "Manage plans",
+			"tienda": {
+				"title": "Store",
+				"hint": "Where orders arrive, where you ship from and how you get paid.",
+				"whatsapp": "Store WhatsApp",
+				"whatsappHint": "Orders and questions arrive here. With country code and no spaces.",
+				"whatsappFallback": "If you leave it empty, they go to the business's general WhatsApp ({n}).",
+				"whatsappNone": "There's no WhatsApp number yet: without one, customers can't place orders.",
+				"despacho": "Where you ship from",
+				"despachoHint": "Your store or warehouse address. With it, when the customer enters where they live, we show the shipping cost.",
+				"advanced": "More shipping options",
+				"save": "Save",
+				"unsaved": "There are unsaved changes",
+				"savedToast": "Store settings saved",
+				"estado": {
+					"ok": "Ready: your customers see the shipping cost when they enter their address.",
+					"empty": "Without a ship-from address, shipping is arranged via WhatsApp with each customer.",
+					"incomplete": "The address is incomplete: fill in street, number, city, province and ZIP code."
+				}
+			}
 		},
 		"instagram": {
 			"eyebrow": "Social",
