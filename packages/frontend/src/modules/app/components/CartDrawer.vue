@@ -491,7 +491,14 @@ export default defineComponent({
 					tab.location.href = waUrl;
 				}
 				// El pedido ya está guardado: vaciamos el carrito y recordamos el seguimiento.
-				this.cart.setUltimoPedido(this.rubroId, pedido.token, pedido.numero);
+				this.cart.addPedido({
+					token: pedido.token,
+					numero: pedido.numero,
+					rubroId: this.rubroId,
+					tienda: pedido.tienda,
+					total: pedido.total,
+					createdAt: pedido.createdAt,
+				});
 				this.cart.clear(this.rubroId);
 				this.cart.cliente.notas = '';
 				this.done = { numero: pedido.numero, token: pedido.token, waUrl };

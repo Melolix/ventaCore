@@ -107,13 +107,15 @@
 				<p class="text-surface-600 dark:text-surface-300" :class="isApps ? '' : 'hidden md:block'">
 					{{ isApps ? $t('public.showingScreens', { n: filtered.length }) : $t('public.showing', { n: filtered.length }) }}
 				</p>
-				<!-- Si ya pidió en esta tienda, un acceso directo al seguimiento. -->
+				<!-- Si ya pidió en esta tienda: con un pedido, directo a su seguimiento; con
+				     varios, a la lista para elegir. -->
 				<router-link
-					v-if="ultimoPedido"
-					:to="{ name: 'app-pedido', params: { token: ultimoPedido.token } }"
+					v-if="pedidosAqui.length"
+					:to="pedidosAqui.length === 1 ? { name: 'app-pedido', params: { token: pedidosAqui[0].token } } : { name: 'app-mis-pedidos' }"
 					class="order-last flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary md:order-none md:w-auto"
 				>
-					<i class="pi pi-map-marker text-xs" /> {{ $t('public.cart.trackN', { n: ultimoPedido.numero }) }}
+					<i class="pi pi-map-marker text-xs" />
+					{{ pedidosAqui.length === 1 ? $t('public.cart.trackN', { n: pedidosAqui[0].numero }) : $t('public.misPedidos.linkN', { n: pedidosAqui.length }) }}
 				</router-link>
 				<!-- Mobile: buscador y orden en una sola fila (el buscador se estira). -->
 				<div v-if="!isApps" class="flex w-full min-w-0 gap-2 md:w-auto">
@@ -526,7 +528,7 @@ import { AppPlatform, EspacioType, Role, type Producto } from '@base-template/sh
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useUserStore } from '@/modules/auth/store/user';
 import { PLATFORM_ICON, effectivePlatforms } from '@/shared/utils/apps';
-import { useCartStore } from '@/modules/app/store/cart';
+import { useCartStore, type PedidoGuardado } from '@/modules/app/store/cart';
 import { formatPrice } from '@/modules/app/utils/price';
 import CartDrawer, { MAX_QTY, canBuy } from '@/modules/app/components/CartDrawer.vue';
 import { groupVariantes, varianteInicial } from '@/modules/app/utils/variantes';
@@ -662,9 +664,9 @@ export default defineComponent({
 			const own = this.rubro?.pedidosDestino === 'negocio' ? this.rubro.whatsapp : null;
 			return (own || this.espacio?.whatsapp || '').replace(/\D/g, '');
 		},
-		/** Último pedido que este cliente envió en esta tienda (si lo hay). */
-		ultimoPedido(): { token: string; numero: number } | null {
-			return this.canOrder ? (this.cart.ultimoPedido[this.rubroId] ?? null) : null;
+		/** Pedidos que este cliente hizo en ESTA tienda desde este dispositivo. */
+		pedidosAqui(): PedidoGuardado[] {
+			return this.canOrder ? this.cart.pedidos.filter(p => p.rubroId === this.rubroId) : [];
 		},
 		/** Hay tienda con pedido si es un catálogo (no apps) y hay a quién mandarlo. */
 		canOrder(): boolean {

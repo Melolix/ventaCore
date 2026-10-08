@@ -10,6 +10,14 @@
 		</div>
 
 		<div v-else class="space-y-4">
+			<!-- Con más de un pedido en este dispositivo: volver a la lista. -->
+			<router-link
+				v-if="cart.pedidos.length > 1"
+				:to="{ name: 'app-mis-pedidos' }"
+				class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+			>
+				<i class="pi pi-arrow-left text-xs" /> {{ $t('public.misPedidos.title') }}
+			</router-link>
 			<!-- Encabezado -->
 			<div>
 				<p class="text-xs font-extrabold uppercase tracking-widest text-primary">{{ pedido.tienda }}</p>
@@ -161,6 +169,7 @@
 import { defineComponent } from 'vue';
 import type { PedidoPublic, PedidoStatus } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
+import { useCartStore } from '@/modules/app/store/cart';
 import { formatPrice } from '@/modules/app/utils/price';
 
 /** Cada cuánto se refresca el estado mientras el pedido sigue abierto. */
@@ -176,6 +185,7 @@ export default defineComponent({
 	data() {
 		return {
 			catalog: useCatalogStore(),
+			cart: useCartStore(),
 			loading: true,
 			pedido: null as PedidoPublic | null,
 			copied: '',
@@ -239,7 +249,18 @@ export default defineComponent({
 	methods: {
 		async load() {
 			try {
-				this.pedido = await this.catalog.fetchPedidoPublic(String(this.$route.params.token));
+				const pedido = await this.catalog.fetchPedidoPublic(String(this.$route.params.token));
+				this.pedido = pedido;
+				// Lo recordamos en este dispositivo: así aparece en "Mis pedidos" aunque
+				// haya llegado por el link de WhatsApp.
+				this.cart.addPedido({
+					token: pedido.token,
+					numero: pedido.numero,
+					rubroId: pedido.rubroId,
+					tienda: pedido.tienda,
+					total: pedido.total,
+					createdAt: pedido.createdAt,
+				});
 			} catch {
 				// Si falla un refresco, nos quedamos con lo último que teníamos.
 				if (this.loading) this.pedido = null;

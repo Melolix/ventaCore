@@ -295,7 +295,24 @@
 			"trackShipment": "Track shipment"
 		},
 		"variants": "Options",
-		"variantOut": "Out of stock in {v}"
+		"variantOut": "Out of stock in {v}",
+		"misPedidos": {
+			"title": "My orders",
+			"subtitle": "Tap an order to see its status and the payment details.",
+			"emptyTitle": "You haven't placed any orders yet",
+			"emptyBody": "When you send an order from the store, you'll find it here.",
+			"deviceNote": "Orders are saved on this device. If you ordered from another one, open the link you got on WhatsApp.",
+			"linkN": "My orders ({n})",
+			"status": {
+				"pendiente": "Waiting for confirmation",
+				"confirmado": "Confirmed · payment pending",
+				"pagado": "Paid",
+				"enviado": "On its way",
+				"entregado": "Delivered",
+				"rechazado": "Couldn't be taken",
+				"cancelado": "Cancelled"
+			}
+		}
 	},
 	"superadmin": {
 		"panelTitle": "Super Admin",

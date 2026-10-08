@@ -3,6 +3,20 @@ import { defineStore } from 'pinia';
 /** Cómo recibe el pedido el cliente. Hasta integrar envíos, el envío "se coordina". */
 export type Entrega = 'retiro' | 'envio';
 
+/** Un pedido hecho desde este dispositivo (lo mínimo para listarlo y abrir su seguimiento). */
+export interface PedidoGuardado {
+	token: string;
+	numero: number;
+	rubroId: string;
+	/** Nombre de la tienda donde se hizo. */
+	tienda: string;
+	total: number;
+	createdAt: string;
+}
+
+/** Cuántos pedidos se recuerdan por dispositivo. */
+const MAX_PEDIDOS = 30;
+
 /**
  * Carrito de la tienda. Hay UN carrito por rubro (cada rubro es una tienda con
  * su propio destino de pedidos). Vive en el navegador del cliente (persistido en
@@ -13,8 +27,8 @@ export const useCartStore = defineStore('cart', {
 	state: () => ({
 		/** `{ [rubroId]: { [productoId]: cantidad } }` */
 		carts: {} as Record<string, Record<string, number>>,
-		/** Último pedido enviado en cada rubro (para volver al seguimiento). */
-		ultimoPedido: {} as Record<string, { token: string; numero: number }>,
+		/** Pedidos hechos desde este dispositivo, del más nuevo al más viejo ("Mis pedidos"). */
+		pedidos: [] as PedidoGuardado[],
 		cliente: {
 			nombre: '',
 			telefono: '',
@@ -39,8 +53,13 @@ export const useCartStore = defineStore('cart', {
 			else delete cart[productoId];
 			this.carts = { ...this.carts, [rubroId]: cart };
 		},
-		setUltimoPedido(rubroId: string, token: string, numero: number): void {
-			this.ultimoPedido = { ...this.ultimoPedido, [rubroId]: { token, numero } };
+		/** Recuerda un pedido (al enviarlo, o al abrir su link de seguimiento). Sin duplicar. */
+		addPedido(pedido: PedidoGuardado): void {
+			const rest = this.pedidos.filter(p => p.token !== pedido.token);
+			this.pedidos = [pedido, ...rest].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, MAX_PEDIDOS);
+		},
+		removePedido(token: string): void {
+			this.pedidos = this.pedidos.filter(p => p.token !== token);
 		},
 		clear(rubroId: string): void {
 			this.carts = { ...this.carts, [rubroId]: {} };

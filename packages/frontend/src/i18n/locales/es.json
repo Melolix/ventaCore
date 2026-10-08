@@ -295,7 +295,24 @@
 			"trackShipment": "Rastrear envío"
 		},
 		"variants": "Opciones",
-		"variantOut": "Sin stock en {v}"
+		"variantOut": "Sin stock en {v}",
+		"misPedidos": {
+			"title": "Mis pedidos",
+			"subtitle": "Tocá un pedido para ver su estado y los datos para pagar.",
+			"emptyTitle": "Todavía no hiciste pedidos",
+			"emptyBody": "Cuando envíes un pedido desde la tienda, lo vas a encontrar acá.",
+			"deviceNote": "Los pedidos se guardan en este dispositivo. Si pediste desde otro, abrí el link que te quedó en WhatsApp.",
+			"linkN": "Mis pedidos ({n})",
+			"status": {
+				"pendiente": "Esperando confirmación",
+				"confirmado": "Confirmado · falta pagar",
+				"pagado": "Pagado",
+				"enviado": "En camino",
+				"entregado": "Entregado",
+				"rechazado": "No se pudo tomar",
+				"cancelado": "Cancelado"
+			}
+		}
 	},
 	"superadmin": {
 		"panelTitle": "Super Admin",
