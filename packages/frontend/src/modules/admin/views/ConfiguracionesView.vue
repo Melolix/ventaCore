@@ -22,6 +22,9 @@
 				</span>
 			</div>
 
+			<!-- ── Tienda: WhatsApp de pedidos, despacho (para cotizar envíos) y datos de pago ── -->
+			<TiendaConfigCard v-if="!isApps" :rubro="rubro" />
+
 			<!-- ── Mercado Libre (solo si el espacio tiene el canal habilitado) ── -->
 			<section v-if="mlEnabled" class="glass-card rounded-2xl p-6">
 				<div class="mb-4 flex items-center gap-3">
@@ -155,14 +158,15 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { channelEnabled, type Rubro, type MetaRubroState, type MlRubroState } from '@base-template/shared';
+import { EspacioType, channelEnabled, type Rubro, type MetaRubroState, type MlRubroState } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import WhatsappRecipientCard from '@/modules/admin/components/WhatsappRecipientCard.vue';
+import TiendaConfigCard from '@/modules/admin/components/TiendaConfigCard.vue';
 
 export default defineComponent({
 	name: 'ConfiguracionesView',
-	components: { WhatsappRecipientCard },
+	components: { WhatsappRecipientCard, TiendaConfigCard },
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -188,6 +192,10 @@ export default defineComponent({
 			return this.catalog.rubros.find(r => r.id === this.ctx.currentRubroId);
 		},
 		/** ¿El espacio tiene habilitado Mercado Libre? (canal del superadmin). */
+		/** Espacios tipo "apps": no tienen tienda (los "productos" son capturas). */
+		isApps(): boolean {
+			return this.catalog.miEspacio?.type === EspacioType.APPS;
+		},
 		mlEnabled(): boolean {
 			return channelEnabled(this.catalog.miEspacio, 'mercadolibre');
 		},

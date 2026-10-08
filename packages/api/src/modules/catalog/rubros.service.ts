@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { RubroStatus } from '@base-template/shared';
 import { RubroEntity } from './entities/rubro.entity';
 import { ProductoEntity } from './entities/producto.entity';
+import { EnviaService } from './envia.service';
 import { CreateRubroDto } from './dto/create-rubro.dto';
 import { UpdateRubroDto } from './dto/update-rubro.dto';
 
@@ -28,17 +29,19 @@ export class RubrosService {
 		private readonly repo: Repository<RubroEntity>,
 		@InjectRepository(ProductoEntity)
 		private readonly productos: Repository<ProductoEntity>,
+		private readonly envia: EnviaService,
 	) {}
 
-	findByEspacio(espacioId: string): Promise<RubroEntity[]> {
-		return this.repo.find({ where: { espacioId }, order: { createdAt: 'DESC' } });
+	async findByEspacio(espacioId: string): Promise<RubroEntity[]> {
+		const rubros = await this.repo.find({ where: { espacioId }, order: { createdAt: 'DESC' } });
+		return rubros.map(r => Object.assign(r, { etiquetasActivas: this.envia.etiquetas }));
 	}
 
 	/** Busca un rubro validando que pertenezca al espacio dado. */
 	async findOne(id: string, espacioId: string): Promise<RubroEntity> {
 		const rubro = await this.repo.findOne({ where: { id, espacioId } });
 		if (!rubro) throw new NotFoundException('Rubro no encontrado');
-		return rubro;
+		return Object.assign(rubro, { etiquetasActivas: this.envia.etiquetas });
 	}
 
 	create(espacioId: string, dto: CreateRubroDto): Promise<RubroEntity> {
@@ -50,6 +53,11 @@ export class RubrosService {
 		const rubro = await this.findOne(id, espacioId);
 		Object.assign(rubro, dto);
 		if (dto.categorias) rubro.categorias = normalizeCategorias(dto.categorias);
+		// Cuenta propia de envia: el token no viaja en las respuestas; queda la marca.
+		if (dto.enviaToken !== undefined) {
+			rubro.enviaToken = dto.enviaToken?.trim() || null;
+			rubro.enviaPropia = !!rubro.enviaToken;
+		}
 		await this.repo.save(rubro);
 		// Releemos: el DTO trae como `undefined` los campos que no vinieron y pisaba
 		// esas propiedades en la respuesta (el panel "perdía" categorías/plataformas
@@ -90,23 +98,46 @@ export class RubrosService {
 		await this.repo.remove(rubro);
 	}
 
+	// ── Uso interno (otros servicios): el rubro tal cual, con datos privados ──
+
+	/** Un rubro activo con TODOS sus datos (uso interno; no devolver al público). */
+	async findActive(id: string): Promise<RubroEntity> {
+		const rubro = await this.repo.findOne({ where: { id, status: RubroStatus.ACTIVE } });
+		if (!rubro) throw new NotFoundException('Rubro no encontrado');
+		return rubro;
+	}
+
+	/** Un rubro por id, sin filtros (uso interno). */
+	findRaw(id: string): Promise<RubroEntity | null> {
+		return this.repo.findOne({ where: { id } });
+	}
+
 	// ── Público: solo rubros activos de un espacio ──
 
 	/** Rubros activos de un espacio, con el conteo de productos. */
-	findPublicByEspacio(espacioId: string): Promise<RubroEntity[]> {
-		return this.repo
+	async findPublicByEspacio(espacioId: string): Promise<RubroEntity[]> {
+		const rubros = await this.repo
 			.createQueryBuilder('rubro')
 			.loadRelationCountAndMap('rubro.productCount', 'rubro.productos')
 			.where('rubro.espacioId = :espacioId', { espacioId })
 			.andWhere('rubro.status = :status', { status: RubroStatus.ACTIVE })
 			.orderBy('rubro.createdAt', 'DESC')
 			.getMany();
+		return rubros.map(r => this.publico(r));
+	}
+
+	/**
+	 * Versión pública del rubro: sin los datos para transferir ni la dirección de
+	 * despacho (el cliente ve el pago en su pedido, cuando el vendedor confirma), y
+	 * con la marca de si se pueden cotizar envíos.
+	 */
+	private publico(rubro: RubroEntity): RubroEntity {
+		const enviosActivos = this.envia.activo(rubro);
+		return Object.assign(rubro, { pagoAlias: null, pagoCbu: null, pagoTitular: null, despacho: null, enviosActivos });
 	}
 
 	/** Un rubro activo (404 si no existe o está en borrador). */
 	async findPublicOne(id: string): Promise<RubroEntity> {
-		const rubro = await this.repo.findOne({ where: { id, status: RubroStatus.ACTIVE } });
-		if (!rubro) throw new NotFoundException('Rubro no encontrado');
-		return rubro;
+		return this.publico(await this.findActive(id));
 	}
 }

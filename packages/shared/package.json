@@ -12,6 +12,7 @@
 	},
 	"scripts": {
 		"build": "tsc",
+		"dev": "tsc --watch --preserveWatchOutput",
 		"lint": "eslint src",
 		"clean": "rimraf lib"
 	},

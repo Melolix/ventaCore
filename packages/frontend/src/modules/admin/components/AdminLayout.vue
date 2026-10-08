@@ -219,6 +219,7 @@ export default defineComponent({
 			navBusinessAll: [
 				{ key: 'ml', label: 'admin.nav.ml', icon: 'pi pi-shopping-cart', to: '/admin/mercado-libre', channel: 'mercadolibre' },
 				{ key: 'instagram', label: 'admin.nav.instagram', icon: 'pi pi-instagram', to: '/admin/instagram', channel: 'instagram' },
+				{ key: 'pedidos', label: 'admin.nav.pedidos', icon: 'pi pi-shopping-bag', to: '/admin/pedidos' },
 				{ key: 'carga', label: 'admin.nav.carga', icon: 'pi pi-upload', to: '/admin/cargar-productos' },
 				{ key: 'config', label: 'admin.nav.config', icon: 'pi pi-cog', to: '/admin/configuraciones' },
 			] as NavItem[],
@@ -301,6 +302,7 @@ export default defineComponent({
 			const path = this.$route.path;
 			if (item.key === 'nosotros') return path.startsWith('/admin/nosotros');
 			if (item.key === 'carga') return path.startsWith('/admin/cargar-productos');
+			if (item.key === 'pedidos') return path.startsWith('/admin/pedidos');
 			if (item.key === 'ml') return path.startsWith('/admin/mercado-libre');
 			if (item.key === 'instagram') return path.startsWith('/admin/instagram');
 			if (item.key === 'config') return path.startsWith('/admin/configuraciones');

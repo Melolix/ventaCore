@@ -25,6 +25,11 @@ const adminRoutes: RouteRecordRaw[] = [
 				component: () => import('./views/RubrosView.vue'),
 			},
 			{
+				path: 'pedidos',
+				name: 'admin-pedidos',
+				component: () => import('./views/PedidosView.vue'),
+			},
+			{
 				path: 'cargar-productos',
 				name: 'admin-carga-masiva',
 				component: () => import('./views/CargaMasivaView.vue'),

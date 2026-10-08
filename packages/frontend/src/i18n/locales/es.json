@@ -138,6 +138,13 @@
 		"noInstagram": "Configurá el Instagram de este rubro (Rubros → editar)",
 		"consultWhatsapp": "Consultar por WhatsApp",
 		"consultPrice": "Consultar precio",
+		"consult": "Consultar",
+		"photoN": "Foto {n}",
+		"stock": {
+			"out": "Sin stock",
+			"low": "Queda 1 | Quedan {n}",
+			"available": "Hay stock"
+		},
 		"whatsappMsg": "¡Hola! Quería consultar sobre {producto}.",
 		"download": {
 			"android": "Android",
@@ -166,8 +173,153 @@
 			"support": "Soporte IA",
 			"catalogs": "Catálogos"
 		},
+		"cart": {
+			"title": "Tu pedido",
+			"add": "Agregar",
+			"addToOrder": "Agregar al pedido",
+			"view": "Ver pedido",
+			"viewN": "Ver pedido · {n}",
+			"less": "Quitar uno",
+			"more": "Agregar uno",
+			"each": "{price} c/u",
+			"maxStock": "Es todo el stock",
+			"total": "Total",
+			"yourData": "Tus datos",
+			"name": "Nombre y apellido",
+			"phone": "Tu WhatsApp",
+			"delivery": "Entrega",
+			"entrega": {
+				"retiro": "Retiro en el local",
+				"envio": "Envío"
+			},
+			"address": "Dirección de entrega",
+			"addressHint": "El costo del envío lo coordinás con el vendedor.",
+			"notes": "Aclaraciones (opcional)",
+			"nextStep": "El vendedor confirma el stock y te pasa los datos para transferir.",
+			"send": "Enviar pedido por WhatsApp",
+			"emptyTitle": "Tu pedido está vacío",
+			"emptyBody": "Agregá productos desde el catálogo y mandá el pedido por WhatsApp.",
+			"keepBrowsing": "Seguir mirando",
+			"err": {
+				"name": "Escribí tu nombre.",
+				"phone": "Escribí un número de WhatsApp válido, con característica.",
+				"address": "Escribí la dirección para el envío.",
+				"send": "No pudimos enviar el pedido. Revisá tu conexión y probá de nuevo.",
+				"destino": "Completá calle, número, ciudad, provincia y código postal.",
+				"quote": "No pudimos cotizar el envío. Probá de nuevo.",
+				"quoteFirst": "Tocá \"Ver opciones de envío\" para elegir cómo te llega.",
+				"pickShipping": "Elegí una opción de envío."
+			},
+			"msg": {
+				"title": "Pedido #{n} — {tienda}",
+				"client": "Cliente",
+				"phone": "WhatsApp",
+				"track": "Seguimiento"
+			},
+			"doneTitle": "Pedido #{n} enviado",
+			"doneBody": "Ya le llegó a la tienda. Se abrió WhatsApp con tu pedido: mandá ese mensaje para avisarle al vendedor.",
+			"openWhatsapp": "Abrir WhatsApp",
+			"track": "Seguir mi pedido",
+			"trackN": "Seguir mi pedido #{n}",
+			"products": "Productos",
+			"shipping": "Envío",
+			"shippingOptions": "Elegí el envío",
+			"street": "Calle",
+			"number": "Número",
+			"reference": "Piso, depto o referencia (opcional)",
+			"city": "Ciudad",
+			"zip": "Cód. postal",
+			"province": "Provincia",
+			"provincePlaceholder": "Elegí la provincia",
+			"quote": "Ver opciones de envío",
+			"quoting": "Buscando envíos…",
+			"noQuotes": "No encontramos envíos para esa dirección. Podés coordinarlo con el vendedor.",
+			"coordinate": "Coordinarlo con el vendedor",
+			"coordinateHint": "El costo y la forma se acuerdan por WhatsApp."
+		},
+		"pedido": {
+			"title": "Pedido #{n}",
+			"madeOn": "Hecho el {date}",
+			"notFoundTitle": "No encontramos ese pedido",
+			"notFoundBody": "Revisá que el link esté completo, o escribile a la tienda.",
+			"backToStore": "Ir a la tienda",
+			"detail": "Tu pedido",
+			"contact": "Escribir a la tienda",
+			"reason": "Motivo: {motivo}",
+			"payTitle": "Datos para transferir",
+			"payMissing": "La tienda te pasa los datos para transferir por WhatsApp.",
+			"pay": {
+				"alias": "Alias",
+				"cbu": "CBU / CVU",
+				"titular": "Titular"
+			},
+			"copy": "Copiar",
+			"copied": "Copiado",
+			"sendReceipt": "Enviar comprobante por WhatsApp",
+			"waPaid": "Hola, ya transferí el pedido #{n}. Te mando el comprobante.",
+			"waAsk": "Hola, te escribo por el pedido #{n}.",
+			"step": {
+				"pendiente": "Pedido enviado",
+				"confirmado": "Confirmado por la tienda",
+				"pagado": "Pago recibido",
+				"enviado": "Enviado",
+				"entregado": "Entregado"
+			},
+			"state": {
+				"pendiente": {
+					"title": "Esperando la confirmación",
+					"body": "La tienda está revisando el stock. Cuando lo confirme, acá vas a ver los datos para transferir."
+				},
+				"confirmado": {
+					"title": "Pedido confirmado",
+					"body": "Hay stock de todo. Transferí el total y mandá el comprobante por WhatsApp."
+				},
+				"pagado": {
+					"title": "Pago recibido",
+					"body": "La tienda ya registró tu pago y está preparando el pedido."
+				},
+				"enviado": {
+					"title": "Tu pedido está en camino",
+					"body": "Ya lo despachamos. Podés rastrearlo con el número de seguimiento."
+				},
+				"entregado": {
+					"title": "Pedido entregado",
+					"body": "Gracias por tu compra."
+				},
+				"rechazado": {
+					"title": "La tienda no pudo tomar el pedido",
+					"body": "No se realizó ningún cobro. Podés armar un pedido nuevo o escribirle a la tienda."
+				},
+				"cancelado": {
+					"title": "Pedido cancelado",
+					"body": "Si ya habías transferido, escribile a la tienda para coordinar la devolución."
+				}
+			},
+			"trackingNumber": "Número de seguimiento",
+			"trackShipment": "Rastrear envío"
+		},
 		"variants": "Opciones",
-		"variantOut": "Sin stock en {v}"
+		"variantOut": "Sin stock en {v}",
+		"misPedidos": {
+			"title": "Mis pedidos",
+			"subtitle": "Tocá un pedido para ver su estado y los datos para pagar.",
+			"emptyTitle": "Todavía no hiciste pedidos",
+			"emptyBody": "Cuando envíes un pedido desde la tienda, lo vas a encontrar acá.",
+			"deviceNote": "Los pedidos se guardan en este dispositivo. Si pediste desde otro, abrí el link que te quedó en WhatsApp.",
+			"linkN": "Mis pedidos ({n})",
+			"status": {
+				"pendiente": "Esperando confirmación",
+				"confirmado": "Confirmado · falta pagar",
+				"pagado": "Pagado",
+				"enviado": "En camino",
+				"entregado": "Entregado",
+				"rechazado": "No se pudo tomar",
+				"cancelado": "Cancelado"
+			},
+			"titleIn": "Mis pedidos en {tienda}",
+			"seeAll": "Ver también mis pedidos en otras tiendas ({n})",
+			"unknownStore": "Tienda"
+		}
 	},
 	"superadmin": {
 		"panelTitle": "Super Admin",
@@ -244,7 +396,26 @@
 			"metaHint": "Publicá en el Instagram/Facebook de este negocio.",
 			"cobrosHint": "Conectá tu cuenta de cobros y gestioná los planes de suscripción del negocio.",
 			"cobrosSetup": "Configurar cobros",
-			"cobrosPlans": "Gestionar planes"
+			"cobrosPlans": "Gestionar planes",
+			"tienda": {
+				"title": "Tienda",
+				"hint": "A dónde llegan los pedidos, desde dónde despachás y cómo te pagan.",
+				"whatsapp": "WhatsApp de la tienda",
+				"whatsappHint": "Acá llegan los pedidos y las consultas. Con código de país y sin espacios.",
+				"whatsappFallback": "Si lo dejás vacío, llegan al WhatsApp general del negocio ({n}).",
+				"whatsappNone": "Todavía no hay ningún WhatsApp cargado: sin un número, los clientes no pueden hacer pedidos.",
+				"despacho": "Desde dónde despachás",
+				"despachoHint": "La dirección de tu local o depósito. Con esto, cuando el cliente pone dónde vive, le mostramos el costo del envío.",
+				"advanced": "Más opciones de envío",
+				"save": "Guardar",
+				"unsaved": "Hay cambios sin guardar",
+				"savedToast": "Configuración de la tienda guardada",
+				"estado": {
+					"ok": "Listo: tus clientes ven el costo del envío al poner su dirección.",
+					"empty": "Sin dirección de despacho, el envío se coordina por WhatsApp con cada cliente.",
+					"incomplete": "Faltan datos de la dirección: completá calle, número, ciudad, provincia y código postal."
+				}
+			}
 		},
 		"instagram": {
 			"eyebrow": "Redes",
@@ -306,7 +477,8 @@
 			"instagram": "Instagram",
 			"cobros": "Cobros",
 			"config": "Configuraciones",
-			"nosotros": "Sobre Nosotros"
+			"nosotros": "Sobre Nosotros",
+			"pedidos": "Pedidos"
 		},
 		"cobros": {
 			"title": "Cobros y suscripciones",
@@ -670,6 +842,43 @@
 				"ios": "iOS",
 				"web": "Web",
 				"desktop": "Escritorio"
+			},
+			"pedidos": {
+				"title": "Pedidos de la tienda",
+				"hint": "Elegí a qué WhatsApp llegan los pedidos y las consultas de este rubro.",
+				"cm": "Los recibe el CM",
+				"cmHint": "Llegan al WhatsApp general del negocio (el de Sobre Nosotros).",
+				"negocio": "Los recibe el negocio",
+				"negocioHint": "Llegan a un WhatsApp propio de este rubro.",
+				"whatsapp": "WhatsApp del rubro",
+				"whatsappHint": "Con código de país y sin espacios. Ej.: 5493511234567. Si queda vacío, se usa el general."
+			},
+			"pago": {
+				"title": "Datos para transferir",
+				"hint": "Se cargan una vez. El cliente los ve recién cuando aceptás su pedido.",
+				"alias": "Alias",
+				"cbu": "CBU / CVU",
+				"titular": "Titular de la cuenta"
+			},
+			"envios": {
+				"title": "Envíos",
+				"hint": "Cargá desde dónde despachás y tus clientes van a ver el costo del envío en el carrito.",
+				"nombre": "Quién despacha (local o persona)",
+				"telefono": "Teléfono de contacto",
+				"incomplete": "Faltan datos de la dirección de despacho: mientras tanto no se cotizan envíos.",
+				"paquete": "Paquete por defecto",
+				"paqueteHint": "Para los productos sin medidas. Largo, ancho y alto en cm; peso en gramos.",
+				"largo": "Largo",
+				"ancho": "Ancho",
+				"alto": "Alto",
+				"peso": "Peso (g)",
+				"cuenta": "Cuenta de envia.com",
+				"cuentaPlataforma": "Usando la cuenta de ventaCore. Si tenés tu propia cuenta, pegá tu token.",
+				"cuentaPropia": "Cuenta propia conectada.",
+				"tokenPlaceholder": "Token de tu cuenta de envia.com (opcional)",
+				"tokenReplace": "Pegá otro token para reemplazarlo",
+				"desconectar": "Desconectar y volver a la cuenta de ventaCore",
+				"desconectarUndo": "Se va a desconectar al guardar. Tocá para deshacer."
 			}
 		},
 		"productos": {
@@ -976,6 +1185,72 @@
 			"done": "Publicado con éxito",
 			"partial": "Publicado con algunos errores",
 			"failed": "No se pudo publicar"
+		},
+		"pedidos": {
+			"eyebrow": "Tienda",
+			"title": "Pedidos",
+			"refresh": "Actualizar",
+			"noPago": "Todavía no cargaste los datos para transferir. Sin eso, el cliente no sabe a dónde pagar cuando confirmás.",
+			"goConfig": "Cargarlos en Rubros",
+			"empty": "Todavía no llegaron pedidos. Cuando un cliente envíe su carrito, aparece acá.",
+			"emptyFilter": "No hay pedidos en este estado.",
+			"filter": {
+				"pendiente": "Pendientes",
+				"confirmado": "Por cobrar",
+				"pagado": "Pagados",
+				"enviado": "Enviados",
+				"entregado": "Entregados",
+				"cerrados": "Cerrados",
+				"todos": "Todos"
+			},
+			"status": {
+				"pendiente": "Pendiente",
+				"confirmado": "Por cobrar",
+				"pagado": "Pagado",
+				"enviado": "Enviado",
+				"entregado": "Entregado",
+				"rechazado": "Rechazado",
+				"cancelado": "Cancelado"
+			},
+			"accept": "Aceptar",
+			"reject": "Rechazar",
+			"cancel": "Cancelar pedido",
+			"cancelTitle": "Cancelar pedido",
+			"markPaid": "Marcar pagado",
+			"markDelivered": "Marcar entregado",
+			"sendPago": "Pasar datos para transferir",
+			"chat": "Escribirle",
+			"motivoLabel": "Motivo",
+			"motivoHint": "El cliente lo ve en el seguimiento de su pedido. Es opcional.",
+			"motivoPlaceholder": "Ej.: nos quedamos sin stock de un producto",
+			"waHello": "Hola {nombre}, te escribo por tu pedido #{n}.",
+			"toast": {
+				"confirmado": "Pedido #{n} aceptado. Pasale los datos para transferir.",
+				"pagado": "Pedido #{n} marcado como pagado. Se descontó el stock.",
+				"enviado": "Envío del pedido #{n} generado. Ya podés imprimir la etiqueta.",
+				"entregado": "Pedido #{n} entregado.",
+				"rechazado": "Pedido #{n} rechazado.",
+				"cancelado": "Pedido #{n} cancelado.",
+				"anulado": "Envío del pedido #{n} anulado."
+			},
+			"msg": {
+				"confirmed": "Hola {nombre}! Confirmamos tu pedido #{n} de {tienda}. Hay stock de todo.",
+				"payIntro": "Para transferir:",
+				"track": "Seguí tu pedido",
+				"shipped": "Hola {nombre}! Tu pedido #{n} ya salió."
+			},
+			"tracking": "Seguimiento",
+			"testLabel": "Prueba",
+			"generateShipping": "Generar envío",
+			"generateBody": "Se va a generar el envío del pedido #{n} con el transportista que eligió el cliente.",
+			"quotedCost": "Costo cotizado",
+			"generateWarn": "Al generarlo se descuenta el costo del saldo de la cuenta de envia.com. Después podés imprimir la etiqueta y pegarla en el paquete.",
+			"generateError": "No se pudo generar el envío. Probá de nuevo.",
+			"markShipped": "Marcar enviado",
+			"printLabel": "Imprimir etiqueta",
+			"notifyShipped": "Avisar que salió",
+			"voidShipping": "Anular envío",
+			"voidConfirm": "¿Anular el envío del pedido #{n}? Se recupera el saldo y el pedido vuelve a \"Pagado\". Si ya despachaste el paquete, no lo anules."
 		}
 	},
 	"handoff": {
