@@ -311,7 +311,10 @@
 				"entregado": "Delivered",
 				"rechazado": "Couldn't be taken",
 				"cancelado": "Cancelled"
-			}
+			},
+			"titleIn": "My orders at {tienda}",
+			"seeAll": "See my orders at other stores too ({n})",
+			"unknownStore": "Store"
 		}
 	},
 	"superadmin": {

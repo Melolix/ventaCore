@@ -111,7 +111,7 @@
 				     varios, a la lista para elegir. -->
 				<router-link
 					v-if="pedidosAqui.length"
-					:to="pedidosAqui.length === 1 ? { name: 'app-pedido', params: { token: pedidosAqui[0].token } } : { name: 'app-mis-pedidos' }"
+					:to="pedidosAqui.length === 1 ? { name: 'app-pedido', params: { token: pedidosAqui[0].token } } : { name: 'app-mis-pedidos', query: { rubro: rubroId } }"
 					class="order-last flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary md:order-none md:w-auto"
 				>
 					<i class="pi pi-map-marker text-xs" />

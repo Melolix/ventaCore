@@ -311,7 +311,10 @@
 				"entregado": "Entregado",
 				"rechazado": "No se pudo tomar",
 				"cancelado": "Cancelado"
-			}
+			},
+			"titleIn": "Mis pedidos en {tienda}",
+			"seeAll": "Ver también mis pedidos en otras tiendas ({n})",
+			"unknownStore": "Tienda"
 		}
 	},
 	"superadmin": {

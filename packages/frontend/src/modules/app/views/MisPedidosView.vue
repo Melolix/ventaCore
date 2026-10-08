@@ -1,7 +1,17 @@
 <template>
 	<div class="mx-auto max-w-2xl">
 		<div class="mb-4">
-			<h1 class="text-2xl font-extrabold text-surface-900 dark:text-surface-0">{{ $t('public.misPedidos.title') }}</h1>
+			<!-- Vista de un rubro: se vuelve a su tienda. -->
+			<router-link
+				v-if="rubroFiltro"
+				:to="{ name: 'app-rubro-detalle', params: { id: rubroFiltro } }"
+				class="mb-1 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+			>
+				<i class="pi pi-arrow-left text-xs" /> {{ tiendaFiltro || $t('public.pedido.backToStore') }}
+			</router-link>
+			<h1 class="text-2xl font-extrabold text-surface-900 dark:text-surface-0">
+				{{ rubroFiltro && tiendaFiltro ? $t('public.misPedidos.titleIn', { tienda: tiendaFiltro }) : $t('public.misPedidos.title') }}
+			</h1>
 			<p v-if="rows.length" class="text-sm text-surface-500">{{ $t('public.misPedidos.subtitle') }}</p>
 		</div>
 
@@ -13,9 +23,22 @@
 			<Button :label="$t('public.pedido.backToStore')" class="mt-4" outlined @click="$router.push('/')" />
 		</div>
 
-		<!-- Un pedido por fila: lo justo para reconocerlo (número, tienda, cuándo, cuánto) y su estado. -->
-		<ul v-else class="space-y-2">
-			<li v-for="row in rows" :key="row.token">
+		<!-- Los pedidos son de cada rubro: en la vista general van separados por tienda;
+		     en la de un rubro, solo los suyos. Un pedido por fila, con lo justo para
+		     reconocerlo (número, cuándo, cuánto) y su estado. -->
+		<div v-else class="space-y-6">
+		<section v-for="sec in secciones" :key="sec.rubroId">
+		<div v-if="showSecciones" class="mb-2 flex items-baseline justify-between gap-3 px-1">
+			<h2 class="min-w-0 truncate text-base font-extrabold text-surface-900 dark:text-surface-0">
+				{{ sec.tienda || $t('public.misPedidos.unknownStore') }}
+				<span class="ml-1 text-sm font-medium text-surface-400">{{ sec.rows.length }}</span>
+			</h2>
+			<router-link :to="{ name: 'app-rubro-detalle', params: { id: sec.rubroId } }" class="shrink-0 text-xs font-semibold text-primary hover:underline">
+				{{ $t('public.pedido.backToStore') }}
+			</router-link>
+		</div>
+		<ul class="space-y-2">
+			<li v-for="row in sec.rows" :key="row.token">
 				<router-link
 					:to="{ name: 'app-pedido', params: { token: row.token } }"
 					class="glass-card flex items-center gap-3 rounded-2xl p-4 transition-shadow hover:shadow-lg"
@@ -29,7 +52,7 @@
 							</span>
 							<span v-else-if="loading" class="text-xs text-surface-400"><i class="pi pi-spin pi-spinner text-[10px]" /></span>
 						</p>
-						<p class="truncate text-sm text-surface-600 dark:text-surface-300">{{ row.tienda }}</p>
+						<p v-if="!showSecciones && !rubroFiltro" class="truncate text-sm text-surface-600 dark:text-surface-300">{{ row.tienda }}</p>
 						<p v-if="row.createdAt" class="text-xs text-surface-500">{{ formatDate(row.createdAt) }}</p>
 					</div>
 					<p class="shrink-0 text-base font-extrabold tabular-nums text-surface-900 dark:text-surface-0">{{ money(row.total) }}</p>
@@ -37,6 +60,17 @@
 				</router-link>
 			</li>
 		</ul>
+		</section>
+		</div>
+
+		<!-- En la vista de un rubro: acceso a los pedidos de las otras tiendas del negocio. -->
+		<router-link
+			v-if="rubroFiltro && otros"
+			:to="{ name: 'app-mis-pedidos' }"
+			class="mt-4 flex items-center justify-center gap-2 rounded-xl border border-surface-200 px-3 py-2.5 text-sm font-semibold text-surface-600 hover:text-primary dark:border-surface-700 dark:text-surface-300"
+		>
+			{{ $t('public.misPedidos.seeAll', { n: otros }) }}
+		</router-link>
 
 		<p v-if="rows.length" class="mt-4 flex items-start gap-2 text-xs text-surface-500">
 			<i class="pi pi-mobile mt-0.5" /> {{ $t('public.misPedidos.deviceNote') }}
@@ -77,9 +111,37 @@ export default defineComponent({
 		};
 	},
 	computed: {
+		/** Rubro al que se limita la lista (`?rubro=<id>`, viniendo desde su tienda). '' = todos. */
+		rubroFiltro(): string {
+			const q = this.$route.query.rubro;
+			return typeof q === 'string' ? q : '';
+		},
+		tiendaFiltro(): string {
+			return this.cart.pedidos.find(p => p.rubroId === this.rubroFiltro)?.tienda ?? '';
+		},
+		/** Pedidos guardados de OTROS rubros (para ofrecer la vista general). */
+		otros(): number {
+			return this.cart.pedidos.filter(p => p.rubroId !== this.rubroFiltro).length;
+		},
+		/** Los pedidos agrupados por rubro (tienda), en el orden en que aparecen. */
+		secciones(): { rubroId: string; tienda: string; rows: Row[] }[] {
+			const out: { rubroId: string; tienda: string; rows: Row[] }[] = [];
+			for (const row of this.rows) {
+				let sec = out.find(s => s.rubroId === row.rubroId);
+				if (!sec) out.push((sec = { rubroId: row.rubroId, tienda: row.tienda, rows: [] }));
+				sec.rows.push(row);
+				if (!sec.tienda) sec.tienda = row.tienda;
+			}
+			return out;
+		},
+		/** Los títulos por tienda hacen falta solo en la vista general con más de un rubro. */
+		showSecciones(): boolean {
+			return !this.rubroFiltro && this.secciones.length > 1;
+		},
 		/** En curso primero; dentro de cada grupo, del más nuevo al más viejo. */
 		rows(): Row[] {
-			const rows = this.cart.pedidos.map(p => {
+			const guardados = this.rubroFiltro ? this.cart.pedidos.filter(p => p.rubroId === this.rubroFiltro) : this.cart.pedidos;
+			const rows = guardados.map(p => {
 				const live = this.live[p.token];
 				const status = live?.status ?? null;
 				return { ...p, total: live?.total ?? p.total, status, cerrado: !!status && CERRADOS.includes(status) };
