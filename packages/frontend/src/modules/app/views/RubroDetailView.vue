@@ -109,15 +109,15 @@
 				<p class="text-surface-600 dark:text-surface-300" :class="isApps ? '' : 'hidden md:block'">
 					{{ isApps ? $t('public.showingScreens', { n: filtered.length }) : $t('public.showing', { n: filtered.length }) }}
 				</p>
-				<!-- Si ya pidió en esta tienda: con un pedido, directo a su seguimiento; con
-				     varios, a la lista para elegir. -->
+				<!-- Si ya pidió en esta tienda: siempre a la lista de SUS pedidos acá (aunque
+				     sea uno solo), para elegir cuál ver y poder volver. -->
 				<router-link
 					v-if="pedidosAqui.length"
-					:to="pedidosAqui.length === 1 ? { name: 'app-pedido', params: { token: pedidosAqui[0].token } } : { name: 'app-mis-pedidos', query: { rubro: rubroId } }"
+					:to="{ name: 'app-mis-pedidos', query: { rubro: rubroId } }"
 					class="order-last flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary md:order-none md:w-auto"
 				>
-					<i class="pi pi-map-marker text-xs" />
-					{{ pedidosAqui.length === 1 ? $t('public.cart.trackN', { n: pedidosAqui[0].numero }) : $t('public.misPedidos.linkN', { n: pedidosAqui.length }) }}
+					<i class="pi pi-receipt text-xs" />
+					{{ $t('public.misPedidos.linkN', { n: pedidosAqui.length }) }}
 				</router-link>
 				<!-- Mobile: buscador y orden en una sola fila (el buscador se estira). -->
 				<div v-if="!isApps" class="flex w-full min-w-0 gap-2 md:w-auto">

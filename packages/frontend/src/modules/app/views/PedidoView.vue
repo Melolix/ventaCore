@@ -10,11 +10,9 @@
 		</div>
 
 		<div v-else class="space-y-4">
-			<!-- Con más de un pedido en este dispositivo: volver a la lista (la de este
-			     rubro si tiene varios; si no, la general). -->
+			<!-- Volver a la lista de pedidos de este rubro (de ahí se entra a otro). -->
 			<router-link
-				v-if="cart.pedidos.length > 1"
-				:to="{ name: 'app-mis-pedidos', query: pedidosDelRubro > 1 ? { rubro: pedido.rubroId } : {} }"
+				:to="{ name: 'app-mis-pedidos', query: { rubro: pedido.rubroId } }"
 				class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
 			>
 				<i class="pi pi-arrow-left text-xs" /> {{ $t('public.misPedidos.title') }}
@@ -199,10 +197,6 @@ export default defineComponent({
 			return this.pedido?.entrega === 'envio'
 				? ['pendiente', 'confirmado', 'pagado', 'enviado', 'entregado']
 				: ['pendiente', 'confirmado', 'pagado', 'entregado'];
-		},
-		/** Cuántos pedidos guardó este dispositivo en el rubro de este pedido. */
-		pedidosDelRubro(): number {
-			return this.cart.pedidos.filter(p => p.rubroId === this.pedido?.rubroId).length;
 		},
 		isClosed(): boolean {
 			return this.pedido?.status === 'rechazado' || this.pedido?.status === 'cancelado';
