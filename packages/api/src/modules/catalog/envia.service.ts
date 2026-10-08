@@ -80,6 +80,15 @@ export class EnviaService {
 		return process.env.ENVIA_TOKEN?.trim() || null;
 	}
 
+	/**
+	 * ¿Se pueden GENERAR envíos (etiquetas) desde el panel? Es lo único que gasta
+	 * saldo, así que va apagado salvo `ENVIA_ETIQUETAS=true`. Apagado, la tienda
+	 * igual cotiza y el vendedor despacha por su cuenta y marca el pedido enviado.
+	 */
+	get etiquetas(): boolean {
+		return process.env.ENVIA_ETIQUETAS === 'true';
+	}
+
 	/** ¿Hay cuenta de la plataforma configurada? */
 	get platformReady(): boolean {
 		return !!this.platformToken;

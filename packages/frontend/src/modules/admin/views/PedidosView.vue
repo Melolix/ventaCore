@@ -110,9 +110,10 @@
 							<Button :label="$t('admin.pedidos.cancel')" size="small" severity="danger" text :disabled="busyId === p.id" @click="askMotivo(p, 'cancelado')" />
 						</template>
 						<template v-else-if="p.status === 'pagado'">
-							<!-- Con envío cotizado: se genera en el transportista. Si el envío se
-							     coordinó por fuera, se marca enviado a mano. Retiro: directo a entregado. -->
-							<Button v-if="p.envio" :label="$t('admin.pedidos.generateShipping')" icon="pi pi-truck" size="small" :loading="busyId === p.id" @click="askEnvio(p)" />
+							<!-- Con envío cotizado y las etiquetas habilitadas: se genera en el
+							     transportista. Si no (o si se coordinó por fuera), se marca enviado
+							     a mano. Retiro: directo a entregado. -->
+							<Button v-if="p.envio && etiquetas" :label="$t('admin.pedidos.generateShipping')" icon="pi pi-truck" size="small" :loading="busyId === p.id" @click="askEnvio(p)" />
 							<Button
 								v-else-if="p.entrega === 'envio'"
 								:label="$t('admin.pedidos.markShipped')"
@@ -259,6 +260,10 @@ export default defineComponent({
 		},
 		rubro(): Rubro | undefined {
 			return this.catalog.rubroById(this.rubroId);
+		},
+		/** ¿Se pueden generar etiquetas desde acá? (lo decide la plataforma). */
+		etiquetas(): boolean {
+			return !!this.rubro?.etiquetasActivas;
 		},
 		hasPago(): boolean {
 			return !!(this.rubro?.pagoAlias || this.rubro?.pagoCbu);

@@ -32,15 +32,16 @@ export class RubrosService {
 		private readonly envia: EnviaService,
 	) {}
 
-	findByEspacio(espacioId: string): Promise<RubroEntity[]> {
-		return this.repo.find({ where: { espacioId }, order: { createdAt: 'DESC' } });
+	async findByEspacio(espacioId: string): Promise<RubroEntity[]> {
+		const rubros = await this.repo.find({ where: { espacioId }, order: { createdAt: 'DESC' } });
+		return rubros.map(r => Object.assign(r, { etiquetasActivas: this.envia.etiquetas }));
 	}
 
 	/** Busca un rubro validando que pertenezca al espacio dado. */
 	async findOne(id: string, espacioId: string): Promise<RubroEntity> {
 		const rubro = await this.repo.findOne({ where: { id, espacioId } });
 		if (!rubro) throw new NotFoundException('Rubro no encontrado');
-		return rubro;
+		return Object.assign(rubro, { etiquetasActivas: this.envia.etiquetas });
 	}
 
 	create(espacioId: string, dto: CreateRubroDto): Promise<RubroEntity> {

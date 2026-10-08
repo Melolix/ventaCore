@@ -61,7 +61,7 @@ export class PedidosService {
 		const paquete: Paquete = { largo: 0, ancho: 0, alto: 0, peso: 0 };
 		for (const [productoId, cantidad] of cantidades) {
 			const p = porId.get(productoId);
-			if (!p) throw new BadRequestException('Uno de los productos ya no está disponible');
+			if (!p || p.isDraft) throw new BadRequestException('Uno de los productos ya no está disponible');
 			if (p.precio == null) throw new BadRequestException(`"${p.nombre}" no tiene precio: consultalo con el vendedor`);
 			if (p.stock != null && cantidad > p.stock) {
 				throw new BadRequestException(p.stock === 0 ? `"${p.nombre}" se quedó sin stock` : `De "${p.nombre}" quedan ${p.stock}`);
@@ -211,6 +211,7 @@ export class PedidosService {
 	 * Solo con el pedido pagado y un envío cotizado. En producción descuenta saldo.
 	 */
 	async generarEnvio(id: string, rubroId: string, espacioId: string): Promise<PedidoEntity> {
+		if (!this.envia.etiquetas) throw new BadRequestException('La generación de envíos no está habilitada');
 		const { pedido, rubro } = await this.findOwned(id, rubroId, espacioId);
 		if (pedido.etiqueta) throw new BadRequestException('Este pedido ya tiene un envío generado');
 		if (pedido.status !== 'pagado') throw new BadRequestException('El envío se genera con el pedido pagado');

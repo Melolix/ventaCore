@@ -91,6 +91,9 @@ export class RubroEntity {
 	/** No es columna: lo calcula el servicio en las respuestas públicas. */
 	enviosActivos?: boolean;
 
+	/** No es columna: en el panel, si se pueden generar etiquetas de envío. */
+	etiquetasActivas?: boolean;
+
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	@Column({ type: 'varchar', nullable: true })
 	logoUrl!: string | null;

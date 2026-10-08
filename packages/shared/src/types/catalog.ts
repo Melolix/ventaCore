@@ -75,6 +75,8 @@ export interface Rubro {
 	enviaPropia: boolean;
 	/** Vitrina: ¿se pueden cotizar envíos en esta tienda? (hay despacho y cuenta). */
 	enviosActivos?: boolean;
+	/** Panel: ¿se pueden generar etiquetas de envío? (apagado: el vendedor despacha por su cuenta). */
+	etiquetasActivas?: boolean;
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	logoUrl: string | null;
 	/** Instagram propio del rubro (cada rubro es un negocio distinto). */
