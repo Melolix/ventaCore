@@ -293,7 +293,9 @@
 			},
 			"trackingNumber": "Tracking number",
 			"trackShipment": "Track shipment"
-		}
+		},
+		"variants": "Options",
+		"variantOut": "Out of stock in {v}"
 	},
 	"superadmin": {
 		"panelTitle": "Super Admin",

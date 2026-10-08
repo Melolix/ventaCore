@@ -180,6 +180,14 @@ export interface Producto {
 	 * >= 2 distintas la vitrina muestra pestañas; si no, galería plana.
 	 */
 	seccion: string | null;
+	/**
+	 * Variantes: los productos de un rubro con el MISMO `grupo` son el mismo
+	 * artículo en distintas variantes (talle, color…) y la vitrina los muestra en
+	 * UNA sola card con un selector. null = producto suelto.
+	 */
+	grupo: string | null;
+	/** Qué variante es dentro del grupo, para el selector ("M", "Azul / L"). */
+	variante: string | null;
 	// ── Campos comerciales / Mercado Libre (ML-ready) ──
 	/** Código interno del negocio (SKU). */
 	sku: string | null;

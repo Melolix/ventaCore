@@ -9,6 +9,8 @@ import { MlConnectionService } from './ml-connection.service';
 interface RawMlItem {
 	id: string;
 	title?: string;
+	/** Nombre de la "familia" en el modelo actual de ML: lo comparten las variantes. */
+	family_name?: string | null;
 	price?: number;
 	available_quantity?: number;
 	category_id?: string;
@@ -30,6 +32,24 @@ interface RawMlAttr {
  * Ids de atributo de ML donde vive el paquete de envío que cargó el vendedor.
  * Verificado contra la cuenta real: los valores vienen como "18 cm" / "215 g".
  */
+/**
+ * Atributos que suelen distinguir variantes de un mismo artículo, en el orden en
+ * que conviene mostrarlos ("Azul / L"). Se comparan por pertenencia al id.
+ */
+const VARIANT_ATTR_HINTS = ['COLOR', 'SIZE', 'TALLE', 'FLAVOR', 'SABOR', 'CAPACITY', 'VOLUME', 'VOLTAGE', 'MODEL', 'DESIGN', 'FRAGRANCE', 'LENGTH', 'WEIGHT'];
+/** Atributos que cambian entre publicaciones pero NO son una variante elegible. */
+const VARIANT_ATTR_IGNORE = /GTIN|EAN|UPC|SKU|MPN|PACKAGE|SELLER_|ITEM_CONDITION|WARRANTY|INVOICE|SHIPMENT|EXCLUSIVE|SYI_|IS_/;
+
+/** Clave para comparar títulos: sin mayúsculas, acentos ni espacios repetidos. */
+function normTitle(s: string): string {
+	return s
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLowerCase()
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
 const PACKAGE_ATTRS = {
 	alto: 'SELLER_PACKAGE_HEIGHT',
 	ancho: 'SELLER_PACKAGE_WIDTH',
@@ -70,10 +90,10 @@ export class MlImportService {
 		let imported = 0;
 		let updated = 0;
 		const toSave: ProductoEntity[] = [];
+		const vigentes = items.filter(i => i.status !== 'closed');
+		const variantes = this.detectVariantes(vigentes);
 
-		for (const item of items) {
-			// Las finalizadas/cerradas no son publicaciones vigentes: no las bajamos.
-			if (item.status === 'closed') continue;
+		for (const item of vigentes) {
 			const pics = (item.pictures ?? [])
 				.map(p => (p.secure_url || p.url || '').replace(/^http:\/\//, 'https://'))
 				.filter(Boolean);
@@ -95,6 +115,9 @@ export class MlImportService {
 				mlPermalink: item.permalink ?? null,
 				mlStatus: item.status ?? null,
 				mlCatalogProductId: item.catalog_product_id ?? null,
+				// Variantes (talles, colores…): null si es una publicación suelta.
+				grupo: variantes.get(item.id)?.grupo ?? null,
+				variante: variantes.get(item.id)?.variante ?? null,
 				source: ProductoSource.ML,
 				// Dimensiones del paquete SOLO si ML las trae: no incluimos las que faltan
 				// para no pisar con null lo que el usuario haya cargado a mano.
@@ -114,6 +137,55 @@ export class MlImportService {
 
 		await this.productos.save(toSave);
 		return { imported, updated, total: imported + updated };
+	}
+
+	/**
+	 * Detecta qué publicaciones son VARIANTES del mismo artículo. En el modelo
+	 * actual de ML cada talle/color es una publicación propia (con su stock y su
+	 * precio) y todas comparten el nombre de familia; sin esto la vitrina mostraba
+	 * la misma chomba en 5 cards iguales.
+	 *
+	 * Agrupa por nombre de familia (o título) + categoría. La etiqueta de cada
+	 * variante sale de los atributos que DIFIEREN dentro del grupo (talle, color…).
+	 * Devuelve solo las publicaciones que quedaron en un grupo de 2 o más.
+	 */
+	private detectVariantes(items: RawMlItem[]): Map<string, { grupo: string; variante: string }> {
+		const grupos = new Map<string, RawMlItem[]>();
+		for (const item of items) {
+			const nombre = normTitle(item.family_name || item.title || '');
+			if (!nombre) continue;
+			const key = `ml:${item.category_id ?? ''}:${nombre}`.slice(0, 250);
+			const list = grupos.get(key);
+			if (list) list.push(item);
+			else grupos.set(key, [item]);
+		}
+
+		const out = new Map<string, { grupo: string; variante: string }>();
+		for (const [grupo, miembros] of grupos) {
+			if (miembros.length < 2) continue;
+			const valor = (item: RawMlItem, attrId: string) => item.attributes?.find(a => a.id === attrId)?.value_name?.trim() || '';
+
+			// Atributos cuyo valor cambia entre las publicaciones del grupo.
+			const ids = new Set(miembros.flatMap(m => (m.attributes ?? []).map(a => a.id).filter((id): id is string => !!id)));
+			const distintos = [...ids].filter(id => !VARIANT_ATTR_IGNORE.test(id) && new Set(miembros.map(m => valor(m, id))).size > 1);
+			// Primero los típicos (color, talle…) en su orden; si no hay ninguno, los que difieran.
+			const rank = (id: string) => {
+				const i = VARIANT_ATTR_HINTS.findIndex(h => id.includes(h));
+				return i === -1 ? VARIANT_ATTR_HINTS.length : i;
+			};
+			const tipicos = distintos.filter(id => rank(id) < VARIANT_ATTR_HINTS.length).sort((a, b) => rank(a) - rank(b));
+			const elegidos = (tipicos.length ? tipicos : distintos).slice(0, 2);
+
+			const usadas = new Set<string>();
+			miembros.forEach((m, i) => {
+				let variante = elegidos.map(id => valor(m, id)).filter(Boolean).join(' / ');
+				// Sin atributo que las distinga (o etiqueta repetida): las numeramos.
+				if (!variante || usadas.has(variante)) variante = variante ? `${variante} (${i + 1})` : `Opción ${i + 1}`;
+				usadas.add(variante);
+				out.set(m.id, { grupo, variante: variante.slice(0, 80) });
+			});
+		}
+		return out;
 	}
 
 	/**
@@ -179,7 +251,7 @@ export class MlImportService {
 
 	/** Trae el detalle de los ítems en tandas de 20 (multiget). */
 	private async fetchItems(ids: string[], token: string): Promise<RawMlItem[]> {
-		const attrs = 'id,title,price,available_quantity,category_id,permalink,status,catalog_product_id,pictures,attributes';
+		const attrs = 'id,title,family_name,price,available_quantity,category_id,permalink,status,catalog_product_id,pictures,attributes';
 		const out: RawMlItem[] = [];
 		for (let i = 0; i < ids.length; i += 20) {
 			const chunk = ids.slice(i, i + 20);

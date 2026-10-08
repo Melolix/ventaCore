@@ -498,6 +498,7 @@ import { PLATFORM_ICON, effectivePlatforms } from '@/shared/utils/apps';
 import { useCartStore } from '@/modules/app/store/cart';
 import { formatPrice } from '@/modules/app/utils/price';
 import CartDrawer, { MAX_QTY, canBuy } from '@/modules/app/components/CartDrawer.vue';
+import { groupVariantes, varianteInicial } from '@/modules/app/utils/variantes';
 
 type SortKey = 'relevance' | 'priceAsc' | 'priceDesc';
 /** Un grupo del catálogo: una categoría con sus productos. */
@@ -543,6 +544,8 @@ export default defineComponent({
 			/** ¿Abrimos nosotros el producto (push)? Entonces cerrar = volver atrás. */
 			detailPushed: false,
 			activeSeccion: '',
+			/** Variante elegida en cada card con variantes: `{ [grupo]: productoId }`. */
+			varianteSel: {} as Record<string, string>,
 			/** Categoría resaltada en el menú (la que se está viendo al hacer scroll). */
 			activeCat: '',
 			catObserver: null as IntersectionObserver | null,
@@ -694,11 +697,25 @@ export default defineComponent({
 		showCategorias(): boolean {
 			return !this.isApps && this.catalog.publicProductos.some(p => (p.seccion ?? '').trim());
 		},
+		/** Variantes por grupo (talles, colores…), ordenadas. Solo grupos de 2 o más. */
+		variantes(): Map<string, Producto[]> {
+			return this.isApps ? new Map() : groupVariantes(this.catalog.publicProductos);
+		},
 		filtered(): Producto[] {
 			const term = this.search.trim().toLowerCase();
 			let list = this.catalog.publicProductos.filter(p => !term || p.nombre.toLowerCase().includes(term));
 			// Apps con pestañas: mostrar solo las capturas de la sección activa.
 			if (this.showTabs) list = list.filter(p => p.seccion === this.activeSeccion);
+			// Variantes: cada grupo ocupa UNA card (en el lugar de su primera variante),
+			// mostrando la variante elegida.
+			const vistos = new Set<string>();
+			list = list.flatMap(p => {
+				const grupo = p.grupo && this.variantes.get(p.grupo);
+				if (!p.grupo || !grupo) return [p];
+				if (vistos.has(p.grupo)) return [];
+				vistos.add(p.grupo);
+				return [grupo.find(v => v.id === this.varianteSel[p.grupo as string]) ?? varianteInicial(grupo)];
+			});
 			if (this.sort !== 'relevance') {
 				const dir = this.sort === 'priceAsc' ? 1 : -1;
 				list = [...list].sort((a, b) => ((a.precio ?? 0) - (b.precio ?? 0)) * dir);
@@ -853,10 +870,20 @@ export default defineComponent({
 			if (url) window.open(url, '_blank', 'noopener');
 		},
 		/** Cliente: abre WhatsApp con una consulta sobre el producto. */
+		/** Las variantes del producto de la card ([] si es un producto suelto). */
+		variantesDe(producto: Producto): Producto[] {
+			return (producto.grupo && this.variantes.get(producto.grupo)) || [];
+		},
+		pickVariante(v: Producto) {
+			if (v.grupo) this.varianteSel = { ...this.varianteSel, [v.grupo]: v.id };
+		},
 		consultarWhatsapp(producto: Producto) {
 			const num = this.orderNumber;
 			if (!num) return;
-			const msg = this.$t('public.whatsappMsg', { producto: producto.nombre });
+			// Con variantes, la consulta aclara cuál eligió ("Chomba piqué — L").
+			const esVariante = this.variantesDe(producto).length > 0 && producto.variante;
+			const nombre = esVariante ? `${producto.nombre} — ${producto.variante}` : producto.nombre;
+			const msg = this.$t('public.whatsappMsg', { producto: nombre });
 			window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
 		},
 	},
