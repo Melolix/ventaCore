@@ -22,6 +22,18 @@
 					:class="isApps ? 'bg-gradient-to-r from-black/80 via-black/60 to-black/40' : 'bg-gradient-to-r from-black/70 to-black/10'"
 				/>
 			</div>
+			<!-- Si ya pidió en esta tienda: acceso a SUS pedidos acá, en la esquina de la
+			     portada (es de la tienda, no un filtro del catálogo). Siempre a la lista,
+			     aunque sea uno solo, para elegir cuál ver y poder volver. -->
+			<router-link
+				v-if="pedidosAqui.length"
+				:to="{ name: 'app-mis-pedidos', query: { rubro: rubroId } }"
+				class="absolute right-3 top-3 z-10 flex items-center gap-2 rounded-full border border-white/30 bg-black/35 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md transition-colors hover:bg-black/55 md:right-6 md:top-6 md:px-4 md:py-2 md:text-sm"
+			>
+				<i class="pi pi-receipt text-xs" />
+				{{ $t('public.misPedidos.title') }}
+				<span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] font-bold text-surface-900">{{ pedidosAqui.length }}</span>
+			</router-link>
 			<div class="relative flex h-full flex-col justify-center gap-2 p-5 md:gap-3 md:p-12">
 				<!-- En modo "home" (negocio de un solo rubro) esta vista ES la vitrina:
 				     no hay a dónde "volver" ni sentido en la etiqueta de sector. -->
@@ -109,16 +121,6 @@
 				<p class="text-surface-600 dark:text-surface-300" :class="isApps ? '' : 'hidden md:block'">
 					{{ isApps ? $t('public.showingScreens', { n: filtered.length }) : $t('public.showing', { n: filtered.length }) }}
 				</p>
-				<!-- Si ya pidió en esta tienda: siempre a la lista de SUS pedidos acá (aunque
-				     sea uno solo), para elegir cuál ver y poder volver. -->
-				<router-link
-					v-if="pedidosAqui.length"
-					:to="{ name: 'app-mis-pedidos', query: { rubro: rubroId } }"
-					class="order-last flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary md:order-none md:w-auto"
-				>
-					<i class="pi pi-receipt text-xs" />
-					{{ $t('public.misPedidos.linkN', { n: pedidosAqui.length }) }}
-				</router-link>
 				<!-- Mobile: buscador y orden en una sola fila (el buscador se estira). -->
 				<div v-if="!isApps" class="flex w-full min-w-0 gap-2 md:w-auto">
 					<IconField class="min-w-0 flex-1">
