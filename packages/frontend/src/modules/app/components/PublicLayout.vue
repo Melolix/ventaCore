@@ -100,10 +100,11 @@
 						class="primary-gradient !hidden border-0 px-6 font-semibold text-white shadow-md md:!inline-flex"
 						@click="onSignIn"
 					/>
-					<!-- Mis pedidos: visible en todas las páginas, solo si este dispositivo
-					     tiene alguno. El número cuenta los que el cliente guardó. -->
+					<!-- Mis pedidos: siempre visible en las tiendas (si solo apareciera con
+					     pedidos guardados, quien entra desde otro navegador no lo encuentra).
+					     El número aparece cuando este dispositivo tiene alguno. -->
 					<router-link
-						v-if="pedidosCount"
+						v-if="tieneTienda"
 						:to="{ name: 'app-mis-pedidos' }"
 						class="relative flex h-9 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-surface-600 transition-colors hover:bg-surface-100 hover:text-primary dark:text-surface-300 dark:hover:bg-surface-800"
 						:aria-label="$t('public.misPedidos.title')"
@@ -111,7 +112,10 @@
 					>
 						<i class="pi pi-receipt text-lg" />
 						<span class="hidden lg:inline">{{ $t('public.misPedidos.title') }}</span>
-						<span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-contrast">{{ pedidosCount }}</span>
+						<span
+							v-if="pedidosCount"
+							class="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-contrast"
+						>{{ pedidosCount }}</span>
 					</router-link>
 					<!-- Hamburguesa (mobile): al extremo derecho; despliega nav, tema y sesión. -->
 					<button
@@ -201,7 +205,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { areaForRole, type Espacio } from '@base-template/shared';
+import { EspacioType, areaForRole, type Espacio } from '@base-template/shared';
 import { useUserStore } from '@/modules/auth/store/user';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useCartStore } from '@/modules/app/store/cart';
@@ -226,6 +230,10 @@ export default defineComponent({
 	computed: {
 		isAuthenticated(): boolean {
 			return useUserStore().isAuthenticated;
+		},
+		/** Los espacios tipo "apps" no venden: ahí no hay pedidos que mostrar. */
+		tieneTienda(): boolean {
+			return !!this.espacio && this.espacio.type !== EspacioType.APPS;
 		},
 		/** Pedidos que este cliente hizo desde este dispositivo (para el acceso del header). */
 		pedidosCount(): number {

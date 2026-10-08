@@ -2,7 +2,7 @@
 	<div class="mx-auto max-w-2xl">
 		<div class="mb-4">
 			<h1 class="text-2xl font-extrabold text-surface-900 dark:text-surface-0">{{ $t('public.misPedidos.title') }}</h1>
-			<p class="text-sm text-surface-500">{{ $t('public.misPedidos.subtitle') }}</p>
+			<p v-if="rows.length" class="text-sm text-surface-500">{{ $t('public.misPedidos.subtitle') }}</p>
 		</div>
 
 		<!-- Sin pedidos en este dispositivo -->
