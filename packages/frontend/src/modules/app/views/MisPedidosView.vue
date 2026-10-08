@@ -30,7 +30,7 @@
 							<span v-else-if="loading" class="text-xs text-surface-400"><i class="pi pi-spin pi-spinner text-[10px]" /></span>
 						</p>
 						<p class="truncate text-sm text-surface-600 dark:text-surface-300">{{ row.tienda }}</p>
-						<p class="text-xs text-surface-500">{{ formatDate(row.createdAt) }}</p>
+						<p v-if="row.createdAt" class="text-xs text-surface-500">{{ formatDate(row.createdAt) }}</p>
 					</div>
 					<p class="shrink-0 text-base font-extrabold tabular-nums text-surface-900 dark:text-surface-0">{{ money(row.total) }}</p>
 					<i class="pi pi-chevron-right shrink-0 text-xs text-surface-400" />
@@ -94,6 +94,16 @@ export default defineComponent({
 				try {
 					const pedido = await this.catalog.fetchPedidoPublic(p.token);
 					this.live = { ...this.live, [p.token]: { status: pedido.status, total: pedido.total } };
+					// Completa lo guardado con los datos reales (los pedidos recuperados de
+					// versiones anteriores venían sin tienda, total ni fecha).
+					this.cart.addPedido({
+						token: pedido.token,
+						numero: pedido.numero,
+						rubroId: pedido.rubroId,
+						tienda: pedido.tienda,
+						total: pedido.total,
+						createdAt: pedido.createdAt,
+					});
 				} catch (e: unknown) {
 					// El pedido ya no existe en la tienda: lo sacamos de la lista.
 					if ((e as { response?: { status?: number } }).response?.status === 404) this.cart.removePedido(p.token);

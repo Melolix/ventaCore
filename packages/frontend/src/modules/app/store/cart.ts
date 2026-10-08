@@ -58,6 +58,22 @@ export const useCartStore = defineStore('cart', {
 			const rest = this.pedidos.filter(p => p.token !== pedido.token);
 			this.pedidos = [pedido, ...rest].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, MAX_PEDIDOS);
 		},
+		/**
+		 * Versiones anteriores recordaban solo el ÚLTIMO pedido de cada rubro, en
+		 * `ultimoPedido`. Lo pasamos a la lista nueva para que no se pierda (los
+		 * anteriores a ese no se pueden recuperar: nunca se guardaron en el navegador).
+		 * La tienda, el total y la fecha se completan al consultar el pedido.
+		 */
+		migrarUltimoPedido(): void {
+			const state = this.$state as unknown as { ultimoPedido?: Record<string, { token: string; numero: number }> };
+			const viejos = state.ultimoPedido;
+			if (!viejos) return;
+			for (const [rubroId, p] of Object.entries(viejos)) {
+				if (!p?.token || this.pedidos.some(x => x.token === p.token)) continue;
+				this.pedidos = [...this.pedidos, { token: p.token, numero: p.numero, rubroId, tienda: '', total: 0, createdAt: '' }];
+			}
+			delete state.ultimoPedido;
+		},
 		removePedido(token: string): void {
 			this.pedidos = this.pedidos.filter(p => p.token !== token);
 		},

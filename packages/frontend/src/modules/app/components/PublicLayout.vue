@@ -100,11 +100,10 @@
 						class="primary-gradient !hidden border-0 px-6 font-semibold text-white shadow-md md:!inline-flex"
 						@click="onSignIn"
 					/>
-					<!-- Mis pedidos: siempre visible en las tiendas (si solo apareciera con
-					     pedidos guardados, quien entra desde otro navegador no lo encuentra).
-					     El número aparece cuando este dispositivo tiene alguno. -->
+					<!-- Mis pedidos: visible en todas las páginas cuando este dispositivo tiene
+					     alguno guardado. El número es la cantidad. -->
 					<router-link
-						v-if="tieneTienda"
+						v-if="tieneTienda && pedidosCount"
 						:to="{ name: 'app-mis-pedidos' }"
 						class="relative flex h-9 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-surface-600 transition-colors hover:bg-surface-100 hover:text-primary dark:text-surface-300 dark:hover:bg-surface-800"
 						:aria-label="$t('public.misPedidos.title')"
@@ -254,6 +253,8 @@ export default defineComponent({
 		},
 	},
 	async created() {
+		// Recupera el pedido que versiones anteriores guardaban de otra forma.
+		useCartStore().migrarUltimoPedido();
 		// Si venimos del panel (?panel=<origen>), habilitamos "Volver al panel".
 		this.readPanelReturn();
 		// Sesión no bloqueante (para decidir "Iniciar sesión" vs "Ir al panel").
