@@ -242,8 +242,27 @@
 				<section ref="sec-ficha" class="scroll-mt-44 space-y-4" :class="stepCls('ficha')">
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secFicha') }}</h4>
 
-					<!-- Buscar en el catálogo de ML (autocompleta categoría + atributos) -->
-				<div class="space-y-2 rounded-xl bg-primary/5 p-3">
+					<!-- Dos caminos SEPARADOS (igual que en Carga masiva):
+					     · categoría → solo asigna categoría + sus datos; no toca lo cargado.
+					     · catálogo  → el producto ya existe en ML: trae todos sus datos. -->
+				<div class="grid grid-cols-2 gap-2">
+					<button
+						v-for="m in mlModes"
+						:key="m.key"
+						type="button"
+						class="rounded-xl border p-3 text-left transition-colors"
+						:class="mlMode === m.key ? 'border-primary bg-primary/5' : 'border-surface-200 hover:bg-surface-50 dark:border-surface-700 dark:hover:bg-surface-800'"
+						@click="setMlMode(m.key)"
+					>
+						<span class="flex items-center gap-2 text-sm font-semibold text-surface-800 dark:text-surface-100">
+							<i :class="[m.icon, mlMode === m.key ? 'text-primary' : 'text-surface-400']" /> {{ $t(m.title) }}
+						</span>
+						<span class="mt-1 block text-xs leading-snug text-surface-500">{{ $t(m.desc) }}</span>
+					</button>
+				</div>
+
+				<!-- Camino "ya está en Mercado Libre": buscar en el catálogo y traer todo -->
+				<div v-if="mlMode === 'catalogo'" class="space-y-2 rounded-xl bg-primary/5 p-3">
 					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.carga.ml.catalogTitle') }}</label>
 					<div class="flex gap-2">
 						<InputText v-model="mlCatalogQuery" class="w-full" :placeholder="$t('admin.carga.ml.catalogPlaceholder')" @keyup.enter="searchCatalog" />
@@ -257,17 +276,24 @@
 							<span class="line-clamp-2 text-sm">{{ r.name }}</span>
 						</button>
 					</div>
-					<p class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.catalogHint') }}</p>
+					<p v-if="mlCatalogPicked" class="flex items-start gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
+						<i class="pi pi-check-circle mt-px" /> {{ $t('admin.carga.ml.catalogPicked', { name: mlCatalogPicked }) }}
+					</p>
+					<p class="flex items-start gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+						<i class="pi pi-info-circle mt-px" /> {{ $t('admin.carga.ml.catalogHint') }}
+					</p>
 				</div>
 
 				<!-- Categoría -->
 				<div class="space-y-2">
 					<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.carga.ml.categoryTitle') }}</label>
 					<div class="flex items-center gap-2">
-						<span class="flex-1 text-sm" :class="edit.mlCategoryName ? 'text-surface-800 dark:text-surface-100' : 'text-surface-400'">{{ edit.mlCategoryName || $t('admin.carga.ml.noCategory') }}</span>
-						<Button :label="$t('admin.carga.ml.suggest')" icon="pi pi-sparkles" size="small" outlined :loading="mlPredicting" @click="suggestCategories" />
+						<span class="flex-1 text-sm" :class="edit.mlCategoryName ? 'text-surface-800 dark:text-surface-100' : 'text-surface-400'">{{ edit.mlCategoryName || $t(mlMode === 'catalogo' ? 'admin.carga.ml.catalogPickFirst' : 'admin.carga.ml.noCategory') }}</span>
+						<!-- Sugerir solo en el camino "categoría": en el de catálogo la define el producto elegido. -->
+						<Button v-if="mlMode === 'categoria'" :label="$t('admin.carga.ml.suggest')" icon="pi pi-sparkles" size="small" outlined :loading="mlPredicting" @click="suggestCategories" />
 					</div>
-					<div v-if="mlPredictions.length" class="space-y-1">
+					<p v-if="mlMode === 'categoria'" class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.categoryHint') }}</p>
+					<div v-if="mlMode === 'categoria' && mlPredictions.length" class="space-y-1">
 						<button
 							v-for="p in mlPredictions"
 							:key="p.categoryId"
@@ -626,6 +652,14 @@ export default defineComponent({
 			mlAttrs: [] as MlAttribute[],
 			mlAttrValues: {} as Record<string, string>,
 			attrsByCategory: {} as Record<string, MlAttribute[]>,
+			/** Camino elegido en la ficha de ML: solo categoría, o traer del catálogo. */
+			mlMode: 'categoria' as 'categoria' | 'catalogo',
+			mlModes: [
+				{ key: 'categoria', icon: 'pi pi-tag', title: 'admin.carga.ml.modeCategory', desc: 'admin.carga.ml.modeCategoryDesc' },
+				{ key: 'catalogo', icon: 'pi pi-shopping-bag', title: 'admin.carga.ml.modeCatalog', desc: 'admin.carga.ml.modeCatalogDesc' },
+			] as { key: 'categoria' | 'catalogo'; icon: string; title: string; desc: string }[],
+			/** Nombre del producto del catálogo recién elegido (confirmación visible). */
+			mlCatalogPicked: '',
 			mlCatalogQuery: '',
 			mlCatalogSearching: false,
 			mlCatalogResults: [] as MlCatalogSearchResult[],
@@ -876,6 +910,9 @@ export default defineComponent({
 			this.mlAttrs = p.mlCategoryId ? (this.attrsByCategory[p.mlCategoryId] ?? []) : [];
 			this.mlCatalogQuery = '';
 			this.mlCatalogResults = [];
+			this.mlCatalogPicked = '';
+			// Arranca en el camino que ya venía usando ese producto.
+			this.mlMode = p.mlCatalogProductId ? 'catalogo' : 'categoria';
 			// Margen implícito a partir de costo + precio de tienda.
 			this.margenPct = this.deriveMargin();
 			this.fee = null;
@@ -977,6 +1014,10 @@ export default defineComponent({
 			}
 		},
 		// ── Categoría + atributos de ML ──
+		/** Cambia de camino (solo categoría / traer del catálogo de ML). */
+		setMlMode(mode: 'categoria' | 'catalogo') {
+			this.mlMode = mode;
+		},
 		async suggestCategories() {
 			const e = this.edit;
 			if (!e || !this.rubro) return;
@@ -999,8 +1040,15 @@ export default defineComponent({
 			if (!this.edit) return;
 			this.edit.mlCategoryId = pred.categoryId;
 			this.edit.mlCategoryName = pred.categoryName;
-			this.mlAttrValues = {};
+			// Categoría elegida a mano: deja de estar atada a un producto del catálogo.
+			this.edit.mlCatalogProductId = '';
+			this.mlCatalogPicked = '';
+			// No vaciamos los atributos ya completados: los que la categoría nueva
+			// comparte (marca, modelo…) siguen cargados; el resto se descarta para
+			// no mandarle a ML atributos que esa categoría no tiene.
 			await this.loadAttrs(pred.categoryId);
+			const valid = new Set(this.mlAttrs.map(a => a.id));
+			this.mlAttrValues = Object.fromEntries(Object.entries(this.mlAttrValues).filter(([k]) => valid.has(k)));
 			// La comisión depende de la categoría: recalculamos el desglose.
 			this.refreshFee();
 		},
@@ -1037,8 +1085,20 @@ export default defineComponent({
 			this.mlFillingCatalog = true;
 			try {
 				const p = await this.catalog.fetchMlCatalogProduct(this.rubro.id, result.id);
+				// Camino "ya está en ML": el producto elegido trae TODOS sus datos
+				// (categoría, ficha, foto de portada y descripción) y reemplaza los
+				// cargados. Es explícito: el usuario eligió este camino y la pantalla lo
+				// avisa. Nombre, precio y stock no se tocan.
 				e.mlCatalogProductId = p.catalogProductId;
+				this.mlCatalogPicked = p.name;
 				this.mlAttrValues = { ...p.atributos };
+				if (p.description) e.descripcion = p.description;
+				if (p.imageUrl && p.imageUrl !== e.imageUrl) {
+					// Pasa a ser la portada; las fotos que ya tenía quedan detrás.
+					const url = p.imageUrl;
+					e.imagenes = [url, ...e.imagenes.filter(i => i !== url)];
+					e.imageUrl = url;
+				}
 				this.mlCatalogResults = [];
 				if (p.categoryId) {
 					e.mlCategoryId = p.categoryId;
