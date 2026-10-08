@@ -66,7 +66,9 @@ export class PedidosService {
 			if (p.stock != null && cantidad > p.stock) {
 				throw new BadRequestException(p.stock === 0 ? `"${p.nombre}" se quedó sin stock` : `De "${p.nombre}" quedan ${p.stock}`);
 			}
-			items.push({ productoId, nombre: p.nombre, precio: p.precio, cantidad, imageUrl: p.imageUrl });
+			// Con variantes (talle, color…) el pedido tiene que decir cuál es.
+			const nombre = p.grupo && p.variante ? `${p.nombre} — ${p.variante}` : p.nombre;
+			items.push({ productoId, nombre, precio: p.precio, cantidad, imageUrl: p.imageUrl });
 			paquete.largo = Math.max(paquete.largo, p.largo ?? base.largo);
 			paquete.ancho = Math.max(paquete.ancho, p.ancho ?? base.ancho);
 			paquete.alto += (p.alto ?? base.alto) * cantidad;

@@ -48,7 +48,9 @@
 							<div v-else class="flex h-full w-full items-center justify-center text-surface-400"><i class="pi pi-shopping-bag" /></div>
 						</div>
 						<div class="min-w-0 flex-1">
-							<p class="line-clamp-2 text-sm font-semibold leading-tight text-surface-900 dark:text-surface-0">{{ line.producto.nombre }}</p>
+							<p class="line-clamp-2 text-sm font-semibold leading-tight text-surface-900 dark:text-surface-0">
+								{{ line.producto.nombre }}<template v-if="line.producto.grupo && line.producto.variante"> — {{ line.producto.variante }}</template>
+							</p>
 							<p class="text-xs text-surface-500">{{ $t('public.cart.each', { price: money(line.precio) }) }}</p>
 							<div class="mt-1.5 flex items-center gap-2">
 								<div class="flex items-center rounded-lg border border-surface-200 dark:border-surface-700">

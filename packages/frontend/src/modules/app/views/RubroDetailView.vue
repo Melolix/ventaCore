@@ -220,7 +220,7 @@
 				<div v-else class="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
 					<article
 						v-for="producto in g.items"
-						:key="producto.id"
+						:key="producto.grupo || producto.id"
 						class="glass-card group flex cursor-pointer flex-col overflow-hidden rounded-2xl transition-shadow hover:shadow-xl hover:shadow-primary/10"
 						@click="openProducto(producto)"
 					>
@@ -263,6 +263,23 @@
 								{{ formatPrice(producto.precio) }}
 							</p>
 							<p v-else class="py-0.5 text-xs font-semibold text-surface-400 sm:py-1">{{ $t('public.consultPrice') }}</p>
+							<!-- Variantes (talle, color…): una sola card con selector, en vez de una
+							     card repetida por variante. Elegir una cambia precio, foto y stock,
+							     y es la que se agrega al pedido. -->
+							<div v-if="variantesDe(producto).length" class="flex flex-wrap gap-1 pb-1" role="group" :aria-label="$t('public.variants')" @click.stop>
+								<button
+									v-for="v in variantesDe(producto)"
+									:key="v.id"
+									type="button"
+									class="min-h-8 min-w-8 rounded-lg border px-2 text-[11px] font-bold transition-colors"
+									:class="varianteCls(v, producto)"
+									:aria-pressed="v.id === producto.id"
+									:title="v.stock === 0 ? $t('public.variantOut', { v: v.variante }) : (v.variante ?? '')"
+									@click="pickVariante(v)"
+								>
+									{{ v.variante || v.nombre }}
+								</button>
+							</div>
 							<!-- Con pedido habilitado: "Agregar" → − n + (se agrega sin salir de la
 							     lista). Lo que no se puede comprar (sin precio/stock) se consulta. -->
 							<div
@@ -373,6 +390,20 @@
 						<span v-if="detail.precio != null" class="text-2xl font-extrabold tabular-nums text-surface-900 dark:text-surface-0">{{ formatPrice(detail.precio) }}</span>
 						<span v-else class="text-sm font-semibold text-surface-400">{{ $t('public.consultPrice') }}</span>
 						<span v-if="stockStatus(detail)" class="text-xs font-bold" :class="stockStatus(detail)?.cls">{{ stockStatus(detail)?.label }}</span>
+					</div>
+					<div v-if="variantesDe(detail).length" class="flex flex-wrap gap-1.5" role="group" :aria-label="$t('public.variants')">
+						<button
+							v-for="v in variantesDe(detail)"
+							:key="v.id"
+							type="button"
+							class="min-h-10 min-w-10 rounded-xl border px-3 text-sm font-bold transition-colors"
+							:class="varianteCls(v, detail)"
+							:aria-pressed="v.id === detail.id"
+							:title="v.stock === 0 ? $t('public.variantOut', { v: v.variante }) : (v.variante ?? '')"
+							@click="pickVarianteDetalle(v)"
+						>
+							{{ v.variante || v.nombre }}
+						</button>
 					</div>
 					<p v-if="detail.descripcion" class="whitespace-pre-line text-sm leading-relaxed text-surface-600 dark:text-surface-300">{{ detail.descripcion }}</p>
 					<!-- Acciones: pegadas abajo en el celu (al alcance del pulgar). -->
@@ -876,6 +907,17 @@ export default defineComponent({
 		},
 		pickVariante(v: Producto) {
 			if (v.grupo) this.varianteSel = { ...this.varianteSel, [v.grupo]: v.id };
+		},
+		/** En la pantalla de producto: además de elegirla, pasa a mostrar esa variante (misma entrada del historial). */
+		pickVarianteDetalle(v: Producto) {
+			this.pickVariante(v);
+			void this.$router.replace({ query: { ...this.$route.query, p: v.id } });
+		},
+		/** Estilo del botón de una variante: elegida, sin stock (tachada) o disponible. */
+		varianteCls(v: Producto, actual: Producto): string {
+			if (v.id === actual.id) return 'border-primary bg-primary text-primary-contrast';
+			if (v.stock === 0) return 'border-surface-200 text-surface-400 line-through dark:border-surface-700';
+			return 'border-surface-300 text-surface-700 hover:border-primary hover:text-primary dark:border-surface-600 dark:text-surface-200';
 		},
 		consultarWhatsapp(producto: Producto) {
 			const num = this.orderNumber;
