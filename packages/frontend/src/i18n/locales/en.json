@@ -138,6 +138,13 @@
 		"noInstagram": "Set this category's Instagram (Categories → edit)",
 		"consultWhatsapp": "Ask on WhatsApp",
 		"consultPrice": "Ask for price",
+		"consult": "Ask",
+		"photoN": "Photo {n}",
+		"stock": {
+			"out": "Out of stock",
+			"low": "1 left | {n} left",
+			"available": "In stock"
+		},
 		"whatsappMsg": "Hi! I wanted to ask about {producto}.",
 		"download": {
 			"android": "Android",
@@ -166,8 +173,153 @@
 			"support": "AI Support",
 			"catalogs": "Catalogs"
 		},
+		"cart": {
+			"title": "Your order",
+			"add": "Add",
+			"addToOrder": "Add to order",
+			"view": "View order",
+			"viewN": "View order · {n}",
+			"less": "Remove one",
+			"more": "Add one",
+			"each": "{price} each",
+			"maxStock": "That's all the stock",
+			"total": "Total",
+			"yourData": "Your details",
+			"name": "Full name",
+			"phone": "Your WhatsApp",
+			"delivery": "Delivery",
+			"entrega": {
+				"retiro": "Store pickup",
+				"envio": "Shipping"
+			},
+			"address": "Delivery address",
+			"addressHint": "You arrange the shipping cost with the seller.",
+			"notes": "Notes (optional)",
+			"nextStep": "The seller confirms the stock and sends you the payment details.",
+			"send": "Send order via WhatsApp",
+			"emptyTitle": "Your order is empty",
+			"emptyBody": "Add products from the catalog and send the order via WhatsApp.",
+			"keepBrowsing": "Keep browsing",
+			"err": {
+				"name": "Enter your name.",
+				"phone": "Enter a valid WhatsApp number, with area code.",
+				"address": "Enter the delivery address.",
+				"send": "We couldn't send the order. Check your connection and try again.",
+				"destino": "Fill in street, number, city, province and ZIP code.",
+				"quote": "We couldn't quote the shipping. Try again.",
+				"quoteFirst": "Tap \"See shipping options\" to choose how it gets to you.",
+				"pickShipping": "Choose a shipping option."
+			},
+			"msg": {
+				"title": "Order #{n} — {tienda}",
+				"client": "Customer",
+				"phone": "WhatsApp",
+				"track": "Tracking"
+			},
+			"doneTitle": "Order #{n} sent",
+			"doneBody": "The store already has it. WhatsApp opened with your order: send that message to let the seller know.",
+			"openWhatsapp": "Open WhatsApp",
+			"track": "Track my order",
+			"trackN": "Track my order #{n}",
+			"products": "Products",
+			"shipping": "Shipping",
+			"shippingOptions": "Choose shipping",
+			"street": "Street",
+			"number": "Number",
+			"reference": "Floor, apt or reference (optional)",
+			"city": "City",
+			"zip": "ZIP code",
+			"province": "Province",
+			"provincePlaceholder": "Choose the province",
+			"quote": "See shipping options",
+			"quoting": "Finding shipping options…",
+			"noQuotes": "We couldn't find shipping for that address. You can arrange it with the seller.",
+			"coordinate": "Arrange it with the seller",
+			"coordinateHint": "Cost and method are agreed via WhatsApp."
+		},
+		"pedido": {
+			"title": "Order #{n}",
+			"madeOn": "Placed on {date}",
+			"notFoundTitle": "We couldn't find that order",
+			"notFoundBody": "Check that the link is complete, or message the store.",
+			"backToStore": "Go to the store",
+			"detail": "Your order",
+			"contact": "Message the store",
+			"reason": "Reason: {motivo}",
+			"payTitle": "Payment details",
+			"payMissing": "The store will send you the payment details via WhatsApp.",
+			"pay": {
+				"alias": "Alias",
+				"cbu": "CBU / CVU",
+				"titular": "Account holder"
+			},
+			"copy": "Copy",
+			"copied": "Copied",
+			"sendReceipt": "Send receipt via WhatsApp",
+			"waPaid": "Hi, I already transferred order #{n}. Sending you the receipt.",
+			"waAsk": "Hi, I'm writing about order #{n}.",
+			"step": {
+				"pendiente": "Order sent",
+				"confirmado": "Confirmed by the store",
+				"pagado": "Payment received",
+				"enviado": "Shipped",
+				"entregado": "Delivered"
+			},
+			"state": {
+				"pendiente": {
+					"title": "Waiting for confirmation",
+					"body": "The store is checking the stock. Once it confirms, you'll see the payment details here."
+				},
+				"confirmado": {
+					"title": "Order confirmed",
+					"body": "Everything is in stock. Transfer the total and send the receipt via WhatsApp."
+				},
+				"pagado": {
+					"title": "Payment received",
+					"body": "The store registered your payment and is preparing the order."
+				},
+				"enviado": {
+					"title": "Your order is on its way",
+					"body": "We already dispatched it. You can track it with the tracking number."
+				},
+				"entregado": {
+					"title": "Order delivered",
+					"body": "Thanks for your purchase."
+				},
+				"rechazado": {
+					"title": "The store couldn't take the order",
+					"body": "No charge was made. You can place a new order or message the store."
+				},
+				"cancelado": {
+					"title": "Order cancelled",
+					"body": "If you had already transferred, message the store to arrange the refund."
+				}
+			},
+			"trackingNumber": "Tracking number",
+			"trackShipment": "Track shipment"
+		},
 		"variants": "Options",
-		"variantOut": "Out of stock in {v}"
+		"variantOut": "Out of stock in {v}",
+		"misPedidos": {
+			"title": "My orders",
+			"subtitle": "Tap an order to see its status and the payment details.",
+			"emptyTitle": "You haven't placed any orders yet",
+			"emptyBody": "When you send an order from the store, you'll find it here.",
+			"deviceNote": "Orders are saved on this device. If you ordered from another one, open the link you got on WhatsApp.",
+			"linkN": "My orders ({n})",
+			"status": {
+				"pendiente": "Waiting for confirmation",
+				"confirmado": "Confirmed · payment pending",
+				"pagado": "Paid",
+				"enviado": "On its way",
+				"entregado": "Delivered",
+				"rechazado": "Couldn't be taken",
+				"cancelado": "Cancelled"
+			},
+			"titleIn": "My orders at {tienda}",
+			"seeAll": "See my orders at other stores too ({n})",
+			"unknownStore": "Store"
+		}
 	},
 	"superadmin": {
 		"panelTitle": "Super Admin",
@@ -244,7 +396,26 @@
 			"metaHint": "Post to this business's Instagram/Facebook.",
 			"cobrosHint": "Connect your billing account and manage the business's subscription plans.",
 			"cobrosSetup": "Set up billing",
-			"cobrosPlans": "Manage plans"
+			"cobrosPlans": "Manage plans",
+			"tienda": {
+				"title": "Store",
+				"hint": "Where orders arrive, where you ship from and how you get paid.",
+				"whatsapp": "Store WhatsApp",
+				"whatsappHint": "Orders and questions arrive here. With country code and no spaces.",
+				"whatsappFallback": "If you leave it empty, they go to the business's general WhatsApp ({n}).",
+				"whatsappNone": "There's no WhatsApp number yet: without one, customers can't place orders.",
+				"despacho": "Where you ship from",
+				"despachoHint": "Your store or warehouse address. With it, when the customer enters where they live, we show the shipping cost.",
+				"advanced": "More shipping options",
+				"save": "Save",
+				"unsaved": "There are unsaved changes",
+				"savedToast": "Store settings saved",
+				"estado": {
+					"ok": "Ready: your customers see the shipping cost when they enter their address.",
+					"empty": "Without a ship-from address, shipping is arranged via WhatsApp with each customer.",
+					"incomplete": "The address is incomplete: fill in street, number, city, province and ZIP code."
+				}
+			}
 		},
 		"instagram": {
 			"eyebrow": "Social",
@@ -306,7 +477,8 @@
 			"instagram": "Instagram",
 			"cobros": "Billing",
 			"config": "Settings",
-			"nosotros": "About Us"
+			"nosotros": "About Us",
+			"pedidos": "Orders"
 		},
 		"cobros": {
 			"title": "Billing & subscriptions",
@@ -670,6 +842,43 @@
 				"ios": "iOS",
 				"web": "Web",
 				"desktop": "Desktop"
+			},
+			"pedidos": {
+				"title": "Store orders",
+				"hint": "Choose which WhatsApp receives the orders and questions for this category.",
+				"cm": "The CM receives them",
+				"cmHint": "They go to the business's general WhatsApp (the one in About us).",
+				"negocio": "The business receives them",
+				"negocioHint": "They go to a WhatsApp number specific to this category.",
+				"whatsapp": "Category WhatsApp",
+				"whatsappHint": "With country code and no spaces. E.g. 5493511234567. If empty, the general one is used."
+			},
+			"pago": {
+				"title": "Payment details",
+				"hint": "Added once. The customer sees them only after you accept their order.",
+				"alias": "Alias",
+				"cbu": "CBU / CVU",
+				"titular": "Account holder"
+			},
+			"envios": {
+				"title": "Shipping",
+				"hint": "Add where you ship from and your customers will see the shipping cost in the cart.",
+				"nombre": "Who ships (store or person)",
+				"telefono": "Contact phone",
+				"incomplete": "The ship-from address is incomplete: shipping is not quoted meanwhile.",
+				"paquete": "Default package",
+				"paqueteHint": "For products without measurements. Length, width and height in cm; weight in grams.",
+				"largo": "Length",
+				"ancho": "Width",
+				"alto": "Height",
+				"peso": "Weight (g)",
+				"cuenta": "envia.com account",
+				"cuentaPlataforma": "Using ventaCore's account. If you have your own, paste your token.",
+				"cuentaPropia": "Own account connected.",
+				"tokenPlaceholder": "Your envia.com account token (optional)",
+				"tokenReplace": "Paste another token to replace it",
+				"desconectar": "Disconnect and go back to ventaCore's account",
+				"desconectarUndo": "It will disconnect on save. Tap to undo."
 			}
 		},
 		"productos": {
@@ -976,6 +1185,72 @@
 			"done": "Published successfully",
 			"partial": "Published with some errors",
 			"failed": "Couldn't publish"
+		},
+		"pedidos": {
+			"eyebrow": "Store",
+			"title": "Orders",
+			"refresh": "Refresh",
+			"noPago": "You haven't added the payment details yet. Without them, the customer doesn't know where to pay when you confirm.",
+			"goConfig": "Add them in Categories",
+			"empty": "No orders yet. When a customer sends their cart, it shows up here.",
+			"emptyFilter": "No orders in this status.",
+			"filter": {
+				"pendiente": "Pending",
+				"confirmado": "To collect",
+				"pagado": "Paid",
+				"enviado": "Shipped",
+				"entregado": "Delivered",
+				"cerrados": "Closed",
+				"todos": "All"
+			},
+			"status": {
+				"pendiente": "Pending",
+				"confirmado": "To collect",
+				"pagado": "Paid",
+				"enviado": "Shipped",
+				"entregado": "Delivered",
+				"rechazado": "Rejected",
+				"cancelado": "Cancelled"
+			},
+			"accept": "Accept",
+			"reject": "Reject",
+			"cancel": "Cancel order",
+			"cancelTitle": "Cancel order",
+			"markPaid": "Mark as paid",
+			"markDelivered": "Mark as delivered",
+			"sendPago": "Send payment details",
+			"chat": "Message",
+			"motivoLabel": "Reason",
+			"motivoHint": "The customer sees it in their order tracking. Optional.",
+			"motivoPlaceholder": "E.g. we ran out of stock for one product",
+			"waHello": "Hi {nombre}, I'm writing about your order #{n}.",
+			"toast": {
+				"confirmado": "Order #{n} accepted. Send the payment details.",
+				"pagado": "Order #{n} marked as paid. Stock was deducted.",
+				"enviado": "Shipment for order #{n} created. You can print the label now.",
+				"entregado": "Order #{n} delivered.",
+				"rechazado": "Order #{n} rejected.",
+				"cancelado": "Order #{n} cancelled.",
+				"anulado": "Shipment for order #{n} voided."
+			},
+			"msg": {
+				"confirmed": "Hi {nombre}! We confirmed your order #{n} from {tienda}. Everything is in stock.",
+				"payIntro": "To transfer:",
+				"track": "Track your order",
+				"shipped": "Hi {nombre}! Your order #{n} is on its way."
+			},
+			"tracking": "Tracking",
+			"testLabel": "Test",
+			"generateShipping": "Create shipment",
+			"generateBody": "The shipment for order #{n} will be created with the carrier the customer chose.",
+			"quotedCost": "Quoted cost",
+			"generateWarn": "Creating it deducts the cost from the envia.com account balance. Then you can print the label and stick it on the package.",
+			"generateError": "Couldn't create the shipment. Try again.",
+			"markShipped": "Mark as shipped",
+			"printLabel": "Print label",
+			"notifyShipped": "Notify it shipped",
+			"voidShipping": "Void shipment",
+			"voidConfirm": "Void the shipment for order #{n}? The balance is refunded and the order goes back to \"Paid\". Don't void it if you already dispatched the package."
 		}
 	},
 	"handoff": {

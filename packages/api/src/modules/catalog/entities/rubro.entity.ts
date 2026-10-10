@@ -7,7 +7,7 @@ import {
 	PrimaryGeneratedColumn,
 	UpdateDateColumn,
 } from 'typeorm';
-import { AppPlatform, RubroStatus } from '@base-template/shared';
+import { AppPlatform, RubroStatus, type DespachoConfig, type Paquete, type PedidosDestino } from '@base-template/shared';
 import { ProductoEntity } from './producto.entity';
 
 @Entity('rubros')
@@ -43,6 +43,56 @@ export class RubroEntity {
 	 */
 	@Column({ type: 'jsonb', default: [] })
 	categorias!: string[];
+
+	/**
+	 * Quién recibe los pedidos de la tienda de este rubro: 'cm' = el WhatsApp
+	 * general del espacio (lo lleva el community manager); 'negocio' = el WhatsApp
+	 * propio del rubro (`whatsapp`). Si es 'negocio' pero no cargó número, cae al
+	 * del espacio.
+	 */
+	@Column({ type: 'varchar', default: 'cm' })
+	pedidosDestino!: PedidosDestino;
+
+	/** WhatsApp propio del rubro (para recibir los pedidos cuando los lleva el negocio). */
+	@Column({ type: 'varchar', nullable: true })
+	whatsapp!: string | null;
+
+	// Datos para transferir: se cargan una vez y el cliente los ve en su pedido
+	// recién cuando el vendedor lo confirma. NO salen en los endpoints públicos del rubro.
+	@Column({ type: 'varchar', nullable: true })
+	pagoAlias!: string | null;
+
+	@Column({ type: 'varchar', nullable: true })
+	pagoCbu!: string | null;
+
+	@Column({ type: 'varchar', nullable: true })
+	pagoTitular!: string | null;
+
+	// ── Envíos (envia.com) ──
+	/** Desde dónde despacha el rubro. Sin esto no se cotizan envíos. */
+	@Column({ type: 'jsonb', nullable: true })
+	despacho!: DespachoConfig | null;
+
+	/** Bulto que se asume para los productos sin medidas (cm y gramos). */
+	@Column({ type: 'jsonb', nullable: true })
+	paqueteDefault!: Paquete | null;
+
+	/**
+	 * Token de la cuenta PROPIA de envia.com del rubro. `select: false`: nunca
+	 * viaja en las respuestas; lo lee solo EnviaService.
+	 */
+	@Column({ type: 'varchar', nullable: true, select: false })
+	enviaToken!: string | null;
+
+	/** ¿Conectó su propia cuenta de envia? (si no, usa la de la plataforma). */
+	@Column({ default: false })
+	enviaPropia!: boolean;
+
+	/** No es columna: lo calcula el servicio en las respuestas públicas. */
+	enviosActivos?: boolean;
+
+	/** No es columna: en el panel, si se pueden generar etiquetas de envío. */
+	etiquetasActivas?: boolean;
 
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	@Column({ type: 'varchar', nullable: true })

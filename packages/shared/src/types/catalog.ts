@@ -29,6 +29,12 @@ export const ALL_APP_PLATFORMS: AppPlatform[] = [
 	AppPlatform.DESKTOP,
 ];
 
+import type { DespachoConfig, Paquete } from './envio';
+
+/** Quién recibe los pedidos de la tienda de un rubro: el CM (WhatsApp del espacio) o el negocio (WhatsApp del rubro). */
+export type PedidosDestino = 'cm' | 'negocio';
+export const PEDIDOS_DESTINOS: PedidosDestino[] = ['cm', 'negocio'];
+
 /** Punto de foco de una portada: "x% y%" con enteros 0–100 (CSS object-position). */
 export const IMAGE_FOCUS_RE = /^(100|[1-9]?\d)% (100|[1-9]?\d)%$/;
 
@@ -49,6 +55,28 @@ export interface Rubro {
 	 * apunta a una por nombre en `seccion`; los que no tienen van a "Otros".
 	 */
 	categorias: string[];
+	/** Quién recibe los pedidos de la tienda: 'cm' (WhatsApp del espacio) o 'negocio' (`whatsapp` del rubro). */
+	pedidosDestino: PedidosDestino;
+	/** WhatsApp propio del rubro (pedidos, cuando los lleva el negocio). */
+	whatsapp: string | null;
+	/**
+	 * Datos para transferir (alias, CBU/CVU, titular). Solo los ve el vendedor en el
+	 * panel; en la vitrina llegan en null y el cliente los recibe en su pedido
+	 * cuando el vendedor lo confirma.
+	 */
+	pagoAlias: string | null;
+	pagoCbu: string | null;
+	pagoTitular: string | null;
+	/** Desde dónde despacha el rubro (origen de los envíos). Solo en el panel; en la vitrina llega null. */
+	despacho: DespachoConfig | null;
+	/** Bulto que se asume para los productos sin medidas (cm y gramos). */
+	paqueteDefault: Paquete | null;
+	/** ¿El rubro conectó su PROPIA cuenta de envia.com? (si no, usa la de la plataforma). */
+	enviaPropia: boolean;
+	/** Vitrina: ¿se pueden cotizar envíos en esta tienda? (hay despacho y cuenta). */
+	enviosActivos?: boolean;
+	/** Panel: ¿se pueden generar etiquetas de envío? (apagado: el vendedor despacha por su cuenta). */
+	etiquetasActivas?: boolean;
 	/** Logo/marca propia del rubro (se muestra junto al título en la vitrina). */
 	logoUrl: string | null;
 	/** Instagram propio del rubro (cada rubro es un negocio distinto). */

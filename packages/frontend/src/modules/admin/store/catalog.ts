@@ -2,6 +2,12 @@ import { defineStore } from 'pinia';
 import type {
 	Rubro,
 	Producto,
+	Pedido,
+	PedidoPublic,
+	PedidoStatus,
+	CreatePedidoInput,
+	CotizarEnvioInput,
+	EnvioOpcion,
 	ProductoWrite,
 	BatchProductoItem,
 	BatchProductoResult,
@@ -65,6 +71,13 @@ export type RubroInput = Partial<
 		| 'imageUrl'
 		| 'imageFocus'
 		| 'categorias'
+		| 'pedidosDestino'
+		| 'whatsapp'
+		| 'pagoAlias'
+		| 'pagoCbu'
+		| 'pagoTitular'
+		| 'despacho'
+		| 'paqueteDefault'
 		| 'logoUrl'
 		| 'instagramUrl'
 		| 'platforms'
@@ -75,6 +88,8 @@ export type RubroInput = Partial<
 		| 'subscriptionsEnabled'
 	>
 >;
+/** El token de la cuenta propia de envia solo se ESCRIBE (nunca vuelve del servidor). */
+export type RubroUpdate = RubroInput & { enviaToken?: string | null };
 export type ProductoInput = ProductoWrite;
 
 /** Credenciales del proveedor de cobro (los secretos vacíos se conservan). */
@@ -129,7 +144,7 @@ export const useCatalogStore = defineStore('catalog', {
 			return data;
 		},
 
-		async updateRubro(id: string, input: RubroInput): Promise<Rubro> {
+		async updateRubro(id: string, input: RubroUpdate): Promise<Rubro> {
 			const prev = this.rubros.find(r => r.id === id);
 			const { data } = await api.patch<Rubro>(`/rubros/${id}`, input);
 			const i = this.rubros.findIndex(r => r.id === id);
@@ -139,6 +154,43 @@ export const useCatalogStore = defineStore('catalog', {
 				if (prev.imageUrl !== data.imageUrl) void deleteImage(prev.imageUrl);
 				if (prev.logoUrl !== data.logoUrl) void deleteImage(prev.logoUrl);
 			}
+			return data;
+		},
+
+		// ── Pedidos de la tienda ──
+		/** Panel: pedidos del rubro, del más nuevo al más viejo. */
+		async fetchPedidos(rubroId: string): Promise<Pedido[]> {
+			const { data } = await api.get<Pedido[]>(`/rubros/${rubroId}/pedidos`);
+			return data;
+		},
+		/** Panel: aceptar, rechazar, registrar pago/entrega o cancelar. */
+		async updatePedidoStatus(rubroId: string, id: string, status: PedidoStatus, motivo?: string): Promise<Pedido> {
+			const { data } = await api.patch<Pedido>(`/rubros/${rubroId}/pedidos/${id}/status`, { status, motivo });
+			return data;
+		},
+		/** Panel: genera el envío en el transportista (etiqueta + seguimiento). En producción descuenta saldo. */
+		async generarEnvio(rubroId: string, id: string): Promise<Pedido> {
+			const { data } = await api.post<Pedido>(`/rubros/${rubroId}/pedidos/${id}/envio`);
+			return data;
+		},
+		/** Panel: anula el envío generado (recupera el saldo). */
+		async anularEnvio(rubroId: string, id: string): Promise<Pedido> {
+			const { data } = await api.delete<Pedido>(`/rubros/${rubroId}/pedidos/${id}/envio`);
+			return data;
+		},
+		/** Vitrina: opciones de envío para el carrito y la dirección del cliente. */
+		async cotizarEnvio(rubroId: string, input: CotizarEnvioInput): Promise<EnvioOpcion[]> {
+			const { data } = await api.post<EnvioOpcion[]>(`/public/rubros/${rubroId}/envios/cotizar`, input);
+			return data;
+		},
+		/** Vitrina: el cliente envía su carrito. Devuelve el pedido con número y token de seguimiento. */
+		async createPedido(rubroId: string, input: CreatePedidoInput): Promise<PedidoPublic> {
+			const { data } = await api.post<PedidoPublic>(`/public/rubros/${rubroId}/pedidos`, input);
+			return data;
+		},
+		/** Vitrina: seguimiento del pedido por el token del link. */
+		async fetchPedidoPublic(token: string): Promise<PedidoPublic> {
+			const { data } = await api.get<PedidoPublic>(`/public/pedidos/${token}`);
 			return data;
 		},
 

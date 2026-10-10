@@ -1,0 +1,52 @@
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AuthenticatedUser, Role } from '@base-template/shared';
+import { FirebaseAuthGuard } from '../../common/auth/firebase-auth.guard';
+import { RolesGuard } from '../../common/auth/roles.guard';
+import { Roles } from '../../common/auth/roles.decorator';
+import { CurrentUser } from '../../common/auth/current-user.decorator';
+import { PedidosService } from './pedidos.service';
+import { UpdatePedidoStatusDto } from './dto/pedido.dto';
+
+function espacioDe(user: AuthenticatedUser): string {
+	if (!user.espacioId) throw new ForbiddenException('El usuario no tiene un espacio asignado');
+	return user.espacioId;
+}
+
+/** Pedidos de la tienda de un rubro, para el vendedor (panel). */
+@ApiTags('pedidos')
+@ApiBearerAuth()
+@UseGuards(FirebaseAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
+@Controller('rubros/:rubroId/pedidos')
+export class PedidosController {
+	constructor(private readonly pedidos: PedidosService) {}
+
+	@Get()
+	findAll(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string) {
+		return this.pedidos.findByRubro(rubroId, espacioDe(user));
+	}
+
+	/** Genera el envío en el transportista (etiqueta + seguimiento). En producción descuenta saldo. */
+	@Post(':id/envio')
+	generarEnvio(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string, @Param('id') id: string) {
+		return this.pedidos.generarEnvio(id, rubroId, espacioDe(user));
+	}
+
+	/** Anula el envío generado (recupera el saldo). */
+	@Delete(':id/envio')
+	anularEnvio(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string, @Param('id') id: string) {
+		return this.pedidos.anularEnvio(id, rubroId, espacioDe(user));
+	}
+
+	/** Aceptar, rechazar, registrar pago/entrega o cancelar. */
+	@Patch(':id/status')
+	updateStatus(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Param('id') id: string,
+		@Body() dto: UpdatePedidoStatusDto,
+	) {
+		return this.pedidos.updateStatus(id, rubroId, espacioDe(user), dto.status, dto.motivo);
+	}
+}

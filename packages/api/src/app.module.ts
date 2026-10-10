@@ -8,6 +8,7 @@ import { UserEntity } from './modules/users/entities/user.entity';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { RubroEntity } from './modules/catalog/entities/rubro.entity';
 import { ProductoEntity } from './modules/catalog/entities/producto.entity';
+import { PedidoEntity } from './modules/catalog/entities/pedido.entity';
 import { SpacesModule } from './modules/spaces/spaces.module';
 import { EspacioEntity } from './modules/spaces/entities/espacio.entity';
 import { SocialModule } from './modules/social/social.module';
@@ -66,6 +67,7 @@ import { InstagramMessageEntity } from './modules/instagram/entities/instagram-m
 				WhatsappNotificationEntity,
 				WhatsappInboundEntity,
 				InstagramMessageEntity,
+				PedidoEntity,
 			],
 			synchronize: process.env.DB_SYNCHRONIZE === 'true',
 		}),
