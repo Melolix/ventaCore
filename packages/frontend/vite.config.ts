@@ -48,14 +48,23 @@ export default defineConfig(({ mode }) => {
 			VitePWA({
 				registerType: 'autoUpdate',
 				injectRegister: 'auto',
+				// Los íconos se generan en el build desde public/favicon.svg
+				// (ver pwa-assets.config.ts) y se agregan al manifest y al <head>.
+				pwaAssets: {
+					config: true,
+					overrideManifestIcons: true,
+				},
 				manifest: {
-					name: 'Base Template',
-					short_name: 'BaseTemplate',
-					theme_color: '#6366F1',
-					icons: [
-						{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-						{ src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-					],
+					id: '/',
+					name: 'VentaCore',
+					short_name: 'VentaCore',
+					description: 'Gestioná tu catálogo, ventas y redes desde un solo lugar.',
+					lang: 'es',
+					start_url: '/',
+					scope: '/',
+					display: 'standalone',
+					theme_color: '#630ed4',
+					background_color: '#0d1c2d',
 				},
 				workbox: {
 					globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
