@@ -45,6 +45,16 @@
 				<input type="file" accept="image/*" capture="environment" class="hidden" :disabled="uploading" @change="onPhoto" />
 			</label>
 
+			<!-- Sin capture: abre la galería/archivos del celular (permite elegir varias) -->
+			<label
+				class="-mt-3 flex w-full max-w-xs cursor-pointer items-center justify-center gap-2 rounded-2xl border border-primary px-6 py-3.5 text-base font-semibold text-primary transition active:scale-95"
+				:class="uploading ? 'pointer-events-none opacity-60' : ''"
+			>
+				<i class="pi pi-images text-xl" />
+				{{ $t('handoff.mobile.fromGallery') }}
+				<input type="file" accept="image/*" multiple class="hidden" :disabled="uploading" @change="onPhoto" />
+			</label>
+
 			<p class="max-w-xs text-xs text-surface-400">{{ $t('handoff.mobile.hint') }}</p>
 		</template>
 	</div>
@@ -92,21 +102,32 @@ export default defineComponent({
 	methods: {
 		async onPhoto(ev: Event) {
 			const input = ev.target as HTMLInputElement;
-			const file = input.files?.[0];
+			const files = Array.from(input.files ?? []);
 			input.value = '';
-			if (!file) return;
+			if (!files.length) return;
 
 			this.errorKey = '';
 			this.errorDetail = '';
+			this.uploading = true;
+			try {
+				// De a una: si una falla, se corta ahí y las anteriores ya quedaron enviadas.
+				for (const file of files) {
+					if (!(await this.upload(file))) break;
+				}
+			} finally {
+				this.uploading = false;
+			}
+		},
+		/** Procesa y sube una foto. Devuelve false si falló (el error queda en pantalla). */
+		async upload(file: File): Promise<boolean> {
 			const typeErr = validateFile(file);
 			if (typeErr && typeErr !== 'size') {
 				// El peso lo resolvemos comprimiendo; solo cortamos por tipo inválido.
 				this.errorKey = `image.err.${typeErr}`;
 				this.errorDetail = `tipo: ${file.type || 'desconocido'}`;
-				return;
+				return false;
 			}
 
-			this.uploading = true;
 			let stage = 'procesar-foto';
 			try {
 				const blob = await toJpegBlob(file);
@@ -117,14 +138,14 @@ export default defineComponent({
 					headers: { 'x-handoff-token': this.token },
 				});
 				this.sent.push(data.url);
+				return true;
 			} catch (e: unknown) {
 				this.errorKey = 'handoff.mobile.errUpload';
 				const err = e as { response?: { status?: number; data?: unknown }; request?: unknown; message?: string };
 				if (err.response) this.errorDetail = `[${stage}] HTTP ${err.response.status} — ${JSON.stringify(err.response.data)}`;
 				else if (err.request) this.errorDetail = `[${stage}] sin respuesta del servidor (red/proxy). API=${api.defaults.baseURL}`;
 				else this.errorDetail = `[${stage}] ${err.message ?? String(e)}`;
-			} finally {
-				this.uploading = false;
+				return false;
 			}
 		},
 	},

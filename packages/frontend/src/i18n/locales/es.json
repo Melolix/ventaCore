@@ -1272,9 +1272,10 @@
 			"subtitle": "La foto va a aparecer sola en la computadora.",
 			"takePhoto": "Sacar foto",
 			"another": "Sacar otra",
+			"fromGallery": "Elegir de la galería",
 			"uploading": "Subiendo…",
 			"success": "{n} foto(s) enviada(s). Ya podés cerrar.",
-			"hint": "Podés sacar varias fotos, una tras otra.",
+			"hint": "Podés sacar varias fotos o elegir las que ya tenés en el celular.",
 			"invalidTitle": "Link inválido",
 			"invalidMsg": "Abrí esta página escaneando el código QR desde la computadora.",
 			"errUpload": "No se pudo subir la foto. Probá de nuevo."
