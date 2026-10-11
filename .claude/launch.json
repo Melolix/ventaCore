@@ -4,14 +4,33 @@
 		{
 			"name": "dev",
 			"runtimeExecutable": "npm",
-			"runtimeArgs": ["run", "dev"],
+			"runtimeArgs": [
+				"run",
+				"dev"
+			],
 			"port": 5173
 		},
 		{
 			"name": "web",
 			"runtimeExecutable": "npm",
-			"runtimeArgs": ["run", "dev:frontend"],
+			"runtimeArgs": [
+				"run",
+				"dev:frontend"
+			],
 			"port": 5173
+		},
+		{
+			"name": "pwa-preview",
+			"runtimeExecutable": "npx",
+			"runtimeArgs": [
+				"vite",
+				"preview",
+				"--port",
+				"4173",
+				"--strictPort"
+			],
+			"cwd": "packages/frontend",
+			"port": 4173
 		}
 	]
 }
