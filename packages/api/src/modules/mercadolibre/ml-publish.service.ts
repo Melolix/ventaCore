@@ -150,6 +150,7 @@ export class MlPublishService {
 		precioPublicacion: number | null,
 		accessToken: string,
 		siteId: string,
+		subirFotos = false,
 	): Promise<Record<string, unknown>> {
 		const common = {
 			price: precioPublicacion,
@@ -198,15 +199,9 @@ export class MlPublishService {
 				const conFotos = hermanas.find(h => h.imagenes?.length || h.imageUrl);
 				if (conFotos) urls = conFotos.imagenes?.length ? conFotos.imagenes : [conFotos.imageUrl as string];
 			}
-			// ML descarga las fotos desde su lado: una URL de esta máquina (el emulador
-			// de Storage en desarrollo) no le sirve. La publicación se crea igual pero
-			// queda pausada para siempre ("picture_download_pending"), así que cortamos.
-			if (urls.some(u => /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|10\.|192\.168\.)/i.test(u))) {
-				throw new BadRequestException(
-					'La foto está guardada en esta computadora (entorno local) y Mercado Libre no puede descargarla. Usá una foto con dirección pública o publicá desde producción.',
-				);
-			}
-			const pictures = urls.map(source => ({ source }));
+			// Al publicar de verdad le subimos los archivos a ML (ver `mlPictures`); en
+			// la validación en seco alcanza con la dirección.
+			const pictures = subirFotos ? await this.mlPictures(urls, accessToken) : urls.map(source => ({ source }));
 			payload = {
 				...common,
 				// En el modelo actual de ML se manda `family_name` (NO `title`): ML arma
@@ -322,7 +317,7 @@ export class MlPublishService {
 
 		const { accessToken, siteId } = await this.connections.getValidAccessToken(rubroId, espacioId);
 
-		const payload = await this.buildItemPayload(producto, precioPublicacion, accessToken, siteId);
+		const payload = await this.buildItemPayload(producto, precioPublicacion, accessToken, siteId, true);
 
 		// 1) Crear el ítem.
 		const created = await this.mlPost<{ id?: string; permalink?: string; status?: string }>('/items', accessToken, payload);
@@ -393,9 +388,9 @@ export class MlPublishService {
 		// romper la sincronización de precio/stock). La primera es la portada.
 		const urls = producto.imagenes?.length ? producto.imagenes : producto.imageUrl ? [producto.imageUrl] : [];
 		if (urls.length) {
-			await this.mlPut(`/items/${producto.mlItemId}`, accessToken, {
-				pictures: urls.map(source => ({ source })),
-			}).catch(() => undefined);
+			await this.mlPictures(urls, accessToken)
+				.then(pictures => this.mlPut(`/items/${producto.mlItemId}`, accessToken, { pictures }))
+				.catch(() => undefined);
 		}
 
 		// La descripción va por un endpoint aparte. Upsert best-effort: PUT actualiza
@@ -413,6 +408,44 @@ export class MlPublishService {
 			await this.productos.save(producto);
 		}
 		return { ok: true, itemId: producto.mlItemId, permalink: producto.mlPermalink ?? undefined };
+	}
+
+	/**
+	 * Fotos del ítem. En vez de pasarle a ML la dirección para que la baje (lo hace
+	 * después, por su cuenta, y cuando no puede la publicación queda sin foto y
+	 * pausada: "picture_download_pending"), bajamos el archivo acá y se lo subimos:
+	 * así la foto ya está en ML cuando se crea la publicación, y si falla nos
+	 * enteramos en el momento. Las que ya son de ML se referencian por dirección.
+	 */
+	private async mlPictures(urls: string[], accessToken: string): Promise<Array<{ id: string } | { source: string }>> {
+		const out: Array<{ id: string } | { source: string }> = [];
+		for (const url of urls) {
+			if (/^https?:\/\/[^/]*(mlstatic\.com|mercadolibre\.com)\//i.test(url)) {
+				out.push({ source: url });
+				continue;
+			}
+			const file = await fetch(url).catch(() => null);
+			if (!file?.ok) {
+				throw new BadRequestException('No se pudo leer una de las fotos del producto para subirla a Mercado Libre. Volvé a cargarla y probá de nuevo.');
+			}
+			const type = (file.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim();
+			const ext = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
+			const form = new FormData();
+			form.append('file', new Blob([await file.arrayBuffer()], { type }), `foto.${ext}`);
+			const res = await fetch(`${this.apiHost}/pictures/items/upload`, {
+				method: 'POST',
+				headers: { authorization: `Bearer ${accessToken}`, accept: 'application/json' },
+				body: form,
+			});
+			const data = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
+			if (!res.ok || !data.id) {
+				throw new BadRequestException(
+					`Mercado Libre no aceptó una de las fotos${data.message ? `: ${data.message}` : ''}. Probá con otra (JPG o PNG, de al menos 500 px).`,
+				);
+			}
+			out.push({ id: data.id });
+		}
+		return out;
 	}
 
 	private async mlPut<T>(path: string, accessToken: string, body: unknown): Promise<T> {
