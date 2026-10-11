@@ -1285,8 +1285,8 @@
 				},
 				"basis": {
 					"label": "Calcular la ganancia contra",
-					"min": "El precio más barato",
-					"medio": "El precio del medio"
+					"min": "El más barato",
+					"medio": "El del medio"
 				}
 			},
 			"comp": {

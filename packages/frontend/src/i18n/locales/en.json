@@ -1285,8 +1285,8 @@
 				},
 				"basis": {
 					"label": "Work out the profit against",
-					"min": "The cheapest price",
-					"medio": "The middle price"
+					"min": "The cheapest",
+					"medio": "The middle one"
 				}
 			},
 			"comp": {

@@ -109,11 +109,12 @@
 							</div>
 							<div class="min-w-0 flex-1">
 								<p class="truncate text-sm font-semibold text-surface-900 sm:text-base dark:text-surface-0">{{ row.p.nombre }}</p>
-								<p class="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-surface-500">
+								<!-- En el celu la etiqueta y el dato van en renglones separados: juntos no entran. -->
+								<p class="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-surface-500 sm:flex-nowrap">
 									<span v-if="row.r && row.r.via && !row.r.noCoincide" class="shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-semibold" :class="confCls(row.r.via)">
 										{{ $t('admin.ml.estudio.conf.' + row.r.via) }}
 									</span>
-									<span class="truncate">{{ subline(row) }}</span>
+									<span class="min-w-0 sm:truncate">{{ subline(row) }}</span>
 								</p>
 							</div>
 							<!-- Lo que decide: cuánto queda. Grande y a la derecha. -->
