@@ -1,10 +1,17 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { MlPublishResult } from '@base-template/shared';
+import { matchOpcionAttr, type MlPublishResult } from '@base-template/shared';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
 import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { MlConnectionService } from './ml-connection.service';
+import { MlCatalogService } from './ml-catalog.service';
+
+/** ¿La etiqueta de la opción parece un talle? (S, M, XL, 3XL, 42, 38.5, Único…) */
+const PARECE_TALLE = /^(x{0,4}s|m|x{0,4}l|\d{1,2}x[sl]|u|[uú]nico|talle [uú]nico|\d{1,3}([.,]\d)?)$/i;
+
+/** Atributo de un ítem tal como lo espera la API de ML. */
+type MlItemAttribute = { id?: string; name?: string; value_id?: string; value_name: string };
 
 /** Moneda por sitio de ML (los que más nos importan; fallback ARS). */
 const CURRENCY_BY_SITE: Record<string, string> = {
@@ -37,7 +44,256 @@ export class MlPublishService {
 		@InjectRepository(RubroEntity)
 		private readonly rubros: Repository<RubroEntity>,
 		private readonly connections: MlConnectionService,
+		private readonly catalog: MlCatalogService,
 	) {}
+
+	/**
+	 * Atributos de VARIANTE de un producto con opciones (talle, color…). En el
+	 * modelo actual de ML cada opción es una publicación propia y ML las junta en
+	 * una sola página solo si comparten el nombre de familia y traen cargado, con
+	 * distinto valor, el atributo con el que la categoría permite variar. Sin esto
+	 * salían N publicaciones idénticas.
+	 *
+	 * Por cada parte de la etiqueta ("Azul / M" → "Azul", "M") se elige:
+	 *  1) el atributo de variación cuya lista de valores contiene esa opción;
+	 *  2) si parece un talle y la categoría tiene SIZE, ese;
+	 *  3) si no, un atributo propio "Opción" (ML admite atributos custom y
+	 *     también los usa para distinguir variantes de una familia).
+	 */
+	/**
+	 * Guía de talles: si el producto tiene una elegida (`SIZE_GRID_ID` en su
+	 * ficha), cada publicación tiene que apuntar a la FILA de su talle
+	 * (`SIZE_GRID_ROW_ID`) y usar el talle tal como figura en la guía. Si el talle
+	 * no está en la guía se corta con un mensaje claro: ML lo rechazaría igual,
+	 * pero con un error ilegible.
+	 */
+	private async sizeGridAttributes(
+		producto: ProductoEntity,
+		talle: string | undefined,
+		accessToken: string,
+		siteId: string,
+	): Promise<MlItemAttribute[]> {
+		const chartId = String(producto.atributos?.SIZE_GRID_ID ?? '').trim();
+		if (!chartId || !talle?.trim()) return [];
+		const chart = await this.catalog.getSizeChart(accessToken, siteId, chartId);
+		const norm = (s: string) => s.trim().toLowerCase();
+		// ML exige que el género del producto sea el de la guía (si no, responde un
+		// "Attribute [GENDER] is not valid" que no dice por qué).
+		const genero = String(producto.atributos?.GENDER ?? '').trim();
+		if (chart.gender && genero && norm(chart.gender) !== norm(genero)) {
+			throw new BadRequestException(
+				`La guía de talles "${chart.name}" es de género "${chart.gender}" y el producto dice "${genero}". Tienen que coincidir: cambiá el género del producto o elegí otra guía.`,
+			);
+		}
+		const fila = chart.rows.find(r => norm(r.size) === norm(talle));
+		if (!fila) {
+			throw new BadRequestException(
+				`El talle "${talle.trim()}" no está en la guía de talles "${chart.name}" (tiene: ${chart.rows.map(r => r.size).join(', ') || 'ninguno'}). Elegí otra guía o agregale ese talle en Mercado Libre.`,
+			);
+		}
+		return [
+			{ id: 'SIZE', value_name: fila.size },
+			{ id: 'SIZE_GRID_ROW_ID', value_name: fila.id },
+		];
+	}
+
+	private async variantAttributes(producto: ProductoEntity): Promise<MlItemAttribute[]> {
+		const etiqueta = producto.variante?.trim();
+		if (!producto.grupo || !etiqueta || !producto.mlCategoryId) return [];
+
+		// Opciones con nombre (lo normal): cada característica va al atributo de ML
+		// que le corresponde por nombre ("Peso" → Peso neto, "Talle" → SIZE). La que
+		// no tiene equivalente viaja como atributo propio, con su nombre.
+		const opciones = (producto.opciones ?? []).filter(o => o?.nombre?.trim() && o?.valor?.trim());
+		if (opciones.length) {
+			const attrs = await this.catalog
+				.getVariationAttributes(producto.mlCategoryId)
+				.catch((): Awaited<ReturnType<MlCatalogService['getVariationAttributes']>> => []);
+			const igual = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+			const tomados = new Set<string>();
+			return opciones.map(o => {
+				const attr = matchOpcionAttr(o.nombre, attrs.filter(a => !tomados.has(a.id)));
+				if (!attr) return { name: o.nombre.trim(), value_name: o.valor.trim() };
+				tomados.add(attr.id);
+				const valor = attr.values.find(v => igual(v.name, o.valor));
+				return valor ? { id: attr.id, value_id: valor.id, value_name: valor.name } : { id: attr.id, value_name: o.valor.trim() };
+			});
+		}
+
+		// Sin nombres (cargadas antes de que existieran): se deduce por el valor.
+		const partes = etiqueta.split(' / ').map(s => s.trim()).filter(Boolean);
+		// Si ML no responde, seguimos sin candidatos: la opción va como atributo propio.
+		const candidatos = (
+			await this.catalog.getVariationAttributes(producto.mlCategoryId).catch((): Awaited<ReturnType<MlCatalogService['getVariationAttributes']>> => [])
+		).filter(a => a.allowVariations);
+		const norm = (s: string) => s.trim().toLowerCase();
+		const usados = new Set<string>();
+		const out: MlItemAttribute[] = [];
+		partes.forEach((parte, i) => {
+			const libres = candidatos.filter(a => !usados.has(a.id));
+			let attr = libres.find(a => a.values.some(v => norm(v.name) === norm(parte)));
+			if (!attr && PARECE_TALLE.test(parte)) attr = libres.find(a => a.id === 'SIZE');
+			if (attr) {
+				usados.add(attr.id);
+				const valor = attr.values.find(v => norm(v.name) === norm(parte));
+				out.push(valor ? { id: attr.id, value_id: valor.id, value_name: valor.name } : { id: attr.id, value_name: parte });
+			} else {
+				out.push({ name: partes.length > 1 ? `Opción ${i + 1}` : 'Opción', value_name: parte });
+			}
+		});
+		return out;
+	}
+
+	/** Arma el ítem tal como se le manda a ML (lo usan publicar y la validación en seco). */
+	private async buildItemPayload(
+		producto: ProductoEntity,
+		precioPublicacion: number | null,
+		accessToken: string,
+		siteId: string,
+	): Promise<Record<string, unknown>> {
+		const common = {
+			price: precioPublicacion,
+			currency_id: CURRENCY_BY_SITE[siteId] ?? 'ARS',
+			available_quantity: producto.stock,
+			buying_mode: 'buy_it_now',
+			condition: 'new',
+			listing_type_id: this.listingTypeFor(producto),
+		};
+
+		let payload: Record<string, unknown>;
+		if (producto.mlCatalogProductId) {
+			// Enlazado al catálogo: ML hereda atributos, título y fotos. Igual mandamos
+			// la categoría si la tenemos (algunos productos de catálogo la exigen).
+			payload = {
+				...common,
+				catalog_product_id: producto.mlCatalogProductId,
+				catalog_listing: true,
+				...(producto.mlCategoryId ? { category_id: producto.mlCategoryId } : {}),
+			};
+		} else {
+			// Con opciones: el atributo de variante (talle, color…) de ESTA opción. Pisa
+			// al que venga igual en la ficha común (p. ej. un Color cargado para todas).
+			const variantes = await this.variantAttributes(producto);
+			// Guía de talles (ropa): la fila que corresponde al talle de esta publicación.
+			const talle = variantes.find(v => v.id === 'SIZE')?.value_name ?? (producto.atributos?.SIZE as string | undefined);
+			const grilla = await this.sizeGridAttributes(producto, talle, accessToken, siteId);
+			if (grilla.length) {
+				const i = variantes.findIndex(v => v.id === 'SIZE');
+				if (i !== -1) variantes.splice(i, 1);
+				variantes.push(...grilla);
+			}
+			const pisados = new Set(variantes.map(v => v.id).filter(Boolean));
+			const attributes: MlItemAttribute[] = [
+				...Object.entries(producto.atributos ?? {})
+					.filter(([id, value]) => !pisados.has(id) && value && String(value).trim())
+					.map(([id, value]) => ({ id, value_name: String(value).trim() })),
+				...variantes,
+			];
+			// Galería completa; si no hay, la portada; si tampoco, sin fotos.
+			let urls = producto.imagenes?.length ? producto.imagenes : producto.imageUrl ? [producto.imageUrl] : [];
+			// Producto con opciones: las fotos se cargan una vez. Si a esta opción le
+			// faltan, usa las de otra del mismo producto (ML exige al menos una).
+			if (!urls.length && producto.grupo) {
+				const hermanas = await this.productos.find({ where: { rubroId: producto.rubroId, grupo: producto.grupo } });
+				const conFotos = hermanas.find(h => h.imagenes?.length || h.imageUrl);
+				if (conFotos) urls = conFotos.imagenes?.length ? conFotos.imagenes : [conFotos.imageUrl as string];
+			}
+			// ML descarga las fotos desde su lado: una URL de esta máquina (el emulador
+			// de Storage en desarrollo) no le sirve. La publicación se crea igual pero
+			// queda pausada para siempre ("picture_download_pending"), así que cortamos.
+			if (urls.some(u => /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|10\.|192\.168\.)/i.test(u))) {
+				throw new BadRequestException(
+					'La foto está guardada en esta computadora (entorno local) y Mercado Libre no puede descargarla. Usá una foto con dirección pública o publicá desde producción.',
+				);
+			}
+			const pictures = urls.map(source => ({ source }));
+			payload = {
+				...common,
+				// En el modelo actual de ML se manda `family_name` (NO `title`): ML arma
+				// el título solo a partir de la familia + los atributos del ítem.
+				family_name: producto.nombre.trim(),
+				category_id: producto.mlCategoryId,
+				...(pictures.length ? { pictures } : {}),
+				...(attributes.length ? { attributes } : {}),
+			};
+		}
+		return payload;
+	}
+
+	/**
+	 * Validación en seco: arma el MISMO ítem que publicar y se lo pasa al validador
+	 * de ML (`/items/validate`), que lo revisa sin crear nada. Sirve para ver por
+	 * qué ML rechazaría una publicación antes de intentarla.
+	 */
+	async validate(rubroId: string, espacioId: string, productoId: string): Promise<{ ok: boolean; errors: string[]; warnings: string[] }> {
+		const rubro = await this.rubros.findOne({ where: { id: rubroId, espacioId } });
+		if (!rubro) throw new NotFoundException('Rubro no encontrado');
+		const producto = await this.productos.findOne({ where: { id: productoId, rubroId } });
+		if (!producto) throw new NotFoundException('Producto no encontrado en el rubro');
+		const { accessToken, siteId } = await this.connections.getValidAccessToken(rubroId, espacioId);
+		const payload = await this.buildItemPayload(producto, producto.precioMl ?? producto.precio, accessToken, siteId);
+		const res = await fetch(`${this.apiHost}/items/validate`, {
+			method: 'POST',
+			headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json', accept: 'application/json' },
+			body: JSON.stringify(payload),
+		});
+		if (res.ok) return { ok: true, errors: [], warnings: [] };
+		const data = (await res.json().catch(() => ({}))) as { message?: string; cause?: unknown };
+		const { errors, warnings } = MlPublishService.splitCauses(data.cause);
+		// El validador responde 400 aunque solo haya advertencias (ML completa un
+		// dato, envío gratis obligatorio…): eso NO bloquea la publicación.
+		if (!errors.length && warnings.length) return { ok: true, errors: [], warnings };
+		// Sin errores tipificados: devolvemos lo que haya mandado ML, para poder leerlo.
+		const crudo = errors.length ? [] : [`${data.message || res.statusText} ${JSON.stringify(data).slice(0, 900)}`];
+		return { ok: false, errors: errors.length ? errors : crudo, warnings };
+	}
+
+	/**
+	 * Diagnóstico de una publicación: cómo la agrupó ML (producto de usuario y
+	 * familia) y con qué atributos quedó. Las opciones de un mismo artículo se ven
+	 * juntas solo si comparten `familyId`.
+	 */
+	async inspect(rubroId: string, espacioId: string, productoId: string): Promise<Record<string, unknown>> {
+		const rubro = await this.rubros.findOne({ where: { id: rubroId, espacioId } });
+		if (!rubro) throw new NotFoundException('Rubro no encontrado');
+		const producto = await this.productos.findOne({ where: { id: productoId, rubroId } });
+		if (!producto?.mlItemId) throw new NotFoundException('El producto no está publicado en Mercado Libre');
+		const { accessToken } = await this.connections.getValidAccessToken(rubroId, espacioId);
+		const get = async (path: string) => {
+			const res = await fetch(`${this.apiHost}${path}`, { headers: { authorization: `Bearer ${accessToken}`, accept: 'application/json' } });
+			return (await res.json().catch(() => ({}))) as Record<string, unknown>;
+		};
+		const item = await get(`/items/${producto.mlItemId}`);
+		const upId = item.user_product_id as string | undefined;
+		const up = upId ? await get(`/user-products/${upId}`) : {};
+		const attrs = ((item.attributes as Array<{ id?: string; value_name?: string }>) ?? []).reduce<Record<string, string>>((acc, a) => {
+			if (a.id && a.value_name) acc[a.id] = a.value_name;
+			return acc;
+		}, {});
+		return {
+			itemId: item.id,
+			title: item.title,
+			familyName: item.family_name,
+			status: item.status,
+			subStatus: item.sub_status,
+			pictures: ((item.pictures as Array<{ id?: string; url?: string; size?: string }>) ?? []).map(x => ({ id: x.id, url: x.url, size: x.size })),
+			tags: item.tags,
+			userProductId: upId ?? null,
+			familyId: up.family_id != null ? String(up.family_id) : null,
+			userProductName: up.name ?? null,
+			attributes: attrs,
+		};
+	}
+
+	/** Separa los motivos que devuelve ML en errores (bloquean) y advertencias (no). */
+	private static splitCauses(cause: unknown): { errors: string[]; warnings: string[] } {
+		const list = Array.isArray(cause) ? (cause as Array<{ type?: string; code?: string; message?: string }>) : [];
+		const fmt = (c: { code?: string; message?: string }) => [c.message, c.code ? `[${c.code}]` : ''].filter(Boolean).join(' ');
+		return {
+			errors: list.filter(c => c.type !== 'warning').map(fmt),
+			warnings: list.filter(c => c.type === 'warning').map(fmt),
+		};
+	}
 
 	/**
 	 * Publica un producto en Mercado Libre. Valida datos mínimos, arma el ítem,
@@ -66,42 +322,7 @@ export class MlPublishService {
 
 		const { accessToken, siteId } = await this.connections.getValidAccessToken(rubroId, espacioId);
 
-		const common = {
-			price: precioPublicacion,
-			currency_id: CURRENCY_BY_SITE[siteId] ?? 'ARS',
-			available_quantity: producto.stock,
-			buying_mode: 'buy_it_now',
-			condition: 'new',
-			listing_type_id: this.listingTypeFor(producto),
-		};
-
-		let payload: Record<string, unknown>;
-		if (producto.mlCatalogProductId) {
-			// Enlazado al catálogo: ML hereda atributos, título y fotos. Igual mandamos
-			// la categoría si la tenemos (algunos productos de catálogo la exigen).
-			payload = {
-				...common,
-				catalog_product_id: producto.mlCatalogProductId,
-				catalog_listing: true,
-				...(producto.mlCategoryId ? { category_id: producto.mlCategoryId } : {}),
-			};
-		} else {
-			const attributes = Object.entries(producto.atributos ?? {})
-				.filter(([, value]) => value && String(value).trim())
-				.map(([id, value]) => ({ id, value_name: String(value).trim() }));
-			// Galería completa; si no hay, la portada; si tampoco, sin fotos.
-			const urls = producto.imagenes?.length ? producto.imagenes : producto.imageUrl ? [producto.imageUrl] : [];
-			const pictures = urls.map(source => ({ source }));
-			payload = {
-				...common,
-				// En el modelo actual de ML se manda `family_name` (NO `title`): ML arma
-				// el título solo a partir de la familia + los atributos del ítem.
-				family_name: producto.nombre.trim(),
-				category_id: producto.mlCategoryId,
-				...(pictures.length ? { pictures } : {}),
-				...(attributes.length ? { attributes } : {}),
-			};
-		}
+		const payload = await this.buildItemPayload(producto, precioPublicacion, accessToken, siteId);
 
 		// 1) Crear el ítem.
 		const created = await this.mlPost<{ id?: string; permalink?: string; status?: string }>('/items', accessToken, payload);
@@ -224,9 +445,11 @@ export class MlPublishService {
 		});
 		const data = (await res.json().catch(() => ({}))) as { message?: string; cause?: unknown };
 		if (!res.ok) {
-			// ML devuelve el detalle en `cause`; lo incluimos para poder corregir.
-			const cause = data.cause ? ` (${JSON.stringify(data.cause).slice(0, 300)})` : '';
-			throw new BadRequestException(`Mercado Libre: ${data.message || res.statusText}${cause}`);
+			// ML devuelve el detalle en `cause`: mostramos los ERRORES (lo que bloquea),
+			// completos. Las advertencias no impiden publicar y tapaban el motivo real.
+			const { errors } = MlPublishService.splitCauses(data.cause);
+			const detalle = errors.length ? errors.join(' · ') : data.cause ? JSON.stringify(data.cause).slice(0, 600) : '';
+			throw new BadRequestException(`Mercado Libre: ${detalle || data.message || res.statusText}`);
 		}
 		return data as T;
 	}

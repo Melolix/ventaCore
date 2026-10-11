@@ -2,16 +2,15 @@
 	<!-- Destinatario de WhatsApp del negocio: recibe TANTO las preguntas de ML como
 	     los DMs de Instagram (uno por rubro). Vive en Configuraciones, independiente
 	     de que ML o IG estén conectados. -->
-	<section class="glass-card rounded-2xl p-6">
-		<div class="mb-4 flex items-center gap-3">
-			<div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
-				<i class="pi pi-whatsapp text-xl" />
-			</div>
-			<div class="min-w-0">
-				<h3 class="font-semibold text-surface-900 dark:text-surface-0">{{ $t('admin.ml.wa.title') }}</h3>
-				<p class="text-xs text-surface-500">{{ $t('admin.ml.wa.subtitle') }}</p>
-			</div>
-		</div>
+	<ConfigCard
+		icon="pi pi-whatsapp"
+		icon-class="bg-emerald-500/10 text-emerald-500"
+		:title="$t('admin.ml.wa.title')"
+		:hint="$t('admin.ml.wa.subtitle')"
+		:summary="recipient ? recipient.phoneE164 : ''"
+		:status="cardStatus.label"
+		:tone="cardStatus.tone"
+	>
 
 		<div v-if="loading" class="py-4 text-center text-surface-500"><i class="pi pi-spin pi-spinner text-xl" /></div>
 
@@ -72,7 +71,7 @@
 				</div>
 			</div>
 		</template>
-	</section>
+	</ConfigCard>
 </template>
 
 <script lang="ts">
@@ -80,10 +79,22 @@ import { defineComponent } from 'vue';
 import type { WhatsappRecipientView } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { apiErrorMessage } from '@/shared/utils/apiError';
+import ConfigCard from '@/modules/admin/components/ConfigCard.vue';
 
 /** Tarjeta de Configuraciones para definir a qué WhatsApp llegan los avisos del rubro. */
 export default defineComponent({
 	name: 'WhatsappRecipientCard',
+	components: { ConfigCard },
+	computed: {
+		/** Estado para la tarjeta cerrada: sin número, activo o pausado. */
+		cardStatus(): { label: string; tone: 'ok' | 'warn' | 'muted' } {
+			if (this.loading) return { label: '', tone: 'muted' };
+			if (!this.recipient) return { label: this.$t('admin.config.card.noNumber'), tone: 'warn' };
+			return this.recipient.active
+				? { label: this.$t('admin.ml.wa.active'), tone: 'ok' }
+				: { label: this.$t('admin.ml.wa.paused'), tone: 'muted' };
+		},
+	},
 	props: {
 		rubroId: { type: String, required: true },
 	},

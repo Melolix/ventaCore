@@ -220,7 +220,7 @@
 							</p>
 						</div>
 					</div>
-					<!-- Pasos. En mobile se ve uno a la vez; en desktop se ven todos y esto salta a la sección. -->
+					<!-- Pasos: pestañas. Se ve un formulario a la vez (en mobile y en desktop). -->
 					<div class="grid grid-cols-4 gap-1">
 						<button
 							v-for="s in steps"
@@ -239,7 +239,7 @@
 				</div>
 
 				<!-- ── Ficha de Mercado Libre (categoría + atributos) ── -->
-				<section ref="sec-ficha" class="scroll-mt-44 space-y-4" :class="stepCls('ficha')">
+				<section ref="sec-ficha" class="space-y-4" :class="stepCls('ficha')">
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secFicha') }}</h4>
 
 					<!-- Dos caminos SEPARADOS (igual que en Carga masiva):
@@ -302,8 +302,12 @@
 							:class="p.categoryId === edit.mlCategoryId ? 'border-primary bg-primary/5' : 'border-surface-200 hover:bg-surface-50 dark:border-surface-700 dark:hover:bg-surface-800'"
 							@click="pickCategory(p)"
 						>
-							<span>{{ p.categoryName }}</span>
-							<i v-if="p.categoryId === edit.mlCategoryId" class="pi pi-check text-primary" />
+							<span class="min-w-0">
+								<span class="block font-medium">{{ p.categoryName }}</span>
+								<!-- La ruta: hay varias "Remeras" (ropa, pesca, golf) y sin esto parecen la misma. -->
+								<span v-if="p.categoryPath" class="block text-[11px] leading-snug text-surface-500">{{ p.categoryPath }}</span>
+							</span>
+							<i v-if="p.categoryId === edit.mlCategoryId" class="pi pi-check ml-2 shrink-0 text-primary" />
 						</button>
 					</div>
 				</div>
@@ -337,7 +341,7 @@
 				</section>
 
 				<!-- ── Imágenes ── -->
-				<section class="scroll-mt-44 space-y-4 md:border-t md:border-surface-200 md:pt-5 md:dark:border-surface-700" :class="stepCls('ficha')">
+				<section class="space-y-4 border-t border-surface-200 pt-5 dark:border-surface-700" :class="stepCls('ficha')">
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secImages') }}</h4>
 					<div class="grid grid-cols-3 gap-3 sm:grid-cols-4">
 						<div
@@ -363,7 +367,7 @@
 					</section>
 
 				<!-- ── Envío (medidas del paquete: cotizan el envío que entra en el precio) ── -->
-				<section ref="sec-envio" class="scroll-mt-44 space-y-4 md:border-t md:border-surface-200 md:pt-5 md:dark:border-surface-700" :class="stepCls('envio')">
+				<section ref="sec-envio" class="space-y-4" :class="stepCls('envio')">
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secShipping') }}</h4>
 					<!-- Dimensiones del paquete (para cotizar el envío de Mercado Libre).
 					     Van ANTES del precio ML para que "Calcular" ya conozca el envío. -->
@@ -392,7 +396,7 @@
 				</section>
 
 				<!-- ── Precio y rentabilidad ── -->
-				<section ref="sec-precio" class="scroll-mt-44 space-y-4 md:border-t md:border-surface-200 md:pt-5 md:dark:border-surface-700" :class="stepCls('precio')">
+				<section ref="sec-precio" class="space-y-4" :class="stepCls('precio')">
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secPricing') }}</h4>
 
 					<!-- Tipo de publicación -->
@@ -489,7 +493,7 @@
 				</section>
 
 				<!-- ── Datos ── -->
-				<section ref="sec-datos" class="scroll-mt-44 space-y-4 md:border-t md:border-surface-200 md:pt-5 md:dark:border-surface-700" :class="stepCls('datos')">
+				<section ref="sec-datos" class="space-y-4" :class="stepCls('datos')">
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.ml.secData') }}</h4>
 
 					<!-- Título -->
@@ -623,7 +627,7 @@ export default defineComponent({
 			] as { key: FilterKey; label: string }[],
 			// Editor
 			editorVisible: false,
-			// Paso visible del editor en mobile (en desktop se ven todos).
+			// Pestaña visible del editor (una a la vez, en mobile y en desktop).
 			step: 'ficha' as EditorStep,
 			steps: [
 				{ key: 'ficha', label: 'admin.ml.steps.ficha' },
@@ -923,15 +927,18 @@ export default defineComponent({
 			if (this.edit.precioMl) this.refreshFee();
 			if (p.mlCategoryId && !this.attrsByCategory[p.mlCategoryId]) void this.loadAttrs(p.mlCategoryId);
 		},
-		/** Clase de una sección del editor: en mobile solo se ve el paso activo. */
+		/** Clase de una sección del editor: solo se ve la de la pestaña activa. */
 		stepCls(key: EditorStep): string {
-			return this.step === key ? '' : 'hidden md:block';
+			return this.step === key ? '' : 'hidden';
 		},
-		/** Va a un paso: en mobile lo muestra; en desktop (todas visibles) salta a la sección. */
+		/** Cambia de pestaña: muestra solo ese formulario. */
 		goStep(key: EditorStep) {
 			this.step = key;
+			// Cada pestaña es su propio formulario: se muestra desde arriba, sin desplazar.
 			this.$nextTick(() => {
-				(this.$refs['sec-' + key] as HTMLElement | undefined)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				let el = (this.$refs['sec-' + key] as HTMLElement | undefined)?.parentElement ?? null;
+				while (el && el.scrollHeight <= el.clientHeight) el = el.parentElement;
+				el?.scrollTo({ top: 0 });
 			});
 		},
 		/** Punto de color del estado del producto en la lista (mobile). */

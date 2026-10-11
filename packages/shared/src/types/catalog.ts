@@ -38,6 +38,19 @@ export const PEDIDOS_DESTINOS: PedidosDestino[] = ['cm', 'negocio'];
 /** Punto de foco de una portada: "x% y%" con enteros 0–100 (CSS object-position). */
 export const IMAGE_FOCUS_RE = /^(100|[1-9]?\d)% (100|[1-9]?\d)%$/;
 
+/** Cuántas características puede tener un producto con opciones (como Tiendanube y Shopify). */
+export const MAX_OPCIONES = 3;
+
+/** Una característica de una opción de producto: qué es ("Peso") y cuánto vale ("1 kg"). */
+export interface ProductoOpcion {
+	/** Nombre de la característica: Talle, Color, Peso, Sabor… (lo elige el vendedor). */
+	nombre: string;
+	/** Valor de esta opción para esa característica. */
+	valor: string;
+	/** true si esta característica define la foto (cada Color tiene la suya). */
+	foto?: boolean;
+}
+
 export interface Rubro {
 	id: string;
 	/** Espacio (negocio) al que pertenece el rubro */
@@ -190,6 +203,13 @@ export interface Producto {
 	grupo: string | null;
 	/** Qué variante es dentro del grupo, para el selector ("M", "Azul / L"). */
 	variante: string | null;
+	/**
+	 * Las características de esta opción, con nombre: [{ nombre: "Peso", valor:
+	 * "1 kg" }] o [{ Color: Negro }, { Talle: M }] (hasta 3). `variante` es el
+	 * mismo dato ya unido ("Negro / M"). null = opción sin detallar (las cargadas
+	 * antes de que existiera, o las importadas de ML).
+	 */
+	opciones: ProductoOpcion[] | null;
 	// ── Campos comerciales / Mercado Libre (ML-ready) ──
 	/** Código interno del negocio (SKU). */
 	sku: string | null;
@@ -255,6 +275,9 @@ export type ProductoWrite = Partial<
 		| 'atributos'
 		| 'source'
 		| 'isDraft'
+		| 'grupo'
+		| 'variante'
+		| 'opciones'
 	>
 >;
 

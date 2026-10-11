@@ -272,19 +272,29 @@
 							<!-- Variantes (talle, color…): una sola card con selector, en vez de una
 							     card repetida por variante. Elegir una cambia precio, foto y stock,
 							     y es la que se agrega al pedido. -->
-							<div v-if="variantesDe(producto).length" class="flex flex-wrap gap-1 pb-1" role="group" :aria-label="$t('public.variants')" @click.stop>
-								<button
-									v-for="v in variantesDe(producto)"
-									:key="v.id"
-									type="button"
-									class="min-h-8 min-w-8 rounded-lg border px-2 text-[11px] font-bold transition-colors"
-									:class="varianteCls(v, producto)"
-									:aria-pressed="v.id === producto.id"
-									:title="v.stock === 0 ? $t('public.variantOut', { v: v.variante }) : (v.variante ?? '')"
-									@click="pickVariante(v)"
+							<!-- Una fila por característica (Color, Talle, Peso…): elegir un valor
+							     conserva lo ya elegido en las otras. -->
+							<div v-if="variantesDe(producto).length" class="space-y-1 pb-1" @click.stop>
+								<div
+									v-for="s in selectores(producto)"
+									:key="s.nombre"
+									class="flex flex-wrap gap-1"
+									role="group"
+									:aria-label="s.nombre || $t('public.variants')"
 								>
-									{{ v.variante || v.nombre }}
-								</button>
+									<button
+										v-for="o in s.valores"
+										:key="o.valor"
+										type="button"
+										class="min-h-8 min-w-8 rounded-lg border px-2 text-[11px] font-bold transition-colors"
+										:class="opcionCls(o)"
+										:aria-pressed="o.actual"
+										:title="opcionTitle(s, o)"
+										@click="pickVariante(o.producto)"
+									>
+										{{ o.valor }}
+									</button>
+								</div>
 							</div>
 							<!-- Con pedido habilitado: "Agregar" → − n + (se agrega sin salir de la
 							     lista). Lo que no se puede comprar (sin precio/stock) se consulta. -->
@@ -397,19 +407,29 @@
 						<span v-else class="text-sm font-semibold text-surface-400">{{ $t('public.consultPrice') }}</span>
 						<span v-if="stockStatus(detail)" class="text-xs font-bold" :class="stockStatus(detail)?.cls">{{ stockStatus(detail)?.label }}</span>
 					</div>
-					<div v-if="variantesDe(detail).length" class="flex flex-wrap gap-1.5" role="group" :aria-label="$t('public.variants')">
-						<button
-							v-for="v in variantesDe(detail)"
-							:key="v.id"
-							type="button"
-							class="min-h-10 min-w-10 rounded-xl border px-3 text-sm font-bold transition-colors"
-							:class="varianteCls(v, detail)"
-							:aria-pressed="v.id === detail.id"
-							:title="v.stock === 0 ? $t('public.variantOut', { v: v.variante }) : (v.variante ?? '')"
-							@click="pickVarianteDetalle(v)"
-						>
-							{{ v.variante || v.nombre }}
-						</button>
+					<!-- En la pantalla del producto hay lugar: cada característica con su nombre
+					     y el valor elegido ("Color: Negro"). -->
+					<div v-if="variantesDe(detail).length" class="space-y-3">
+						<div v-for="s in selectores(detail)" :key="s.nombre" class="space-y-1.5">
+							<p v-if="s.nombre" class="text-xs font-semibold text-surface-500">
+								{{ s.nombre }}:
+								<span class="text-surface-900 dark:text-surface-0">{{ s.valores.find(o => o.actual)?.valor }}</span>
+							</p>
+							<div class="flex flex-wrap gap-1.5" role="group" :aria-label="s.nombre || $t('public.variants')">
+								<button
+									v-for="o in s.valores"
+									:key="o.valor"
+									type="button"
+									class="min-h-10 min-w-10 rounded-xl border px-3 text-sm font-bold transition-colors"
+									:class="opcionCls(o)"
+									:aria-pressed="o.actual"
+									:title="opcionTitle(s, o)"
+									@click="pickVarianteDetalle(o.producto)"
+								>
+									{{ o.valor }}
+								</button>
+							</div>
+						</div>
 					</div>
 					<p v-if="detail.descripcion" class="whitespace-pre-line text-sm leading-relaxed text-surface-600 dark:text-surface-300">{{ detail.descripcion }}</p>
 					<!-- Acciones: pegadas abajo en el celu (al alcance del pulgar). -->
@@ -535,7 +555,7 @@ import { PLATFORM_ICON, effectivePlatforms } from '@/shared/utils/apps';
 import { useCartStore, type PedidoGuardado } from '@/modules/app/store/cart';
 import { formatPrice } from '@/modules/app/utils/price';
 import CartDrawer, { MAX_QTY, canBuy } from '@/modules/app/components/CartDrawer.vue';
-import { groupVariantes, varianteInicial } from '@/modules/app/utils/variantes';
+import { groupVariantes, selectoresDe, varianteInicial, type OpcionSelector, type Selector } from '@/modules/app/utils/variantes';
 
 type SortKey = 'relevance' | 'priceAsc' | 'priceDesc';
 /** Un grupo del catálogo: una categoría con sus productos. */
@@ -921,11 +941,24 @@ export default defineComponent({
 			this.pickVariante(v);
 			void this.$router.replace({ query: { ...this.$route.query, p: v.id } });
 		},
-		/** Estilo del botón de una variante: elegida, sin stock (tachada) o disponible. */
-		varianteCls(v: Producto, actual: Producto): string {
-			if (v.id === actual.id) return 'border-primary bg-primary text-primary-contrast';
-			if (v.stock === 0) return 'border-surface-200 text-surface-400 line-through dark:border-surface-700';
+		/** Los selectores del producto: uno por característica (o uno solo, con la etiqueta entera). */
+		selectores(producto: Producto): Selector[] {
+			return selectoresDe(this.variantesDe(producto), producto);
+		},
+		/**
+		 * Estilo de un valor: elegido, sin stock (tachado), que no existe con lo ya
+		 * elegido en las otras características (punteado) o disponible.
+		 */
+		opcionCls(o: OpcionSelector): string {
+			if (o.actual) return 'border-primary bg-primary text-primary-contrast';
+			if (!o.exacta) return 'border-dashed border-surface-300 text-surface-400 hover:border-primary hover:text-primary dark:border-surface-600';
+			if (o.sinStock) return 'border-surface-200 text-surface-400 line-through dark:border-surface-700';
 			return 'border-surface-300 text-surface-700 hover:border-primary hover:text-primary dark:border-surface-600 dark:text-surface-200';
+		},
+		opcionTitle(s: Selector, o: OpcionSelector): string {
+			if (!o.exacta) return this.$t('public.variantOther', { v: o.valor });
+			if (o.sinStock) return this.$t('public.variantOut', { v: o.valor });
+			return s.nombre ? `${s.nombre}: ${o.valor}` : o.valor;
 		},
 		consultarWhatsapp(producto: Producto) {
 			const num = this.orderNumber;

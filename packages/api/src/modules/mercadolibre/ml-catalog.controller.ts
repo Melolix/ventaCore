@@ -84,6 +84,47 @@ export class MlCatalogController {
 		return this.catalog.getCategoryAttributes(categoryId);
 	}
 
+	/** Ficha técnica de la guía de talles de la categoría (qué pide ML para crearla). */
+	@Get('size-charts/spec')
+	sizeChartSpec(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Query('categoryId') categoryId = '',
+		@Query('gender') gender = '',
+		@Query('brand') brand = '',
+	) {
+		return this.catalog.getSizeChartSpec(rubroId, espacioDe(user), categoryId, gender, brand);
+	}
+
+	/** Una guía de talles por su código (el que ML muestra al crearla). */
+	@Get('size-charts/by-id/:chartId')
+	sizeChartById(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Param('chartId') chartId: string,
+		@Query('categoryId') categoryId = '',
+	) {
+		return this.catalog.getSizeChartById(rubroId, espacioDe(user), chartId, categoryId);
+	}
+
+	/** Guías de talles del vendedor para una categoría (ML las exige en ropa). */
+	@Get('size-charts')
+	sizeCharts(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Query('categoryId') categoryId = '',
+		@Query('gender') gender = '',
+		@Query('brand') brand = '',
+	) {
+		return this.catalog.getSizeCharts(rubroId, espacioDe(user), categoryId, gender, brand);
+	}
+
+	/** Atributos con los que la categoría distingue opciones de un mismo producto. */
+	@Get('categories/:categoryId/variation-attributes')
+	variationAttributes(@Param('categoryId') categoryId: string) {
+		return this.catalog.getVariationAttributes(categoryId);
+	}
+
 	/** Busca productos en el catálogo de ML (por nombre o EAN). */
 	@Get('catalog/search')
 	search(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string, @Query('q') q = '') {

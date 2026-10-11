@@ -1,6 +1,42 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsEnum, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
-import { ML_LISTING_TYPES, ProductoSource, type MlListingType, type ProductoAtributos } from '@base-template/shared';
+import { Type } from 'class-transformer';
+import {
+	ArrayMaxSize,
+	IsArray,
+	IsBoolean,
+	IsEnum,
+	IsIn,
+	IsInt,
+	IsNumber,
+	IsObject,
+	IsOptional,
+	IsString,
+	MaxLength,
+	Min,
+	MinLength,
+	ValidateNested,
+} from 'class-validator';
+import { MAX_OPCIONES, ML_LISTING_TYPES, ProductoSource, type MlListingType, type ProductoAtributos } from '@base-template/shared';
+
+/** Una característica de una opción: qué es ("Peso") y cuánto vale ("1 kg"). */
+export class ProductoOpcionDto {
+	@ApiProperty({ example: 'Peso' })
+	@IsString()
+	@MinLength(1)
+	@MaxLength(40)
+	nombre!: string;
+
+	@ApiProperty({ example: '1 kg' })
+	@IsString()
+	@MinLength(1)
+	@MaxLength(60)
+	valor!: string;
+
+	@ApiProperty({ required: false, description: 'Esta característica define la foto (cada Color tiene la suya).' })
+	@IsOptional()
+	@IsBoolean()
+	foto?: boolean;
+}
 
 export class CreateProductoDto {
 	@ApiProperty({ example: 'Departamento 2 ambientes' })
@@ -130,4 +166,29 @@ export class CreateProductoDto {
 	@IsOptional()
 	@IsBoolean()
 	isDraft?: boolean;
+
+	@ApiProperty({
+		required: false,
+		nullable: true,
+		example: 'man:k3x9a1',
+		description: 'Variantes: los productos del rubro con el mismo grupo son el mismo artículo (talles, colores…). null = producto suelto.',
+	})
+	@IsOptional()
+	@IsString()
+	@MaxLength(250)
+	grupo?: string | null;
+
+	@ApiProperty({ required: false, nullable: true, example: 'M', description: 'Qué variante es dentro del grupo ("M", "Azul / L").' })
+	@IsOptional()
+	@IsString()
+	@MaxLength(80)
+	variante?: string | null;
+
+	@ApiProperty({ required: false, nullable: true, type: [ProductoOpcionDto], description: 'Características de la opción, con nombre (hasta 3).' })
+	@IsOptional()
+	@IsArray()
+	@ArrayMaxSize(MAX_OPCIONES)
+	@ValidateNested({ each: true })
+	@Type(() => ProductoOpcionDto)
+	opciones?: ProductoOpcionDto[] | null;
 }

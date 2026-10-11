@@ -142,8 +142,8 @@
 				<span class="hidden h-6 w-px bg-surface-200 dark:bg-surface-700 md:block" />
 				<Checkbox :model-value="allSelected" binary @update:model-value="toggleAll" />
 				<span class="whitespace-nowrap text-sm font-semibold text-surface-700 dark:text-surface-200">
-					<span class="md:hidden">{{ $t('admin.carga.selectedOfShort', { sel: selectedCount, total: gridRows.length }) }}</span>
-					<span class="hidden md:inline">{{ $t('admin.carga.selectedOf', { sel: selectedCount, total: gridRows.length }) }}</span>
+					<span class="md:hidden">{{ $t('admin.carga.selectedOfShort', { sel: selectedShown, total: displayRows.length }) }}</span>
+					<span class="hidden md:inline">{{ $t('admin.carga.selectedOf', { sel: selectedShown, total: displayRows.length }) }}</span>
 				</span>
 
 				<!-- Acciones en lote: aparecen SOLO al seleccionar, agrupadas y resaltadas
@@ -237,11 +237,11 @@
 			     y estado); al tocarlo se abre la hoja de edición con todos los campos. -->
 			<div class="glass-card overflow-hidden rounded-2xl md:hidden">
 				<div
-					v-for="row in gridRows"
+					v-for="row in displayRows"
 					:key="row.key"
 					class="flex cursor-pointer items-center gap-3 border-b border-surface-100 px-3 py-2.5 last:border-0 dark:border-surface-800/60"
 					:class="[row.dirty ? 'bg-amber-50/50 dark:bg-amber-950/20' : '', row.selected ? 'bg-primary/5 dark:bg-primary/10' : '']"
-					@click="openSheet(row)"
+					@click="groupSize(row) > 1 ? openVariantes(row) : openSheet(row)"
 				>
 					<span class="shrink-0" @click.stop><Checkbox v-model="row.selected" binary /></span>
 					<div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-100 text-surface-400 dark:bg-surface-800">
@@ -251,10 +251,12 @@
 					<div class="min-w-0 flex-1">
 						<!-- 2 líneas: en 1 sola los nombres se cortaban a las 8 letras -->
 						<p class="line-clamp-2 break-words text-sm font-semibold leading-tight text-surface-900 dark:text-surface-0">{{ row.nombre || $t('admin.carga.sheet.untitled') }}</p>
-						<p class="truncate text-xs text-surface-500">{{ rowMeta(row) }}</p>
+						<!-- Producto con opciones: en vez de costo/margen, cuántas y cuáles son. -->
+						<p class="truncate text-xs" :class="groupSize(row) > 1 ? 'font-medium text-primary' : 'text-surface-500'">{{ groupSize(row) > 1 ? groupLabel(row) : rowMeta(row) }}</p>
 					</div>
 					<div class="shrink-0 text-right">
-						<p class="text-sm font-semibold tabular-nums text-surface-800 dark:text-surface-100">{{ row.precio != null ? money(row.precio) : '—' }}</p>
+						<p v-if="groupSize(row) > 1 && groupFrom(row)" class="text-[10px] leading-none text-surface-400">{{ $t('admin.carga.variantes.fromLabel') }}</p>
+						<p class="text-sm font-semibold tabular-nums text-surface-800 dark:text-surface-100">{{ groupSize(row) > 1 ? groupMin(row) : row.precio != null ? money(row.precio) : '—' }}</p>
 						<p class="text-[11px] font-semibold" :class="estadoTextCls(row)">{{ estadoLabel(row) }}</p>
 					</div>
 				</div>
@@ -268,20 +270,28 @@
 							class="border-b border-surface-200/60 text-left text-[11px] uppercase tracking-wide text-surface-400 dark:border-surface-700/60"
 						>
 							<th class="w-9 px-2 py-2.5"></th>
+							<!-- Reparto del ancho. REGLA: los números no se cortan — costo y precio
+							     muestran "$ 10.000.000" completo a la vez (w-36) y stock "1.250".
+							     Ese ancho sale de unir las dos categorías (vitrina arriba, ML abajo)
+							     en una columna; el resto libre es del nombre del producto. -->
 							<th class="px-2 py-2.5">{{ $t('admin.carga.cols.producto') }}</th>
-							<th class="w-40 px-2 py-2.5">{{ $t('admin.carga.cols.categoria') }}</th>
-							<th v-if="mlConnected" class="w-28 px-2 py-2.5">{{ $t('admin.carga.cols.categoriaMl') }}</th>
-							<th class="w-32 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.costo') }}</th>
-							<th class="w-20 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.margen') }}</th>
-							<th class="w-32 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.precio') }}</th>
-							<th class="w-20 px-2 py-2.5 text-center">{{ $t('admin.carga.cols.stock') }}</th>
-							<th class="w-28 px-2 py-2.5">{{ $t('admin.carga.cols.estado') }}</th>
-							<th class="w-14 px-2 py-2.5"></th>
+							<th class="w-44 px-2 py-2.5" :title="$t('admin.carga.categoria.hint')">
+								{{ $t('admin.carga.cols.categoriaShort') }}
+								<span class="block text-[10px] font-normal normal-case tracking-normal text-surface-400">
+									{{ $t(mlConnected ? 'admin.carga.cols.categoriaSubMl' : 'admin.carga.cols.categoriaSub') }}
+								</span>
+							</th>
+							<th class="w-36 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.costo') }}</th>
+							<th class="w-[4.5rem] px-2 py-2.5 text-right">{{ $t('admin.carga.cols.margen') }}</th>
+							<th class="w-36 px-2 py-2.5 text-right">{{ $t('admin.carga.cols.precio') }}</th>
+							<th class="w-[4.5rem] px-2 py-2.5 text-center">{{ $t('admin.carga.cols.stock') }}</th>
+							<th class="w-[6.5rem] px-2 py-2.5">{{ $t('admin.carga.cols.estado') }}</th>
+							<th class="w-24 px-2 py-2.5"></th>
 						</tr>
 					</thead>
 					<tbody>
 						<tr
-							v-for="row in gridRows"
+							v-for="row in displayRows"
 							:key="row.key"
 							class="cursor-pointer border-b border-surface-100 transition-colors last:border-0 hover:bg-surface-50/60 dark:border-surface-800/60 dark:hover:bg-surface-800/30"
 							:class="[row.dirty ? 'bg-amber-50/50 dark:bg-amber-950/20' : '', row.selected ? 'bg-primary/5 dark:bg-primary/10' : '']"
@@ -344,35 +354,55 @@
 									:placeholder="$t('admin.carga.categoria.none')"
 									@update:model-value="markDirty(row)"
 								/>
+								<!-- Segundo renglón: la categoría de Mercado Libre (con su etiqueta
+								     "ML" para no confundirla con la de arriba). Tocarla abre el
+								     diálogo de ML; la flecha la copia a la vitrina si está vacía. -->
+								<div v-if="mlConnected" class="mt-1 flex min-w-0 items-center gap-1">
+									<span class="shrink-0 rounded bg-surface-200 px-1 text-[9px] font-bold uppercase leading-4 text-surface-500 dark:bg-surface-700 dark:text-surface-300">ML</span>
+									<button
+										v-if="row.mlCategoryName"
+										type="button"
+										class="min-w-0 truncate text-left text-[11px] font-medium text-primary hover:underline"
+										:title="row.mlCategoryName"
+										@click="openMl(row)"
+									>
+										{{ row.mlCategoryName }}
+									</button>
+									<button
+										v-else
+										type="button"
+										class="min-w-0 truncate text-left text-[11px] font-medium text-amber-600 hover:underline dark:text-amber-400"
+										@click="openMl(row)"
+									>
+										<i class="pi pi-sparkles text-[10px]" /> {{ $t('admin.carga.ml.assignInline') }}
+									</button>
+									<button
+										v-if="!row.seccion && row.mlCategoryName"
+										type="button"
+										class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-primary hover:bg-primary/10"
+										:title="$t('admin.carga.categoria.useMl', { name: row.mlCategoryName })"
+										:aria-label="$t('admin.carga.categoria.useMl', { name: row.mlCategoryName })"
+										@click="useMlCategoria(row)"
+									>
+										<i class="pi pi-arrow-up text-[10px]" />
+									</button>
+								</div>
+							</td>
+							<!-- Producto con opciones (talles, colores…): una sola fila; el precio
+							     y el stock de cada opción se cargan en el diálogo. -->
+							<td v-if="groupSize(row) > 1" colspan="4" class="px-2 py-2 align-middle">
 								<button
-									v-if="!row.seccion && row.mlCategoryName"
 									type="button"
-									class="mt-1 block max-w-full truncate text-left text-[11px] font-semibold text-primary hover:underline"
-									:title="$t('admin.carga.categoria.useMl', { name: row.mlCategoryName })"
-									@click="useMlCategoria(row)"
+									class="flex w-full min-w-0 items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-left text-xs transition-colors hover:bg-primary/10"
+									@click="openVariantes(row)"
 								>
-									+ {{ row.mlCategoryName }}
+									<i class="pi pi-sitemap shrink-0 text-primary" />
+									<span class="min-w-0 flex-1 truncate font-medium text-primary">{{ groupLabel(row) }}</span>
+									<span class="shrink-0 font-semibold tabular-nums text-surface-800 dark:text-surface-100">{{ groupPrice(row) }}</span>
+									<span class="shrink-0 tabular-nums text-surface-500">{{ $t('admin.carga.variantes.stock', { n: groupStock(row) }) }}</span>
 								</button>
 							</td>
-							<td v-if="mlConnected" class="px-2 py-2 align-middle">
-								<button
-									v-if="row.mlCategoryName"
-									type="button"
-									class="inline-flex max-w-full items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
-									@click="openMl(row)"
-								>
-									<i class="pi pi-tag shrink-0" />
-									<span class="truncate">{{ row.mlCategoryName }}</span>
-								</button>
-								<button
-									v-else
-									type="button"
-									class="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/10 dark:text-amber-400"
-									@click="openMl(row)"
-								>
-									<i class="pi pi-sparkles" /> {{ $t('admin.carga.ml.assignInline') }}
-								</button>
-							</td>
+							<template v-else>
 							<td class="px-2 py-2 align-middle">
 								<InputNumber
 									v-model="row.precioCosto"
@@ -423,6 +453,7 @@
 									@update:model-value="markDirty(row)"
 								/>
 							</td>
+							</template>
 							<td class="px-2 py-2 align-middle">
 								<Tag :value="estadoLabel(row)" :severity="estadoSeverity(row)" />
 								<p v-if="faltantesDe(row).length" class="mt-1 text-[11px] text-surface-400">
@@ -431,9 +462,13 @@
 							</td>
 							<td class="px-2 py-2 align-middle">
 								<div class="flex items-center gap-1">
-									<!-- Guardar esta fila: aparece solo si tiene cambios sin guardar. -->
+									<!-- Siempre 3 lugares como máximo (la columna mide 96px): con cambios sin
+									     guardar, "Guardar" ocupa el lugar de publicar/ver en ML — con un 4º
+									     ícono la tabla desbordaba. Publicar vuelve a aparecer al guardar. -->
+									<!-- Un producto con opciones es UNA fila aunque por detrás sean varias
+									     publicaciones: guardar y publicar actúan sobre todas sus opciones. -->
 									<Button
-										v-if="row.dirty"
+										v-if="rowPending(row)"
 										icon="pi pi-save"
 										text
 										rounded
@@ -441,12 +476,12 @@
 										size="small"
 										:loading="savingKey === row.key"
 										:title="$t('admin.carga.saveRow')"
-										@click="saveRow(row)"
+										@click="groupSize(row) > 1 ? saveGroup(row) : saveRow(row)"
 									/>
-									<template v-if="mlConnected">
+									<template v-if="mlConnected && !rowPending(row)">
 										<a
-											v-if="row.mlPermalink"
-											:href="row.mlPermalink"
+											v-if="rowPermalink(row)"
+											:href="rowPermalink(row)"
 											target="_blank"
 											rel="noopener"
 											class="inline-flex h-8 w-8 items-center justify-center rounded-full text-emerald-500 hover:bg-emerald-500/10"
@@ -463,16 +498,27 @@
 											:loading="publishingKey === row.key"
 											:disabled="!row.id"
 											:title="$t('admin.carga.pub.button')"
-											@click="publishRow(row)"
+											@click="groupSize(row) > 1 ? publishGroup(row) : publishRow(row)"
 										/>
 									</template>
+									<!-- Única entrada a las variantes (un producto se carga normal y, si
+									     hace falta, se le agregan acá). En color para que se encuentre. -->
+									<Button
+										icon="pi pi-sitemap"
+										text
+										rounded
+										size="small"
+										:title="$t(groupSize(row) > 1 ? 'admin.carga.variantes.button' : 'admin.carga.variantes.buttonHint')"
+										:aria-label="$t(groupSize(row) > 1 ? 'admin.carga.variantes.button' : 'admin.carga.variantes.buttonHint')"
+										@click="openVariantes(row)"
+									/>
 									<Button
 										icon="pi pi-trash"
 										text
 										rounded
 										severity="secondary"
 										size="small"
-										@click="removeRow(row)"
+										@click="removeGroup(row)"
 									/>
 								</div>
 							</td>
@@ -675,9 +721,31 @@
 		<!-- Modal: categoría ML + atributos obligatorios -->
 		<Dialog v-model:visible="mlVisible" modal :header="$t('admin.carga.ml.title')" class="w-full max-w-lg">
 			<div v-if="mlRow" class="flex flex-col gap-5 pt-2">
-				<p class="text-sm font-semibold text-surface-800 dark:text-surface-100">
-					{{ mlRow.nombre || $t('admin.carga.placeholders.nombre') }}
-				</p>
+				<!-- El nombre se edita acá mismo: las sugerencias de categoría salen de él, y
+				     antes había que cerrar el diálogo para cambiarlo y volver a entrar. -->
+				<div class="space-y-1">
+					<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.producto') }}</label>
+					<div class="flex gap-2">
+						<InputText
+							v-model="mlRow.nombre"
+							class="w-full min-w-0 font-semibold"
+							:placeholder="$t('admin.carga.placeholders.nombre')"
+							@update:model-value="markDirty(mlRow)"
+							@keyup.enter="resuggest"
+						/>
+						<Button
+							v-if="mlMode === 'categoria'"
+							:label="$t('admin.carga.ml.suggest')"
+							icon="pi pi-sparkles"
+							size="small"
+							outlined
+							class="shrink-0"
+							:loading="mlPredicting"
+							@click="resuggest"
+						/>
+					</div>
+					<p v-if="mlMode === 'categoria'" class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.nameHint') }}</p>
+				</div>
 				<!-- Dos caminos SEPARADOS (antes estaban mezclados y el catálogo pisaba
 				     lo cargado sin avisar):
 				     · categoría → solo asigna categoría + sus datos; no toca lo cargado.
@@ -735,16 +803,6 @@
 							:class="mlPendingCategoryName ? 'text-surface-800 dark:text-surface-100' : 'text-surface-400'"
 							>{{ mlPendingCategoryName || $t(mlMode === 'catalogo' ? 'admin.carga.ml.catalogPickFirst' : 'admin.carga.ml.noCategory') }}</span
 						>
-						<!-- Sugerir solo en el camino "categoría": en el de catálogo la define el producto elegido. -->
-						<Button
-							v-if="mlMode === 'categoria'"
-							:label="$t('admin.carga.ml.suggest')"
-							icon="pi pi-sparkles"
-							size="small"
-							outlined
-							:loading="mlPredicting"
-							@click="suggestCategories"
-						/>
 					</div>
 					<p v-if="mlMode === 'categoria'" class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.categoryHint') }}</p>
 					<div v-if="mlMode === 'categoria' && mlPredictions.length" class="space-y-1">
@@ -760,8 +818,12 @@
 							"
 							@click="pickCategory(p)"
 						>
-							<span>{{ p.categoryName }}</span>
-							<i v-if="p.categoryId === mlPendingCategoryId" class="pi pi-check text-primary" />
+							<span class="min-w-0">
+								<span class="block font-medium">{{ p.categoryName }}</span>
+								<!-- La ruta: hay varias "Remeras" (ropa, pesca, golf) y sin esto parecen la misma. -->
+								<span v-if="p.categoryPath" class="block text-[11px] leading-snug text-surface-500">{{ p.categoryPath }}</span>
+							</span>
+							<i v-if="p.categoryId === mlPendingCategoryId" class="pi pi-check ml-2 shrink-0 text-primary" />
 						</button>
 					</div>
 				</div>
@@ -771,9 +833,9 @@
 						$t('admin.carga.ml.attrsTitle')
 					}}</label>
 					<div v-if="mlLoadingAttrs" class="py-4 text-center text-surface-500"><i class="pi pi-spin pi-spinner" /></div>
-					<p v-else-if="!mlAttrs.length" class="text-xs text-surface-400">{{ $t('admin.carga.ml.noAttrs') }}</p>
+					<p v-else-if="!mlAttrsShown.length" class="text-xs text-surface-400">{{ $t('admin.carga.ml.noAttrs') }}</p>
 					<div v-else class="space-y-3">
-						<div v-for="attr in mlAttrs" :key="attr.id" class="space-y-1">
+						<div v-for="attr in mlAttrsShown" :key="attr.id" class="space-y-1">
 							<label class="flex items-center gap-1.5 text-sm font-medium"
 								><i
 									class="pi text-xs"
@@ -798,6 +860,89 @@
 								:placeholder="$t('admin.carga.ml.attrValue')"
 							/>
 						</div>
+					</div>
+				</div>
+				<!-- Guía de talles: ML la exige para publicar ropa (remeras, camisas,
+				     pantalones…). Se elige una del vendedor; al publicar, cada talle se
+				     engancha solo a su fila de la guía. -->
+				<div v-if="mlCharts && mlCharts.required" class="space-y-2 border-t border-surface-200 pt-4 dark:border-surface-700">
+					<div class="flex items-center justify-between gap-2">
+						<label class="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-300">{{ $t('admin.carga.ml.chart.title') }}</label>
+						<Button :label="$t('admin.carga.ml.chart.search')" icon="pi pi-refresh" size="small" text :loading="mlChartsLoading" @click="loadSizeCharts" />
+					</div>
+					<p class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.chart.hint') }}</p>
+					<!-- Guías encontradas (o cargadas por código): se elige una. -->
+					<template v-if="mlCharts.charts.length">
+						<Select
+							v-model="mlAttrValues.SIZE_GRID_ID"
+							:options="mlChartOptions"
+							option-label="label"
+							option-value="value"
+							show-clear
+							:placeholder="$t('admin.carga.ml.chart.pick')"
+							class="w-full"
+						/>
+						<p v-if="mlChartMissing.length" class="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+							<i class="pi pi-exclamation-triangle mt-px" /> {{ $t('admin.carga.ml.chart.missing', { sizes: mlChartMissing.join(', ') }) }}
+						</p>
+						<p v-if="mlChartSelected && mlChartSelected.sameDomain === false" class="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+							<i class="pi pi-exclamation-triangle mt-px" /> {{ $t('admin.carga.ml.chart.otherDomain', { category: mlPendingCategoryName }) }}
+						</p>
+						<p
+							v-if="mlChartSelected && mlChartSelected.gender && mlAttrValues.GENDER && mlChartSelected.gender !== mlAttrValues.GENDER"
+							class="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400"
+						>
+							<i class="pi pi-exclamation-triangle mt-px" />
+							<span>
+								{{ $t('admin.carga.ml.chart.otherGenderPicked', { chart: mlChartSelected.gender, product: mlAttrValues.GENDER }) }}
+								<!-- Arreglo a un toque: el género del producto pasa a ser el de la guía. -->
+								<button type="button" class="font-semibold underline underline-offset-2" @click="mlAttrValues.GENDER = mlChartSelected.gender">
+									{{ $t('admin.carga.ml.chart.useChartGender', { gender: mlChartSelected.gender }) }}
+								</button>
+							</span>
+						</p>
+					</template>
+					<p v-else-if="mlCharts.incomplete" class="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+						<i class="pi pi-info-circle mt-px" /> {{ $t('admin.carga.ml.chart.needFilters') }}
+					</p>
+					<div v-else class="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+						<p class="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+							<i class="pi pi-exclamation-triangle mt-px" />
+							{{ $t('admin.carga.ml.chart.none', { category: mlPendingCategoryName, gender: mlAttrValues.GENDER, brand: mlAttrValues.BRAND }) }}
+						</p>
+						<!-- Tiene guías para esta prenda, pero de otro género: por eso no aparecen. -->
+						<div v-if="mlCharts.otherGenders && mlCharts.otherGenders.length" class="space-y-0.5 text-xs text-amber-700 dark:text-amber-300">
+							<p class="font-semibold">{{ $t('admin.carga.ml.chart.otherGender') }}</p>
+							<p v-for="o in mlCharts.otherGenders" :key="o.chart.id">
+								· {{ o.chart.name }} ({{ o.gender }}) — {{ o.chart.rows.map(r => r.size).join(', ') }}
+							</p>
+						</div>
+						<!-- Las guías se crean en Mercado Libre: link a su pantalla de guías de talles. -->
+						<a
+							:href="ML_SIZE_CHARTS_URL"
+							target="_blank"
+							rel="noopener"
+							class="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-500/10 dark:text-amber-300"
+						>
+							<i class="pi pi-external-link" /> {{ $t('admin.carga.ml.chart.goToMl') }}
+						</a>
+						<p class="text-[11px] text-surface-500">{{ $t('admin.carga.ml.chart.howTo') }}</p>
+					</div>
+					<!-- Camino directo: el código que ML muestra al crear la guía. No depende
+					     de que coincidan los filtros del buscador (prenda, género y marca). -->
+					<div class="space-y-1 pt-1">
+						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.ml.chart.codeLabel') }}</label>
+						<div class="flex gap-2">
+							<InputText
+								v-model="mlChartCode"
+								class="w-full min-w-0"
+								inputmode="numeric"
+								:placeholder="$t('admin.carga.ml.chart.codePlaceholder')"
+								@keyup.enter="useChartCode"
+							/>
+							<Button :label="$t('admin.carga.ml.chart.codeUse')" size="small" outlined class="shrink-0" :loading="mlChartCodeLoading" @click="useChartCode" />
+						</div>
+						<p class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.chart.codeHint') }}</p>
 					</div>
 				</div>
 			</div>
@@ -832,6 +977,22 @@
 				<Button :label="$t('admin.carga.images.done')" @click="imgVisible = false" />
 			</template>
 		</Dialog>
+
+		<!-- Producto con opciones (talles, colores…): datos una vez + un renglón por opción. -->
+		<VariantesDialog
+			v-model:visible="varVisible"
+			:shared="varShared"
+			:initial-items="varItems"
+			:image-url="varHead ? varHead.imageUrl : ''"
+			:image-count="varHead ? varHead.imagenes.length : 0"
+			:categoria-options="categoriaOptions"
+			:name-suggestions="varNameSuggestions"
+			:suggest-categoria="suggestCategoriaVitrina"
+			:color-thumb="colorThumb"
+			@images="varHead && openImages(varHead)"
+			@color-images="openColorImages"
+			@apply="applyVariantes"
+		/>
 
 		<!-- Hoja de edición (mobile): se abre al tocar un producto de la lista. Edita la
 		     MISMA fila que la tabla de desktop (mismos v-model y handlers), así no hay
@@ -950,6 +1111,7 @@
 					>
 						{{ $t('admin.carga.categoria.useMl', { name: sheetRow.mlCategoryName }) }}
 					</button>
+					<p class="text-[11px] text-surface-400">{{ $t('admin.carga.categoria.hint') }}</p>
 				</div>
 
 				<!-- Categoría de ML -->
@@ -971,6 +1133,9 @@
 						@click="openMl(sheetRow)"
 					/>
 				</div>
+
+				<!-- Talles, colores, medidas: pasa a ser un producto con opciones. -->
+				<Button :label="$t('admin.carga.variantes.button')" icon="pi pi-sitemap" size="small" outlined class="w-full" @click="sheetToVariantes" />
 
 				<!-- Estado + lo que falta -->
 				<div class="flex flex-wrap items-center gap-2">
@@ -1034,6 +1199,11 @@ import {
 	type BatchProductoResult,
 	type MlCategoryPrediction,
 	type MlAttribute,
+	type MlSizeChart,
+	type MlSizeChartsResult,
+	type MlVariationAttr,
+	type ProductoOpcion,
+	matchOpcionAttr,
 	type MlListingType,
 	type MlRequiredAttribute,
 	type MlCatalogSearchResult,
@@ -1050,6 +1220,13 @@ import {
 } from '@/modules/admin/utils/importTable';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
 import HandoffButton from '@/shared/components/HandoffButton.vue';
+import { compareVariantes } from '@/modules/app/utils/variantes';
+import VariantesDialog, {
+	type ColorRef,
+	type VarianteItem,
+	type VariantesResult,
+	type VariantesShared,
+} from '@/modules/admin/components/VariantesDialog.vue';
 
 /** Fila editable de la grilla (aún sin persistir o ya existente). */
 interface Row {
@@ -1081,12 +1258,27 @@ interface Row {
 	mlCatalogProductId: string;
 	source: ProductoSource;
 	isDraft: boolean;
+	/**
+	 * Opciones (talles, colores…): las filas con el mismo "grupo" son el mismo
+	 * artículo y se muestran en UNA fila; "variante" dice cuál es cada una.
+	 */
+	grupo: string | null;
+	variante: string | null;
+	/** Las características de la opción con su nombre ([{ Peso: 1 kg }]); null si no se detallaron. */
+	opciones: ProductoOpcion[] | null;
 	selected: boolean;
 	/** La fila tiene cambios sin guardar (muestra el ✔ de guardar en la fila). */
 	dirty?: boolean;
 }
 
 /** Campos de producto a los que puede mapear una columna del archivo. */
+/**
+ * Pantalla de guías de talles del vendedor en Mercado Libre (ahí se crean). La
+ * de "crear" lleva un tramo propio de cada sesión, así que se entra por la
+ * lista. (Argentina; las cuentas conectadas hoy son todas MLA.)
+ */
+const ML_SIZE_CHARTS_URL = 'https://vendedores.mercadolibre.com.ar/moda/talles';
+
 /** Productos por pedido al guardar (el servidor corta los pedidos de más de ~100 KB). */
 const SAVE_CHUNK = 25;
 
@@ -1095,7 +1287,7 @@ type ImportField = (typeof IMPORT_FIELDS)[number] | 'ignore';
 
 export default defineComponent({
 	name: 'CargaMasivaView',
-	components: { ImageUpload, HandoffButton },
+	components: { ImageUpload, HandoffButton, VariantesDialog },
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -1146,6 +1338,15 @@ export default defineComponent({
 			mlPendingCategoryId: '',
 			mlPendingCategoryName: '',
 			mlLoadingAttrs: false,
+			/** Atributos con los que cada categoría de ML distingue opciones (por id de categoría). */
+			varAttrsByCategory: {} as Record<string, MlVariationAttr[]>,
+			/** Guías de talles del vendedor para la categoría elegida (null = sin consultar). */
+			ML_SIZE_CHARTS_URL,
+			mlCharts: null as MlSizeChartsResult | null,
+			mlChartsLoading: false,
+			/** Código de guía pegado a mano (el que ML muestra al crearla). */
+			mlChartCode: '',
+			mlChartCodeLoading: false,
 			mlAttrs: [] as MlAttribute[],
 			mlAttrValues: {} as Record<string, string>,
 			// Cache de atributos obligatorios por categoría (para el "Faltan N").
@@ -1156,9 +1357,24 @@ export default defineComponent({
 			// Gestor de imágenes por fila
 			imgVisible: false,
 			imgRow: null as Row | null,
+			/** Fotos de imgRow antes del último cambio (para saber a qué opciones copiarlas). */
+			imgPrev: '',
 			// Hoja de edición en mobile (edita la misma fila que la tabla).
 			sheetVisible: false,
 			sheetRow: null as Row | null,
+			// Producto con opciones: fila "cabeza" del grupo que se está editando.
+			varVisible: false,
+			varHead: null as Row | null,
+			varShared: { nombre: '', descripcion: '', seccion: null } as VariantesShared,
+			varItems: [] as VarianteItem[],
+			/** Fotos de la cabeza al abrir (para saber si se cambiaron en el diálogo). */
+			varImagesSnap: '',
+			/**
+			 * Fotos por color mientras el diálogo está abierto (clave = id interno del
+			 * color). Es una fila existente de ese color o, si el color es nuevo, una
+			 * fila "suelta" que solo guarda las fotos hasta aplicar.
+			 */
+			varHolders: {} as Record<string, Row>,
 			// Índice de la imagen a la que se le está quitando el fondo (null = ninguna).
 			strippingIdx: null as number | null,
 			// ¿Hay cambios en la grilla sin guardar?
@@ -1268,6 +1484,75 @@ export default defineComponent({
 			opts.push({ label: this.$t('admin.carga.import.ignore'), value: 'ignore' });
 			return opts;
 		},
+		/**
+		 * Nombres sugeridos para las características de un producto con opciones:
+		 * primero los que Mercado Libre acepta en la categoría del producto (así el
+		 * dato viaja al atributo correcto) y después los generales.
+		 */
+		varNameSuggestions(): string[] {
+			const ml = (this.varHead?.mlCategoryId ? this.varAttrsByCategory[this.varHead.mlCategoryId] : undefined) ?? [];
+			const generales = this.$t('admin.carga.variantes.nameList')
+				.split(',')
+				.map(s => s.trim())
+				.filter(Boolean);
+			const out: string[] = [];
+			for (const n of [...ml.map(a => a.name), ...generales]) if (!out.some(o => o.toLowerCase() === n.toLowerCase())) out.push(n);
+			return out;
+		},
+		/** Guías para el selector: nombre + los talles que trae. */
+		mlChartOptions(): { label: string; value: string }[] {
+			return (this.mlCharts?.charts ?? []).map(c => ({ label: `${c.name} — ${c.rows.map(r => r.size).join(', ')}`, value: c.id }));
+		},
+		/**
+		 * Atributos a pedir en la ficha. En un producto con opciones el talle NO se
+		 * pide: cada opción ya es su talle (y viaja sola al publicar); pedirlo acá
+		 * dejaba un mismo talle cargado para todas.
+		 */
+		mlAttrsShown(): MlAttribute[] {
+			const row = this.mlRow;
+			if (!row?.grupo?.startsWith('man:')) return this.mlAttrs;
+			const ocultos = this.optionAttrIds(row, this.mlPendingCategoryId);
+			return this.mlAttrs.filter(a => !ocultos.has(a.id));
+		},
+		/** La guía elegida, con sus datos. */
+		mlChartSelected(): MlSizeChart | undefined {
+			return this.mlCharts?.charts.find(c => c.id === this.mlAttrValues.SIZE_GRID_ID);
+		},
+		/** Talles del producto que NO están en la guía elegida (ML rechazaría esas opciones). */
+		mlChartMissing(): string[] {
+			const chart = this.mlCharts?.charts.find(c => c.id === this.mlAttrValues.SIZE_GRID_ID);
+			const row = this.mlRow;
+			if (!chart || !row?.grupo) return [];
+			const sizes = new Set(chart.rows.map(r => r.size.trim().toLowerCase()));
+			return this.groupRows(row)
+				.map(r => (r.variante ?? '').trim())
+				.filter(v => v && !sizes.has(v.toLowerCase()));
+		},
+		/**
+		 * Lo que se DIBUJA: las filas de la grilla, con cada producto con opciones
+		 * (mismo "grupo") en una sola fila —la primera del grupo—. Las acciones en
+		 * lote y el guardado siguen operando sobre gridRows (todas las opciones).
+		 */
+		displayRows(): Row[] {
+			const seen = new Set<string>();
+			return this.gridRows.filter(r => {
+				if (!r.grupo) return true;
+				if (seen.has(r.grupo)) return false;
+				seen.add(r.grupo);
+				return true;
+			});
+		},
+		/** Seleccionadas, contando cada producto con opciones como uno. */
+		selectedShown(): number {
+			return this.displayRows.filter(r => r.selected).length;
+		},
+		/** Firma de la selección de las cabezas de grupo (ver watch). */
+		groupSelSig(): string {
+			return this.displayRows
+				.filter(r => r.grupo)
+				.map(r => r.key + (r.selected ? '1' : '0'))
+				.join('|');
+		},
 		selectedCount(): number {
 			return this.gridRows.filter(r => r.selected).length;
 		},
@@ -1359,6 +1644,16 @@ export default defineComponent({
 			return t;
 		},
 	},
+	watch: {
+		// Seleccionar la fila de un producto con opciones selecciona TODAS sus
+		// opciones (están ocultas, pero las acciones en lote tienen que alcanzarlas).
+		groupSelSig() {
+			for (const head of this.displayRows) {
+				if (!head.grupo) continue;
+				for (const r of this.groupRows(head)) if (r.selected !== head.selected) r.selected = head.selected;
+			}
+		},
+	},
 	async created() {
 		this.loading = true;
 		try {
@@ -1402,7 +1697,18 @@ export default defineComponent({
 			return `row-${this.seq}`;
 		},
 		markDirty(row?: Row) {
-			if (row) row.dirty = true;
+			if (row) {
+				row.dirty = true;
+				// Con opciones, el nombre y la categoría son del producto entero.
+				if (row.grupo) {
+					for (const r of this.groupRows(row)) {
+						if (r === row || (r.nombre === row.nombre && r.seccion === row.seccion)) continue;
+						r.nombre = row.nombre;
+						r.seccion = row.seccion;
+						r.dirty = true;
+					}
+				}
+			}
 			this.dirty = true;
 		},
 		// ── Costo ↔ margen ↔ precio de tienda (triángulo por fila) ──
@@ -1459,6 +1765,9 @@ export default defineComponent({
 				mlCatalogProductId: p.mlCatalogProductId ?? '',
 				source: p.source ?? ProductoSource.MANUAL,
 				isDraft: p.isDraft ?? false,
+				grupo: p.grupo ?? null,
+				variante: p.variante ?? null,
+				opciones: p.opciones?.length ? p.opciones.map(o => ({ ...o })) : null,
 				selected: false,
 			};
 		},
@@ -1487,6 +1796,9 @@ export default defineComponent({
 				mlCatalogProductId: '',
 				source,
 				isDraft: false,
+				grupo: null,
+				variante: null,
+				opciones: null,
 				selected: true,
 			};
 		},
@@ -1518,6 +1830,356 @@ export default defineComponent({
 			this.removeRow(this.sheetRow);
 			this.sheetVisible = false;
 			this.sheetRow = null;
+		},
+		// ── Producto con opciones (talles, colores, medidas…) ──
+		/** Todas las filas del mismo producto (ella sola si no tiene opciones). */
+		groupRows(row: Row): Row[] {
+			// En su orden natural (S, M, L, XL…), no en el de carga.
+			return row.grupo ? this.visibleRows.filter(r => r.grupo === row.grupo).sort(compareVariantes) : [row];
+		},
+		groupSize(row: Row): number {
+			return row.grupo ? this.groupRows(row).length : 1;
+		},
+		/** "4 opciones · S · M · L · XL" */
+		groupLabel(row: Row): string {
+			const rows = this.groupRows(row);
+			const count = this.$t('admin.carga.variantes.count', rows.length);
+			// Con colores y talles, listar las 12 combinaciones no se lee: se muestran
+			// los colores y los talles por separado ("Negro, Azul · S, M, L").
+			// Con características con nombre: "Peso: 500 g, 1 kg · Sabor: Suave, Fuerte".
+			const nombres: string[] = [];
+			for (const r of rows) for (const o of r.opciones ?? []) if (!nombres.includes(o.nombre)) nombres.push(o.nombre);
+			if (nombres.length) {
+				const partes = nombres.map(n => {
+					const valores = [...new Set(rows.map(r => r.opciones?.find(o => o.nombre === n)?.valor).filter(Boolean))];
+					return `${n}: ${valores.join(', ')}`;
+				});
+				return [count, ...partes].join(' · ');
+			}
+			if (rows.some(r => (r.variante ?? '').includes(' / '))) {
+				const uniq = (list: string[]) => [...new Set(list.filter(Boolean))];
+				const colores = uniq(rows.map(r => (r.variante ?? '').split(' / ')[0].trim()));
+				const talles = uniq(rows.map(r => (r.variante ?? '').split(' / ').slice(1).join(' / ').trim()));
+				return [count, colores.join(', '), talles.join(', ')].filter(Boolean).join(' · ');
+			}
+			const names = rows
+				.map(r => r.variante)
+				.filter(Boolean)
+				.join(' · ');
+			return count + (names ? ' · ' + names : '');
+		},
+		/** El precio si es el mismo en todas; si no, "desde $X". */
+		groupPrice(row: Row): string {
+			const precios = this.groupRows(row)
+				.map(r => r.precio)
+				.filter((v): v is number => v != null);
+			if (!precios.length) return '—';
+			const min = Math.min(...precios);
+			return precios.some(v => v !== min) ? this.$t('admin.carga.variantes.from', { precio: this.money(min) }) : this.money(min);
+		},
+		/** ¿Las opciones tienen precios distintos? (entonces se muestra "desde"). */
+		groupFrom(row: Row): boolean {
+			return new Set(this.groupRows(row).map(r => r.precio)).size > 1;
+		},
+		/** El precio más bajo del producto, ya formateado. */
+		groupMin(row: Row): string {
+			const precios = this.groupRows(row)
+				.map(r => r.precio)
+				.filter((v): v is number => v != null);
+			return precios.length ? this.money(Math.min(...precios)) : '—';
+		},
+		groupStock(row: Row): number {
+			return this.groupRows(row).reduce((n, r) => n + (r.stock ?? 0), 0);
+		},
+		/** Abre el diálogo de opciones sobre un producto (con o sin opciones todavía). */
+		openVariantes(row: Row) {
+			const rows = this.groupRows(row);
+			const head = rows[0];
+			this.varHead = head;
+			this.varShared = { nombre: head.nombre, descripcion: head.descripcion, seccion: head.seccion };
+			// Un producto nuevo (sin nombre ni precio) arranca sin renglones; uno ya
+			// cargado, con el suyo como primera opción (falta ponerle el nombre).
+			const blank = !head.grupo && !head.id && !head.nombre.trim() && head.precio == null;
+			this.varItems = blank ? [] : rows.map(r => ({ rowKey: r.key, variante: r.variante ?? '', opciones: r.opciones, precio: r.precio, stock: r.stock }));
+			void this.loadVarAttrs(head.rubroId, head.mlCategoryId);
+			this.varImagesSnap = JSON.stringify(head.imagenes);
+			this.varHolders = {};
+			this.varVisible = true;
+		},
+		/**
+		 * Categoría de vitrina sugerida para el diálogo de opciones: la de Mercado
+		 * Libre que ya tenga el producto o, con ML conectado, la que ML predice
+		 * para ese nombre. Es solo una sugerencia: la categoría de ML no se toca.
+		 */
+		async suggestCategoriaVitrina(nombre: string): Promise<string | null> {
+			if (this.varHead?.mlCategoryName) return this.varHead.mlCategoryName;
+			if (!this.mlConnected) return null;
+			const preds = await this.catalog.predictMlCategory(this.selectedRubroId, nombre);
+			return preds[0]?.categoryName ?? null;
+		},
+		/**
+		 * Atributos de ML que salen de las OPCIONES y no de la ficha común: el talle
+		 * siempre y, si las opciones tienen color ("Negro / M"), también el color.
+		 * No se piden ni cuentan como faltantes: cada opción manda el suyo al publicar.
+		 */
+		optionAttrIds(row: Row, categoryId = row.mlCategoryId): Set<string> {
+			const rows = this.groupRows(row);
+			const nombres = [...new Set(rows.flatMap(r => (r.opciones ?? []).map(o => o.nombre)))];
+			if (!nombres.length) {
+				// Cargadas antes de que existieran los nombres: talle y, si hay dos partes, color.
+				const ids = new Set(['SIZE']);
+				if (rows.some(r => (r.variante ?? '').includes(' / '))) ids.add('COLOR');
+				return ids;
+			}
+			// Mismo emparejamiento que usa el servidor al publicar. Si todavía no
+			// llegaron los atributos de la categoría, al menos talle y color.
+			const attrs = this.varAttrsByCategory[categoryId] ?? [];
+			const base: MlVariationAttr[] = attrs.length
+				? attrs
+				: [
+						{ id: 'SIZE', name: 'Talle', values: [], allowVariations: true },
+						{ id: 'COLOR', name: 'Color', values: [], allowVariations: true },
+					];
+			const ids = new Set<string>();
+			for (const n of nombres) {
+				const attr = matchOpcionAttr(n, base);
+				if (attr) ids.add(attr.id);
+			}
+			return ids;
+		},
+		/**
+		 * El valor que define la foto de una fila ("negro" si cada Color tiene la
+		 * suya); '' si la foto es una sola para todas las opciones.
+		 */
+		colorOf(row: Row): string {
+			if (row.opciones?.length) return row.opciones.find(o => o.foto)?.valor.trim().toLowerCase() ?? '';
+			// Cargadas antes de que existieran los nombres: "Negro / M" → el primero.
+			const v = row.variante ?? '';
+			return v.includes(' / ') ? v.split(' / ')[0].trim().toLowerCase() : '';
+		},
+		/** Trae (una vez) los atributos con los que la categoría de ML distingue opciones. */
+		async loadVarAttrs(rubroId: string, categoryId: string) {
+			if (!categoryId || !this.mlConnected || this.varAttrsByCategory[categoryId]) return;
+			const attrs = await this.catalog.fetchMlVariationAttrs(rubroId, categoryId).catch(() => null);
+			if (attrs) this.varAttrsByCategory[categoryId] = attrs;
+		},
+		/** La fila que guarda las fotos de un color del diálogo (null si todavía no hay). */
+		colorHolder(ref: ColorRef): Row | null {
+			return this.varHolders[ref.cid] ?? this.rows.find(r => ref.rowKeys.includes(r.key)) ?? null;
+		},
+		/** Portada y cantidad de fotos de un color (para la miniatura del diálogo). */
+		colorThumb(ref: ColorRef): { url: string; count: number } {
+			const row = this.colorHolder(ref);
+			return { url: row?.imageUrl ?? '', count: row?.imagenes.length ?? 0 };
+		},
+		/**
+		 * Abre las fotos de UN color. Cada color tiene las suyas (en ML el color
+		 * define la foto). Si el color es nuevo, las fotos se guardan en una fila
+		 * suelta hasta que se aplica el diálogo.
+		 */
+		openColorImages(ref: ColorRef) {
+			const head = this.varHead;
+			if (!head) return;
+			if (!this.varHolders[ref.cid]) {
+				this.varHolders[ref.cid] = this.colorHolder(ref) ?? {
+					...head,
+					key: this.nextKey(),
+					id: undefined,
+					grupo: null,
+					variante: ref.color + ' / ',
+					imagenes: [],
+					imageUrl: '',
+					atributos: { ...head.atributos },
+					mlItemId: '',
+					mlPermalink: '',
+					selected: false,
+				};
+			}
+			this.openImages(this.varHolders[ref.cid]);
+		},
+		/** Desde la hoja mobile: pasa a editar el mismo producto como "con opciones". */
+		sheetToVariantes() {
+			const row = this.sheetRow;
+			if (!row) return;
+			this.sheetVisible = false;
+			this.openVariantes(row);
+		},
+		/**
+		 * Aplica el diálogo a la grilla: cada opción es una fila (producto) del mismo
+		 * "grupo". Reusa las filas existentes (conservan id y publicación), crea las
+		 * que faltan copiando los datos del producto y borra las que se quitaron.
+		 * Queda todo "sin guardar": se confirma con Guardar, como cualquier cambio.
+		 */
+		async applyVariantes(result: VariantesResult) {
+			const head = this.varHead;
+			if (!head) return;
+			const members = this.groupRows(head);
+			const byKey = new Map(members.map(r => [r.key, r]));
+			const grupo = head.grupo || 'man:' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+			const imagesChanged = JSON.stringify(head.imagenes) !== this.varImagesSnap;
+			const changed = {
+				nombre: result.shared.nombre !== this.varShared.nombre,
+				descripcion: result.shared.descripcion !== this.varShared.descripcion,
+				seccion: result.shared.seccion !== this.varShared.seccion,
+			};
+			const base: Row = { ...head, imagenes: [...head.imagenes], atributos: { ...head.atributos } };
+
+			// Filas existentes que el diálogo conservó; las libres se reusan para las
+			// opciones nuevas antes de crear filas (así no se pierde id ni publicación).
+			const used = new Set(result.items.map(it => it.rowKey).filter((k): k is string => !!k && byKey.has(k)));
+			const free = members.filter(r => !used.has(r.key));
+			const out: Row[] = [];
+			for (const it of result.items) {
+				let row = it.rowKey ? byKey.get(it.rowKey) : undefined;
+				const existing = !!row;
+				if (!row) row = free.shift();
+				const created = !row;
+				if (!row) {
+					row = {
+						...base,
+						key: this.nextKey(),
+						id: undefined,
+						mlItemId: '',
+						mlPermalink: '',
+						gtin: '',
+						sku: '',
+						precioMl: null,
+						imagenes: [...base.imagenes],
+						atributos: { ...base.atributos },
+						selected: false,
+					};
+				}
+				// Para marcar "sin guardar" solo lo que de verdad cambió.
+				const sig = (r: Row) => JSON.stringify([r.grupo, r.variante, r.opciones, r.nombre, r.descripcion, r.seccion, r.precio, r.stock, r.imagenes]);
+				const antes = created ? '' : sig(row);
+				row.grupo = grupo;
+				row.variante = it.variante;
+				row.opciones = it.opciones?.length ? it.opciones : null;
+				// Los datos comunes pisan los de una opción ya existente solo si se
+				// tocaron en el diálogo (las importadas de ML pueden traer los suyos).
+				if (!existing || changed.nombre) row.nombre = result.shared.nombre;
+				if (!existing || changed.descripcion) row.descripcion = result.shared.descripcion;
+				if (!existing || changed.seccion) row.seccion = result.shared.seccion;
+				if (row !== head && (created || imagesChanged || !row.imagenes.length)) {
+					row.imagenes = [...head.imagenes];
+					row.imageUrl = head.imageUrl;
+				}
+				// Fotos: si una característica define la foto (cada color la suya), las
+				// que se cargaron para ese valor; si es una sola para todo, la del producto.
+				const holder = it.colorKey ? this.varHolders[it.colorKey] : undefined;
+				if (holder && holder.imagenes.length && row !== holder) {
+					row.imagenes = [...holder.imagenes];
+					row.imageUrl = holder.imageUrl;
+				} else if (result.sharedPhotos && row !== head && head.imagenes.length) {
+					row.imagenes = [...head.imagenes];
+					row.imageUrl = head.imageUrl;
+				}
+				row.precio = it.precio;
+				row.stock = it.stock;
+				if (row.precioCosto && row.precioCosto > 0 && row.precio != null) row.margen = Math.round((row.precio / row.precioCosto - 1) * 100);
+				if (created || !row.id || sig(row) !== antes) row.dirty = true;
+				out.push(row);
+			}
+
+			// En su orden natural (S, M, L, XL…), igual que el selector de la vitrina.
+			out.sort(compareVariantes);
+			for (const r of out) r.selected = false;
+
+			// Opciones quitadas: fuera de la grilla, y de la base si estaban guardadas.
+			const removed = free;
+			const touched = new Set([...out, ...removed].map(r => r.key));
+			const anchor = this.rows.findIndex(r => touched.has(r.key));
+			const rest = this.rows.filter(r => !touched.has(r.key));
+			const at = anchor === -1 ? 0 : this.rows.slice(0, anchor).filter(r => !touched.has(r.key)).length;
+			rest.splice(at, 0, ...out);
+			this.rows = rest;
+			this.dirty = true;
+			this.varVisible = false;
+			this.varHead = null;
+
+			const guardadas = removed.filter(r => r.id);
+			if (guardadas.length) {
+				const ok = await Promise.all(
+					guardadas.map(r =>
+						this.catalog
+							.deleteProducto(this.selectedRubroId, r.id as string)
+							.then(() => true)
+							.catch(() => false),
+					),
+				);
+				const fallidas = ok.filter(v => !v).length;
+				this.$toast.add({
+					severity: fallidas ? 'warn' : 'info',
+					summary: fallidas
+						? this.$t('admin.carga.variantes.deletePartial', { n: guardadas.length - fallidas, fail: fallidas })
+						: this.$t('admin.carga.variantes.deleted', guardadas.length),
+					life: 5000,
+				});
+			}
+			this.$toast.add({ severity: 'success', summary: this.$t('admin.carga.variantes.applied', { n: out.length }), life: 5000 });
+		},
+		/** ¿La fila (o alguna de sus opciones) tiene algo sin guardar? */
+		rowPending(row: Row): boolean {
+			return row.grupo ? this.groupRows(row).some(r => r.dirty || !r.id) : !!row.dirty;
+		},
+		/** Link a la publicación: con opciones, solo si TODAS están publicadas. */
+		rowPermalink(row: Row): string {
+			if (!row.grupo) return row.mlPermalink;
+			const rows = this.groupRows(row);
+			return rows.every(r => r.mlItemId) ? (rows.find(r => r.mlPermalink)?.mlPermalink ?? '') : '';
+		},
+		/** Guarda todas las opciones pendientes del producto (el ✔ de su fila). */
+		async saveGroup(row: Row) {
+			this.savingKey = row.key;
+			try {
+				await this.saveRows(this.groupRows(row).filter(r => r.dirty || !r.id));
+			} finally {
+				this.savingKey = null;
+			}
+		},
+		/**
+		 * Publica en Mercado Libre todas las opciones que falten, de a una y en
+		 * orden: ML las junta en una sola página porque comparten el nombre y cada
+		 * una lleva su talle/color (lo arma el backend). Si alguna falla, las demás
+		 * siguen y se informa cuál y por qué.
+		 */
+		async publishGroup(row: Row) {
+			const rows = this.groupRows(row);
+			this.publishingKey = row.key;
+			try {
+				// Lo que ves en la grilla es lo que se publica: primero se guarda.
+				await this.saveRows(rows.filter(r => r.dirty || !r.id));
+				if (rows.some(r => r.dirty || !r.id)) return;
+				let ok = 0;
+				const errores: string[] = [];
+				for (const r of rows.filter(x => !x.mlItemId)) {
+					try {
+						const res = await this.catalog.publishToMl(r.rubroId, r.id as string);
+						r.mlItemId = res.itemId ?? '';
+						r.mlPermalink = res.permalink ?? '';
+						ok++;
+					} catch (e: unknown) {
+						errores.push(`${r.variante ?? ''}: ${apiErrorMessage(e, this.$t('admin.carga.pub.error'))}`);
+					}
+				}
+				if (!errores.length) {
+					this.$toast.add({ severity: 'success', summary: this.$t('admin.carga.variantes.published', ok), life: 8000 });
+				} else {
+					this.$toast.add({
+						severity: ok ? 'warn' : 'error',
+						summary: this.$t('admin.carga.variantes.publishedPartial', { ok, fail: errores.length }),
+						detail: errores.join(' · '),
+						life: 15000,
+					});
+				}
+			} finally {
+				this.publishingKey = null;
+			}
+		},
+		/** Saca de la grilla el producto entero (todas sus opciones). */
+		removeGroup(row: Row) {
+			const keys = new Set(this.groupRows(row).map(r => r.key));
+			this.rows = this.rows.filter(r => !keys.has(r.key));
 		},
 		money(v: number): string {
 			return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(v);
@@ -1610,7 +2272,9 @@ export default defineComponent({
 		},
 		requiredAttrsFor(row: Row): MlRequiredAttribute[] {
 			const attrs = row.mlCategoryId ? this.attrsByCategory[row.mlCategoryId] : undefined;
-			return (attrs ?? []).map(a => ({ id: a.id, name: a.name }));
+			// Con opciones el talle lo da cada opción: no cuenta como dato faltante.
+			const ocultos = row.grupo?.startsWith('man:') ? this.optionAttrIds(row) : new Set<string>();
+			return (attrs ?? []).filter(a => !ocultos.has(a.id)).map(a => ({ id: a.id, name: a.name }));
 		},
 		faltantesDe(row: Row): string[] {
 			return evaluarProducto(this.toLike(row), this.requiredAttrsFor(row), { requireMl: this.mlConnected }).faltantes;
@@ -1779,6 +2443,9 @@ export default defineComponent({
 				mlCatalogProductId: r.mlCatalogProductId || undefined,
 				atributos: Object.keys(r.atributos).length ? r.atributos : undefined,
 				source: r.source,
+				grupo: r.grupo || null,
+				variante: r.grupo ? r.variante || null : null,
+				opciones: r.grupo && r.opciones?.length ? r.opciones : null,
 			};
 		},
 		/** Guarda una sola fila (el ✔ de la fila). */
@@ -1821,7 +2488,10 @@ export default defineComponent({
 		async saveSelected() {
 			// Solo se guarda lo que CAMBIÓ (o es nuevo): mandar todas las filas pisaba
 			// productos sin tocar, los re-empujaba a ML y superaba el límite del pedido.
-			const seleccionadas = this.saveTargets;
+			await this.saveRows(this.saveTargets);
+		},
+		/** Guarda un conjunto de filas (en tandas) y sincroniza con ML las ya publicadas. */
+		async saveRows(seleccionadas: Row[]) {
 			if (!seleccionadas.length) return;
 			if (seleccionadas.some(r => !r.nombre.trim())) {
 				this.$toast.add({ severity: 'warn', summary: this.$t('admin.carga.needName'), life: 4000 });
@@ -2060,9 +2730,13 @@ export default defineComponent({
 			this.mlCatalogPicked = '';
 			// Arranca en el camino que ya venía usando esa fila.
 			this.mlMode = row.mlCatalogProductId ? 'catalogo' : 'categoria';
+			this.mlCharts = null;
+			this.mlChartCode = '';
 			this.mlVisible = true;
 			if (row.mlCategoryId && !this.attrsByCategory[row.mlCategoryId]) {
 				void this.loadAttrs(row.rubroId, row.mlCategoryId);
+			} else if (row.mlCategoryId) {
+				void this.loadSizeCharts();
 			}
 			this.autoSuggest();
 		},
@@ -2070,6 +2744,12 @@ export default defineComponent({
 		setMlMode(mode: 'categoria' | 'catalogo') {
 			this.mlMode = mode;
 			this.autoSuggest();
+		},
+		/** Vuelve a pedir sugerencias con el nombre que está escrito ahora. */
+		resuggest() {
+			if (this.mlMode !== 'categoria') return;
+			this.mlPredictions = [];
+			void this.suggestCategories();
 		},
 		/** En "solo categoría", si todavía no hay ninguna, sugerimos sin que lo pidan. */
 		autoSuggest() {
@@ -2117,12 +2797,61 @@ export default defineComponent({
 			const valid = new Set(this.mlAttrs.map(a => a.id));
 			this.mlAttrValues = Object.fromEntries(Object.entries(this.mlAttrValues).filter(([k]) => valid.has(k)));
 		},
+		/**
+		 * Busca las guías de talles del vendedor para la categoría elegida, con el
+		 * género y la marca cargados en la ficha (ML los exige para buscar).
+		 */
+		async loadSizeCharts() {
+			const row = this.mlRow;
+			const categoryId = this.mlPendingCategoryId;
+			if (!row || !categoryId) {
+				this.mlCharts = null;
+				return;
+			}
+			this.mlChartsLoading = true;
+			try {
+				this.mlCharts = await this.catalog.fetchMlSizeCharts(row.rubroId, categoryId, this.mlAttrValues.GENDER ?? '', this.mlAttrValues.BRAND ?? '');
+				// La guía ya elegida puede no salir en la búsqueda (se cargó por código o
+				// cambió el filtro): se trae por su código para no perderla.
+				const id = this.mlAttrValues.SIZE_GRID_ID;
+				if (id && !this.mlCharts.charts.some(c => c.id === id)) {
+					const chart = await this.catalog.fetchMlSizeChartById(row.rubroId, id, categoryId).catch(() => null);
+					if (chart) this.mlCharts.charts.push(chart);
+					else delete this.mlAttrValues.SIZE_GRID_ID;
+				}
+			} catch (e) {
+				this.mlCharts = null;
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.carga.ml.chart.error')), life: 6000 });
+			} finally {
+				this.mlChartsLoading = false;
+			}
+		},
+		/** Usa la guía cuyo código pegó el usuario (se la pide a ML para validarla). */
+		async useChartCode() {
+			const row = this.mlRow;
+			const code = this.mlChartCode.trim();
+			if (!row || !code || !this.mlCharts) return;
+			this.mlChartCodeLoading = true;
+			try {
+				const chart = await this.catalog.fetchMlSizeChartById(row.rubroId, code, this.mlPendingCategoryId);
+				if (!this.mlCharts.charts.some(c => c.id === chart.id)) this.mlCharts.charts.push(chart);
+				this.mlAttrValues.SIZE_GRID_ID = chart.id;
+				this.mlChartCode = '';
+				this.$toast.add({ severity: 'success', summary: this.$t('admin.carga.ml.chart.codeOk', { name: chart.name }), life: 4000 });
+			} catch (e) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.carga.ml.chart.codeError')), life: 6000 });
+			} finally {
+				this.mlChartCodeLoading = false;
+			}
+		},
 		async loadAttrs(rubroId: string, categoryId: string) {
 			this.mlLoadingAttrs = true;
 			try {
 				const attrs = await this.catalog.fetchMlAttributes(rubroId, categoryId);
 				this.attrsByCategory[categoryId] = attrs;
 				this.mlAttrs = attrs;
+				void this.loadVarAttrs(rubroId, categoryId);
+				void this.loadSizeCharts();
 			} catch (e) {
 				this.$toast.add({
 					severity: 'error',
@@ -2140,6 +2869,31 @@ export default defineComponent({
 			row.mlCategoryName = this.mlPendingCategoryName;
 			const clean: Record<string, string> = {};
 			for (const [k, v] of Object.entries(this.mlAttrValues)) if (v && v.trim()) clean[k] = v.trim();
+			// Con opciones cargadas a mano no se guarda un talle común (cada opción es el
+			// suyo). Las importadas de ML traen su talle en la ficha y se respeta.
+			if (row.grupo?.startsWith('man:')) for (const id of this.optionAttrIds(row)) delete clean[id];
+			// Con opciones: la categoría de ML y los datos que eran iguales en todas
+			// (marca, modelo…) valen para todas; los que las distinguen (talle, color)
+			// quedan como estaban en cada una.
+			if (row.grupo) {
+				const prev = row.atributos;
+				for (const r of this.groupRows(row)) {
+					if (r === row) continue;
+					r.mlCategoryId = this.mlPendingCategoryId;
+					r.mlCategoryName = this.mlPendingCategoryName;
+					if (row.grupo.startsWith('man:')) {
+						// Cargado a mano: la ficha es UNA para todas las opciones (lo que las
+						// distingue es la opción misma, no la ficha). Si quedan con marca o
+						// modelo distintos, ML las trata como productos separados.
+						r.atributos = { ...clean };
+					} else {
+						// Importado de ML: cada publicación trae su ficha; solo pisamos lo
+						// que era igual en todas.
+						for (const [k, v] of Object.entries(clean)) if (!(k in r.atributos) || r.atributos[k] === prev[k]) r.atributos[k] = v;
+					}
+					r.dirty = true;
+				}
+			}
 			row.atributos = clean;
 			row.mlCatalogProductId = this.mlPendingCatalogId;
 			if (this.mlPendingImageUrl && this.mlPendingImageUrl !== row.imageUrl) {
@@ -2246,12 +3000,27 @@ export default defineComponent({
 		openImages(row: Row) {
 			if (!row.imagenes.length && row.imageUrl) row.imagenes = [row.imageUrl];
 			this.imgRow = row;
+			this.imgPrev = JSON.stringify(row.imagenes);
 			this.imgVisible = true;
 		},
 		syncCover() {
-			if (this.imgRow) {
-				this.imgRow.imageUrl = this.imgRow.imagenes[0] ?? '';
-				this.imgRow.dirty = true;
+			const row = this.imgRow;
+			if (row) {
+				row.imageUrl = row.imagenes[0] ?? '';
+				row.dirty = true;
+				// Producto con opciones: las fotos se comparten entre las opciones del
+				// MISMO color (todas, si no hay colores). Se copian a las que no tenían o
+				// tenían las mismas (las importadas de ML con fotos propias quedan igual).
+				if (row.grupo) {
+					for (const r of this.groupRows(row)) {
+						if (r === row || this.colorOf(r) !== this.colorOf(row)) continue;
+						if (r.imagenes.length && JSON.stringify(r.imagenes) !== this.imgPrev) continue;
+						r.imagenes = [...row.imagenes];
+						r.imageUrl = row.imageUrl;
+						r.dirty = true;
+					}
+					this.imgPrev = JSON.stringify(row.imagenes);
+				}
 			}
 			this.dirty = true;
 		},

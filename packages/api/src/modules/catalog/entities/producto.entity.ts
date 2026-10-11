@@ -7,7 +7,7 @@ import {
 	PrimaryGeneratedColumn,
 	UpdateDateColumn,
 } from 'typeorm';
-import { ProductoSource, type ProductoAtributos } from '@base-template/shared';
+import { ProductoSource, type ProductoAtributos, type ProductoOpcion } from '@base-template/shared';
 import { RubroEntity } from './rubro.entity';
 
 /** TypeORM devuelve `numeric` como string; lo convertimos a number. */
@@ -75,6 +75,14 @@ export class ProductoEntity {
 	/** Qué variante es dentro del grupo ("M", "Azul / L"). */
 	@Column({ type: 'varchar', nullable: true })
 	variante!: string | null;
+
+	/**
+	 * Las características de esta opción con su nombre ([{ nombre: "Peso", valor:
+	 * "1 kg" }], hasta 3). `variante` es lo mismo ya unido. Con el nombre se sabe a
+	 * qué atributo de ML va cada valor y la vitrina arma un selector por cada una.
+	 */
+	@Column({ type: 'jsonb', nullable: true })
+	opciones!: ProductoOpcion[] | null;
 
 	// ── Campos comerciales / Mercado Libre (ML-ready) ──
 

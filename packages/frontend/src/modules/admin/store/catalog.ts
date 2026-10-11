@@ -21,6 +21,9 @@ import type {
 	MlRubroState,
 	MlCategoryPrediction,
 	MlAttribute,
+	MlSizeChart,
+	MlSizeChartsResult,
+	MlVariationAttr,
 	MlPublishResult,
 	MlCatalogSearchResult,
 	MlCatalogProduct,
@@ -329,6 +332,28 @@ export const useCatalogStore = defineStore('catalog', {
 		/** Atributos obligatorios de una categoría de ML. */
 		async fetchMlAttributes(rubroId: string, categoryId: string): Promise<MlAttribute[]> {
 			const { data } = await api.get<MlAttribute[]>(`/rubros/${rubroId}/ml/categories/${categoryId}/attributes`);
+			return data;
+		},
+
+		/** Guías de talles del vendedor para una categoría (ML las exige en ropa). */
+		async fetchMlSizeCharts(rubroId: string, categoryId: string, gender: string, brand: string): Promise<MlSizeChartsResult> {
+			const { data } = await api.get<MlSizeChartsResult>(`/rubros/${rubroId}/ml/size-charts`, {
+				params: { categoryId, gender, brand },
+			});
+			return data;
+		},
+
+		/** Atributos con los que la categoría de ML distingue opciones (talle, color, peso neto…). */
+		async fetchMlVariationAttrs(rubroId: string, categoryId: string): Promise<MlVariationAttr[]> {
+			const { data } = await api.get<MlVariationAttr[]>(`/rubros/${rubroId}/ml/categories/${categoryId}/variation-attributes`);
+			return data;
+		},
+
+		/** Una guía de talles por su código (el que ML muestra al crearla). */
+		async fetchMlSizeChartById(rubroId: string, chartId: string, categoryId: string): Promise<MlSizeChart> {
+			const { data } = await api.get<MlSizeChart>(`/rubros/${rubroId}/ml/size-charts/by-id/${encodeURIComponent(chartId)}`, {
+				params: { categoryId },
+			});
 			return data;
 		},
 

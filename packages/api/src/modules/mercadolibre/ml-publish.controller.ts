@@ -38,6 +38,26 @@ export class MlPublishController {
 		return this.publisher.publish(rubroId, espacioDe(user), productoId);
 	}
 
+	/** Diagnóstico: cómo agrupó ML la publicación (producto de usuario y familia). */
+	@Post('inspect')
+	inspect(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Param('productoId') productoId: string,
+	) {
+		return this.publisher.inspect(rubroId, espacioDe(user), productoId);
+	}
+
+	/** Validación en seco: ML revisa la publicación sin crearla. */
+	@Post('validate')
+	validate(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Param('productoId') productoId: string,
+	) {
+		return this.publisher.validate(rubroId, espacioDe(user), productoId);
+	}
+
 	/** Sincroniza el precio/stock de una publicación existente con la app. */
 	@Post('update')
 	update(

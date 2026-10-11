@@ -13,7 +13,8 @@
 			{{ $t('admin.config.pickAbove') }}
 		</div>
 
-		<div v-else class="space-y-6">
+		<!-- Tarjetas cerradas: se ven todas de un vistazo, cada una con su estado. -->
+		<div v-else class="space-y-3">
 			<!-- Contexto -->
 			<div class="flex items-center gap-2 text-sm">
 				<span class="text-surface-400">{{ $t('admin.config.configuring') }}</span>
@@ -26,16 +27,16 @@
 			<TiendaConfigCard v-if="!isApps" :rubro="rubro" />
 
 			<!-- ── Mercado Libre (solo si el espacio tiene el canal habilitado) ── -->
-			<section v-if="mlEnabled" class="glass-card rounded-2xl p-6">
-				<div class="mb-4 flex items-center gap-3">
-					<div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
-						<i class="pi pi-shopping-cart text-xl" />
-					</div>
-					<div>
-						<h3 class="font-semibold text-surface-900 dark:text-surface-0">{{ $t('admin.ml.title') }}</h3>
-						<p class="text-xs text-surface-500">{{ $t('admin.config.mlHint') }}</p>
-					</div>
-				</div>
+			<ConfigCard
+				v-if="mlEnabled"
+				icon="pi pi-shopping-cart"
+				icon-class="bg-amber-500/10 text-amber-500"
+				:title="$t('admin.ml.title')"
+				:hint="$t('admin.config.mlHint')"
+				:summary="mlSummary"
+				:status="mlStatus.label"
+				:tone="mlStatus.tone"
+			>
 
 				<div v-if="mlLoading" class="py-6 text-center text-surface-500"><i class="pi pi-spin pi-spinner text-2xl" /></div>
 				<!-- La app de ML es de plataforma; el negocio solo conecta su cuenta. -->
@@ -58,19 +59,17 @@
 						<Button :label="$t('admin.ml.disconnect')" icon="pi pi-times" severity="danger" text size="small" class="self-start" @click="disconnectMl" />
 					</template>
 				</div>
-			</section>
+			</ConfigCard>
 
 			<!-- ── Redes (Meta) — solo si el espacio tiene Instagram habilitado ── -->
-			<section v-if="igEnabled" class="glass-card rounded-2xl p-6">
-				<div class="mb-4 flex items-center gap-3">
-					<div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-						<i class="pi pi-share-alt text-xl" />
-					</div>
-					<div>
-						<h3 class="font-semibold text-surface-900 dark:text-surface-0">{{ $t('admin.meta.title') }}</h3>
-						<p class="text-xs text-surface-500">{{ $t('admin.config.metaHint') }}</p>
-					</div>
-				</div>
+			<ConfigCard
+				v-if="igEnabled"
+				icon="pi pi-share-alt"
+				:title="$t('admin.meta.title')"
+				:hint="$t('admin.config.metaHint')"
+				:status="metaStatus.label"
+				:tone="metaStatus.tone"
+			>
 
 				<div v-if="metaLoading" class="py-6 text-center text-surface-500"><i class="pi pi-spin pi-spinner text-2xl" /></div>
 				<!-- La app de Meta es de plataforma; el negocio solo conecta su cuenta. -->
@@ -117,22 +116,20 @@
 						<Button :label="$t('admin.meta.disconnect')" icon="pi pi-times" severity="danger" text size="small" class="self-start" @click="disconnectMeta" />
 					</template>
 				</div>
-			</section>
+			</ConfigCard>
 
 			<!-- ── Avisos por WhatsApp (destinatario de preguntas de ML + DMs de IG) ── -->
 			<WhatsappRecipientCard v-if="mlEnabled || igEnabled" :rubro-id="rubro.id" />
 
 			<!-- ── Cobros y suscripciones ── -->
-			<section class="glass-card rounded-2xl p-6">
-				<div class="mb-4 flex items-center gap-3">
-					<div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
-						<i class="pi pi-credit-card text-xl" />
-					</div>
-					<div>
-						<h3 class="font-semibold text-surface-900 dark:text-surface-0">{{ $t('admin.cobros.title') }}</h3>
-						<p class="text-xs text-surface-500">{{ $t('admin.config.cobrosHint') }}</p>
-					</div>
-				</div>
+			<ConfigCard
+				icon="pi pi-credit-card"
+				icon-class="bg-emerald-500/10 text-emerald-500"
+				:title="$t('admin.cobros.title')"
+				:hint="$t('admin.config.cobrosHint')"
+				:status="payStatus.label"
+				:tone="payStatus.tone"
+			>
 
 				<div v-if="payLoading" class="py-6 text-center text-surface-500"><i class="pi pi-spin pi-spinner text-2xl" /></div>
 				<div v-else class="flex flex-col gap-4">
@@ -151,7 +148,7 @@
 						<Button :label="$t('admin.config.cobrosPlans')" icon="pi pi-credit-card" size="small" severity="help" @click="goToPlanes" />
 					</div>
 				</div>
-			</section>
+			</ConfigCard>
 		</div>
 	</div>
 </template>
@@ -163,10 +160,14 @@ import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import WhatsappRecipientCard from '@/modules/admin/components/WhatsappRecipientCard.vue';
 import TiendaConfigCard from '@/modules/admin/components/TiendaConfigCard.vue';
+import ConfigCard from '@/modules/admin/components/ConfigCard.vue';
+
+/** Estado que muestra una tarjeta cerrada. */
+type CardStatus = { label: string; tone: 'ok' | 'warn' | 'muted' };
 
 export default defineComponent({
 	name: 'ConfiguracionesView',
-	components: { WhatsappRecipientCard, TiendaConfigCard },
+	components: { WhatsappRecipientCard, TiendaConfigCard, ConfigCard },
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -187,6 +188,32 @@ export default defineComponent({
 		};
 	},
 	computed: {
+		/** Estado de Mercado Libre para la tarjeta cerrada. */
+		mlStatus(): CardStatus {
+			if (this.mlLoading || !this.mlState) return { label: '', tone: 'muted' };
+			return this.mlState.connection
+				? { label: this.$t('admin.config.card.connected'), tone: 'ok' }
+				: { label: this.$t('admin.config.card.notConnected'), tone: 'warn' };
+		},
+		mlSummary(): string {
+			const c = this.mlState?.connection;
+			return c ? this.$t('admin.ml.connectedAs', { name: c.mlNickname || '—' }) : '';
+		},
+		/** Estado de Redes (Meta): sin conectar, conectada o con el acceso vencido. */
+		metaStatus(): CardStatus {
+			if (this.metaLoading || !this.metaState) return { label: '', tone: 'muted' };
+			const c = this.metaState.connection;
+			if (!c) return { label: this.$t('admin.config.card.notConnected'), tone: 'warn' };
+			return c.status === 'connected'
+				? { label: this.$t('admin.config.card.connected'), tone: 'ok' }
+				: { label: this.$t('admin.config.card.review'), tone: 'warn' };
+		},
+		payStatus(): CardStatus {
+			if (this.payLoading) return { label: '', tone: 'muted' };
+			return this.payConfigured
+				? { label: this.$t('admin.config.card.ready'), tone: 'ok' }
+				: { label: this.$t('admin.config.card.pending'), tone: 'warn' };
+		},
 		/** Negocio activo, tomado del contexto persistido. */
 		rubro(): Rubro | undefined {
 			return this.catalog.rubros.find(r => r.id === this.ctx.currentRubroId);

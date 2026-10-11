@@ -1,14 +1,12 @@
 <template>
-	<section class="glass-card rounded-2xl p-6">
-		<div class="mb-5 flex items-center gap-3">
-			<div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-				<i class="pi pi-shop text-xl" />
-			</div>
-			<div class="min-w-0">
-				<h3 class="font-semibold text-surface-900 dark:text-surface-0">{{ $t('admin.config.tienda.title') }}</h3>
-				<p class="text-xs text-surface-500">{{ $t('admin.config.tienda.hint') }}</p>
-			</div>
-		</div>
+	<ConfigCard
+		icon="pi pi-shop"
+		:title="$t('admin.config.tienda.title')"
+		:hint="$t('admin.config.tienda.hint')"
+		:summary="cardSummary"
+		:status="cardStatus.label"
+		:tone="cardStatus.tone"
+	>
 
 		<div class="space-y-6">
 			<!-- WhatsApp: a dónde llegan los pedidos y las consultas de la tienda. -->
@@ -160,7 +158,7 @@
 				<span v-if="dirty" class="text-xs font-medium text-amber-600 dark:text-amber-400">{{ $t('admin.config.tienda.unsaved') }}</span>
 			</div>
 		</div>
-	</section>
+	</ConfigCard>
 </template>
 
 <script lang="ts">
@@ -168,6 +166,7 @@ import { defineComponent, type PropType } from 'vue';
 import { PROVINCIAS_AR, type DespachoConfig, type Paquete, type Rubro } from '@base-template/shared';
 import { useCatalogStore, type RubroUpdate } from '@/modules/admin/store/catalog';
 import { apiErrorMessage } from '@/shared/utils/apiError';
+import ConfigCard from '@/modules/admin/components/ConfigCard.vue';
 
 type PaqueteForm = Record<keyof Paquete, number | null>;
 
@@ -219,6 +218,7 @@ function formFrom(rubro: Rubro): TiendaForm {
  */
 export default defineComponent({
 	name: 'TiendaConfigCard',
+	components: { ConfigCard },
 	props: {
 		rubro: { type: Object as PropType<Rubro>, required: true },
 	},
@@ -237,6 +237,18 @@ export default defineComponent({
 	computed: {
 		dirty(): boolean {
 			return JSON.stringify(this.form) !== this.saved;
+		},
+		/** Estado para la tarjeta cerrada: sin guardar, con WhatsApp propio, usando el general o sin ninguno. */
+		cardStatus(): { label: string; tone: 'ok' | 'warn' | 'muted' } {
+			if (this.dirty) return { label: this.$t('admin.config.card.unsaved'), tone: 'warn' };
+			if (this.form.whatsapp) return { label: this.$t('admin.config.card.ready'), tone: 'ok' };
+			return this.generalWhatsapp
+				? { label: this.$t('admin.config.card.generalWa'), tone: 'muted' }
+				: { label: this.$t('admin.config.card.noWa'), tone: 'warn' };
+		},
+		cardSummary(): string {
+			const wa = this.form.whatsapp || this.generalWhatsapp;
+			return wa ? this.$t('admin.config.card.ordersTo', { phone: wa }) : '';
 		},
 		/** WhatsApp general del negocio (el de "Sobre Nosotros"), al que caen los pedidos si este queda vacío. */
 		generalWhatsapp(): string {

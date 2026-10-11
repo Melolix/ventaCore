@@ -100,9 +100,108 @@ export interface MlCategoryPrediction {
 	categoryId: string;
 	/** Nombre legible de la categoría (ej. "Autos y Camionetas"). */
 	categoryName: string;
+	/**
+	 * De dónde cuelga ("Ropa y Accesorios › Remeras, Musculosas y Chombas"). Hay
+	 * varias categorías con el mismo nombre en ramas distintas (ropa, pesca, golf)
+	 * y sin la ruta no se distinguen. null si ML no la devolvió.
+	 */
+	categoryPath: string | null;
 	/** Dominio de ML (ej. "MLA-CARS_AND_VANS"), o null. */
 	domainId: string | null;
 	domainName: string | null;
+}
+
+/**
+ * Un atributo con el que una categoría de ML permite distinguir las opciones de
+ * un mismo producto (talle, color, peso neto, sabor…): los CHILD_PK del dominio.
+ */
+export interface MlVariationAttr {
+	id: string;
+	name: string;
+	values: MlAttributeValue[];
+	/** ML lo marca explícitamente como "variación" (ropa/calzado); el resto varía igual. */
+	allowVariations: boolean;
+}
+
+/** Nombres que los vendedores usan y no coinciden con el de ML. */
+const OPCION_ALIAS: Record<string, string> = {
+	talle: 'SIZE',
+	talla: 'SIZE',
+	numero: 'SIZE',
+	color: 'COLOR',
+	colores: 'COLOR',
+	peso: 'NET_WEIGHT',
+	sabor: 'FLAVOR',
+};
+
+const normOpcion = (s: string) =>
+	s
+		.trim()
+		.toLowerCase()
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '');
+
+/**
+ * A qué atributo de ML corresponde una característica cargada por el vendedor
+ * ("Peso" → "Peso neto", "Talle" → SIZE). Empareja por nombre; si no hay,
+ * devuelve null y esa característica viaja como atributo propio. Lo usan el
+ * servidor (al publicar) y el panel (para no pedir dos veces el mismo dato).
+ */
+export function matchOpcionAttr(nombre: string, attrs: MlVariationAttr[]): MlVariationAttr | null {
+	const n = normOpcion(nombre);
+	if (!n) return null;
+	const exact = attrs.find(a => normOpcion(a.name) === n);
+	if (exact) return exact;
+	const alias = OPCION_ALIAS[n];
+	if (alias) {
+		const byAlias = attrs.find(a => a.id === alias);
+		if (byAlias) return byAlias;
+	}
+	// "Peso" ↔ "Peso neto", "Diseño" ↔ "Diseño de la tela".
+	const prefijo = attrs.find(a => normOpcion(a.name).startsWith(n + ' ') || n.startsWith(normOpcion(a.name) + ' '));
+	if (prefijo) return prefijo;
+	// "Envase" ↔ "Tipo de envase", "Diseño" ↔ "Nombre del diseño": la palabra está en el nombre.
+	return attrs.find(a => normOpcion(a.name).split(' ').includes(n)) ?? null;
+}
+
+/** Una fila de una guía de talles de ML: un talle con su id de fila. */
+export interface MlSizeChartRow {
+	/** Id de la fila ("463005:1"); va en SIZE_GRID_ROW_ID al publicar. */
+	id: string;
+	/** Talle tal como figura en la guía ("M", "42 AR"). */
+	size: string;
+}
+
+/** Guía de talles del vendedor en Mercado Libre. */
+export interface MlSizeChart {
+	id: string;
+	name: string;
+	/** SPECIFIC (propia del vendedor), BRAND o STANDARD. */
+	type: string;
+	rows: MlSizeChartRow[];
+	/** Tipo de prenda (dominio de ML) para el que se creó, p. ej. "T_SHIRTS". */
+	domainId?: string;
+	/** Género de la guía ("Hombre", "Sin género"…), si ML lo informa. */
+	gender?: string;
+	/**
+	 * Solo al pedirla por código junto con una categoría: false si la guía es de
+	 * OTRO tipo de prenda que esa categoría (ML puede rechazar la publicación).
+	 */
+	sameDomain?: boolean;
+}
+
+/** Guías de talles disponibles para una categoría (y género) del vendedor. */
+export interface MlSizeChartsResult {
+	/** ¿La categoría usa guía de talles? (ropa y calzado; ML la exige al publicar). */
+	required: boolean;
+	/** true si faltó el género o la marca: ML los exige para buscar las guías. */
+	incomplete: boolean;
+	charts: MlSizeChart[];
+	/**
+	 * Si no hubo guías para el género pedido: las que el vendedor tiene para ese
+	 * tipo de prenda con OTRO género (para explicarle por qué no aparece la suya).
+	 */
+	otherGenders?: Array<{ gender: string; chart: MlSizeChart }>;
 }
 
 /** Valor permitido de un atributo de ML (para atributos con opciones cerradas). */
