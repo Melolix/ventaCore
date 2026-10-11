@@ -1050,7 +1050,8 @@
 				"publicaciones": "Publicaciones",
 				"ventas": "Ventas",
 				"preguntas": "Preguntas",
-				"metricas": "Métricas"
+				"metricas": "Métricas",
+				"estudio": "Estudio"
 			},
 			"metricas": {
 				"eyebrow": "Mercado Libre",
@@ -1207,6 +1208,77 @@
 			"needCategory": "Asigná la categoría (en Ficha) para calcular la comisión.",
 			"noCostHint": "Poné el costo",
 			"benefitNoShipping": "No incluye el envío. Cargá alto, ancho, largo y peso del producto para calcular la ganancia real.",
+			"estudio": {
+				"eyebrow": "Mercado Libre",
+				"pageTitle": "Estudio de mercado",
+				"pageSubtitle": "Con tus costos, qué productos tienen lugar en Mercado Libre y cuánto ganarías con cada uno.",
+				"target": "Margen que buscás",
+				"targetHint": "Buscamos a cuánto se vende cada producto en Mercado Libre y calculamos qué te queda, ya descontada la comisión, vendiéndolo al precio más barato y al del medio.",
+				"run": "Estudiar {n} productos",
+				"again": "Volver a estudiar",
+				"stop": "Detener",
+				"progress": "Estudiando {done} de {total}…",
+				"empty": "Todavía no hay productos en este negocio. Subí tu lista de precios en Cargar productos.",
+				"goLoad": "Cargar productos",
+				"intro": "Elegí el margen que buscás y tocá Estudiar. Puede tardar unos minutos según la cantidad de productos.",
+				"noneInGroup": "No hay productos en este grupo.",
+				"group": {
+					"conviene": "Conviene",
+					"justo": "Queda justo",
+					"no_conviene": "No conviene",
+					"sin_datos": "Sin datos",
+					"sin_costo": "Falta el costo"
+				},
+				"verdict": {
+					"conviene": "Conviene",
+					"justo": "Queda justo",
+					"no_conviene": "No conviene",
+					"sin_datos": "Sin datos",
+					"pendiente": "Pendiente",
+					"sin_costo": "Falta el costo"
+				},
+				"byName": "encontrado por el nombre, revisá que sea el mismo",
+				"wrongCode": "El código de barras lleva a otro producto en Mercado Libre ({name}). Revisalo.",
+				"noMatch": "No lo encontramos en Mercado Libre. Con el código de barras cargado es más fácil ubicarlo.",
+				"pending": "Buscando…",
+				"sellers": "nadie más lo vende | 1 vendedor | {n} vendedores",
+				"breakdown": "Comisión de ML: {pct}%",
+				"shipping": "envío: {cost}",
+				"noShipping": "sin descontar el envío (faltan las medidas)",
+				"failed": "No se pudo estudiar 1 producto. | No se pudieron estudiar {n} productos.",
+				"cheapest": "El más barato",
+				"middle": "El del medio",
+				"keep": "te queda {amount} ({pct}%)",
+				"similar": "No está el mismo producto en Mercado Libre. Referencia con parecidos de otras marcas:",
+				"needCost": "Cargá el costo de este producto para ver cuánto ganarías."
+			},
+			"comp": {
+				"title": "Competencia en Mercado Libre",
+				"refresh": "Volver a consultar",
+				"winning": "Ganando",
+				"winningLong": "Estás ganando la venta",
+				"sharing": "Compartís el 1.º",
+				"sharingLong": "Compartís el primer lugar",
+				"ok": "En precio",
+				"okLong": "Estás en precio",
+				"losing": "Perdiendo",
+				"losingLong": "Otro vendedor se lleva la venta",
+				"over": "{amount} caro",
+				"overLong": "Estás {amount} más caro",
+				"toWin": "Precio para ganar",
+				"cheapest": "El más barato",
+				"sellers": "Otros vendedores",
+				"usePrice": "Probar con {price}",
+				"view": "Ver en Mercado Libre",
+				"full": "Full",
+				"freeShipping": "Envío gratis",
+				"official": "Tienda oficial",
+				"noData": "Mercado Libre no tiene este producto en su catálogo, así que no hay con quién compararlo. Si tiene código de barras, cargalo en Datos.",
+				"alone": "Nadie más está vendiendo este producto en Mercado Libre.",
+				"comparedWith": "Comparado con:",
+				"noteCatalog": "El precio para ganar lo calcula Mercado Libre: además del precio mira el envío, las cuotas y la reputación.",
+				"notePrice": "Comparado solo por precio. Mercado Libre también mira el envío, las cuotas y la reputación."
+			},
 			"benefitNoShippingShort": "falta envío",
 			"secPricing": "Precio y rentabilidad",
 			"secData": "Datos",
@@ -1269,7 +1341,9 @@
 			"listingType": {
 				"gold_special": "Clásica",
 				"gold_pro": "Premium"
-			}
+			},
+			"minPriceBelow": "Mercado Libre no deja publicar en esta categoría por debajo de {min}. Subí el precio o vendelo en pack.",
+			"minPriceHint": "Precio mínimo de Mercado Libre en esta categoría: {min}"
 		},
 		"publish": {
 			"button": "Publicar",

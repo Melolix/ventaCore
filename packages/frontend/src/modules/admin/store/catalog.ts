@@ -29,6 +29,8 @@ import type {
 	MlCatalogProduct,
 	MlImportResult,
 	MlFeeBreakdown,
+	MlCompetencia,
+	MlEstudio,
 	MlShippingQuote,
 	MlListingType,
 	MlOrderView,
@@ -392,6 +394,22 @@ export const useCatalogStore = defineStore('catalog', {
 		/** Pausa o reactiva la publicación en Mercado Libre. */
 		async setMlStatus(rubroId: string, productoId: string, status: 'active' | 'paused'): Promise<MlPublishResult> {
 			const { data } = await api.post<MlPublishResult>(`/rubros/${rubroId}/ml/productos/${productoId}/status`, { status });
+			return data;
+		},
+
+		/** Precios de la competencia para un producto (mismo artículo en el catálogo de ML). */
+		async fetchMlCompetencia(rubroId: string, productoId: string, refresh = false): Promise<MlCompetencia> {
+			const { data } = await api.get<MlCompetencia>(`/rubros/${rubroId}/ml/productos/${productoId}/competencia`, {
+				params: refresh ? { refresh: 1 } : {},
+			});
+			return data;
+		},
+
+		/** Estudio de mercado de un producto: a cuánto se vende en ML y cuánto se ganaría con su costo. */
+		async fetchMlEstudio(rubroId: string, productoId: string, refresh = false): Promise<MlEstudio> {
+			const { data } = await api.get<MlEstudio>(`/rubros/${rubroId}/ml/productos/${productoId}/estudio`, {
+				params: refresh ? { refresh: 1 } : {},
+			});
 			return data;
 		},
 

@@ -245,6 +245,8 @@ export interface MlFeeBreakdown {
 	fixedFee: number;
 	/** Moneda (ej. "ARS"). */
 	currencyId: string;
+	/** Precio mínimo con el que ML deja publicar en esa categoría (null si no informa). */
+	minPrice?: number | null;
 }
 
 /** Cotización del envío gratis de Mercado Libre para un producto/precio. */
@@ -346,4 +348,90 @@ export interface MlRubroState {
 	appId: string | null;
 	/** Conexión OAuth (null si configuró la app pero todavía no autorizó). */
 	connection: MlConnection | null;
+}
+
+/** Un vendedor que ofrece el mismo producto en Mercado Libre. */
+export interface MlCompetidor {
+	itemId: string | null;
+	precio: number;
+	envioGratis: boolean;
+	/** Lo despacha Mercado Libre (Full). */
+	full: boolean;
+	tiendaOficial: boolean;
+}
+
+/**
+ * Cómo está el precio de un producto frente a la competencia en ML.
+ *  - ganando / compartiendo / perdiendo: lo dice ML (publicación de catálogo).
+ *  - en_precio / caro: comparación solo por precio contra el más barato.
+ *  - sin_competencia: nadie más lo vende. sin_datos: no está en el catálogo de ML.
+ */
+export type MlCompetenciaEstado = 'ganando' | 'compartiendo' | 'perdiendo' | 'en_precio' | 'caro' | 'sin_competencia' | 'sin_datos';
+
+export interface MlCompetencia {
+	estado: MlCompetenciaEstado;
+	/** Cómo se encontró la ficha del catálogo: por la publicación/enlace o por el código de barras. */
+	fuente: 'catalogo' | 'ean' | null;
+	miPrecio: number | null;
+	/** Precio con el que ML dice que ganarías (solo publicaciones de catálogo). */
+	precioParaGanar: number | null;
+	/** El precio más bajo de la competencia. */
+	mejorPrecio: number | null;
+	/** Cuántos otros vendedores lo ofrecen. */
+	vendedores: number;
+	/** Los más baratos (hasta 5), de menor a mayor. */
+	competidores: MlCompetidor[];
+	catalogProductId: string | null;
+	catalogName: string | null;
+	/** Link a la ficha del producto en Mercado Libre. */
+	permalink: string | null;
+	actualizado: string;
+}
+
+/** Qué queda vendiendo un producto a un precio dado. */
+export interface MlEstudioEscenario {
+	precio: number;
+	/** Comisión de ML a ese precio. */
+	comision: number;
+	comisionPct: number;
+	/** Envío a cargo del vendedor a ese precio (0 si lo paga el comprador o faltan las medidas). */
+	envio: number;
+	/** null si el producto no tiene costo cargado. */
+	ganancia: number | null;
+	/** Ganancia sobre el costo, en %. */
+	gananciaPct: number | null;
+}
+
+/**
+ * Estudio de mercado de un producto: a cuánto se vende en ML y cuánto quedaría de
+ * ganancia, con el costo cargado, vendiéndolo al precio más barato y al del medio.
+ */
+export interface MlEstudio {
+	/**
+	 * Cómo se encontró en ML: por la publicación, el código de barras, el nombre
+	 * (aproximado) o — si el producto exacto no está — por productos parecidos de
+	 * otras marcas en la misma medida (solo una referencia). null = nada.
+	 */
+	via: 'publicacion' | 'ean' | 'nombre' | 'similares' | null;
+	catalogProductId: string | null;
+	/** Con qué producto de ML se comparó (para chequear que sea el mismo). */
+	catalogName: string | null;
+	/** Con `via: 'similares'`: los productos parecidos que se tomaron de referencia. */
+	similares: string[];
+	/** El código de barras llevó a un producto con otro nombre: la comparación no es confiable. */
+	noCoincide: boolean;
+	permalink: string | null;
+	vendedores: number;
+	precioMin: number | null;
+	/** El precio del medio: la mitad vende más barato y la mitad más caro. */
+	precioMediana: number | null;
+	competidores: MlCompetidor[];
+	costo: number | null;
+	/** Vendiendo al precio más barato. */
+	alMin: MlEstudioEscenario | null;
+	/** Vendiendo al precio del medio. */
+	alMedio: MlEstudioEscenario | null;
+	/** Faltan las medidas del paquete: el envío no está descontado. */
+	envioSinMedidas: boolean;
+	actualizado: string;
 }

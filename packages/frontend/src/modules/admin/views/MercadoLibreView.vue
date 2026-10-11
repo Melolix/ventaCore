@@ -120,6 +120,16 @@
 							{{ $t('admin.ml.benefitNoShippingShort') }}
 						</p>
 						<p v-else-if="p.precioCosto == null" class="hidden text-[11px] text-surface-300 sm:block dark:text-surface-600">{{ $t('admin.ml.noCostHint') }}</p>
+						<!-- Cómo está el precio frente a quienes venden el mismo producto en ML. -->
+						<p
+							v-if="compBadge(p)"
+							class="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold"
+							:class="compToneCls(compBadge(p)!.tone)"
+							:title="$t('admin.ml.comp.title')"
+						>
+							<span class="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+							{{ compBadge(p)!.label }}
+						</p>
 					</div>
 					<!-- Estado real en ML si está publicada; si no, el estado de la app.
 					     Solo desde sm (en mobile va el punto de color de arriba). Envuelto en
@@ -447,6 +457,66 @@
 							<InputNumber v-model="edit.precioMl" class="flex-1" fluid mode="currency" currency="ARS" locale="es-AR" :min="0" :max-fraction-digits="0" @update:model-value="onMlPriceChange" />
 							<Button :label="$t('admin.ml.calcBtn')" icon="pi pi-calculator" :loading="calculating" :disabled="!canCalc" @click="calcMlPrice" />
 						</div>
+						<!-- Mínimo de ML para la categoría: por debajo no deja publicar. -->
+						<p v-if="belowMin" class="flex items-start gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400">
+							<i class="pi pi-exclamation-triangle mt-0.5" />
+							<span>{{ $t('admin.ml.minPriceBelow', { min: money(fee!.minPrice!) }) }}</span>
+						</p>
+						<p v-else-if="fee && fee.minPrice" class="text-[11px] text-surface-400">{{ $t('admin.ml.minPriceHint', { min: money(fee.minPrice) }) }}</p>
+					</div>
+
+					<!-- Competencia: quién más vende este mismo producto en ML y a cuánto.
+					     Se compara contra el precio que está escrito arriba, así se ve en vivo. -->
+					<div v-if="compCanCheck" class="rounded-xl border border-surface-200 p-4 dark:border-surface-700">
+						<div class="flex items-center justify-between gap-2">
+							<p class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.comp.title') }}</p>
+							<Button icon="pi pi-refresh" size="small" text rounded :loading="compLoading" :title="$t('admin.ml.comp.refresh')" @click="loadComp(edit.id, true)" />
+						</div>
+						<div v-if="compLoading && !editComp" class="py-2 text-center text-surface-500"><i class="pi pi-spin pi-spinner" /></div>
+						<p v-else-if="!editComp || editComp.estado === 'sin_datos'" class="mt-1 text-xs text-surface-400">{{ $t('admin.ml.comp.noData') }}</p>
+						<p v-else-if="editComp.estado === 'sin_competencia'" class="mt-1 text-xs text-surface-400">{{ $t('admin.ml.comp.alone') }}</p>
+						<div v-else class="mt-2 space-y-3">
+							<p v-if="editCompView" class="flex items-center gap-2 text-sm font-semibold" :class="compToneCls(editCompView.tone)">
+								<span class="h-2 w-2 shrink-0 rounded-full bg-current" />
+								{{ editCompView.headline }}
+							</p>
+							<!-- Con qué ficha de ML se comparó: si no es el mismo producto (un código
+							     de barras mal cargado), acá se nota. -->
+							<p v-if="editComp.catalogName" class="text-xs text-surface-500">
+								{{ $t('admin.ml.comp.comparedWith') }} <span class="font-medium text-surface-700 dark:text-surface-200">{{ editComp.catalogName }}</span>
+							</p>
+							<div class="grid grid-cols-2 gap-2 text-center text-xs">
+								<div class="min-w-0">
+									<p class="text-surface-400">{{ $t(editComp.precioParaGanar != null ? 'admin.ml.comp.toWin' : 'admin.ml.comp.cheapest') }}</p>
+									<p class="truncate font-semibold text-surface-800 dark:text-surface-100">{{ editCompView ? money(editCompView.target) : '—' }}</p>
+								</div>
+								<div class="min-w-0">
+									<p class="text-surface-400">{{ $t('admin.ml.comp.sellers') }}</p>
+									<p class="font-semibold text-surface-800 dark:text-surface-100">{{ editComp.vendedores }}</p>
+								</div>
+							</div>
+							<!-- Los más baratos, con lo que suele definir la venta además del precio. -->
+							<ul v-if="editComp.competidores.length" class="space-y-1 text-xs">
+								<li v-for="(c, i) in editComp.competidores" :key="c.itemId || i" class="flex min-w-0 items-center justify-between gap-2">
+									<span class="font-semibold text-surface-700 dark:text-surface-200">{{ money(c.precio) }}</span>
+									<span class="truncate text-surface-400">{{ compTags(c) }}</span>
+								</li>
+							</ul>
+							<div class="flex flex-wrap items-center gap-2">
+								<Button
+									v-if="editCompView && editCompView.tone !== 'ok'"
+									:label="$t('admin.ml.comp.usePrice', { price: money(editCompView.target) })"
+									icon="pi pi-arrow-down"
+									size="small"
+									outlined
+									@click="useCompPrice"
+								/>
+								<a v-if="editComp.permalink" :href="editComp.permalink" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+									<i class="pi pi-external-link text-[10px]" /> {{ $t('admin.ml.comp.view') }}
+								</a>
+							</div>
+							<p class="text-[11px] leading-snug text-surface-400">{{ $t(editComp.precioParaGanar != null ? 'admin.ml.comp.noteCatalog' : 'admin.ml.comp.notePrice') }}</p>
+						</div>
 					</div>
 
 					<!-- Desglose en vivo -->
@@ -555,6 +625,8 @@ import type {
 	Producto,
 	Rubro,
 	MlFeeBreakdown,
+	MlCompetencia,
+	MlCompetidor,
 	MlShippingQuote,
 	MlListingType,
 	BatchProductoItem,
@@ -574,6 +646,8 @@ type ProductState = 'published' | 'ready' | 'missing';
 /** Pasos del editor, en orden de dependencia: la ficha (categoría) define la
  *  comisión y el envío (medidas) su costo; los dos alimentan el precio. */
 type EditorStep = 'ficha' | 'envio' | 'precio' | 'datos';
+/** Semáforo de la competencia: en precio / caro por poco / caro. */
+type CompTone = 'ok' | 'warn' | 'bad';
 
 /** Copia editable de un producto dentro del editor de ML. */
 interface EditState {
@@ -649,6 +723,9 @@ export default defineComponent({
 			shippingLoading: false,
 			// Beneficio real por producto (para la lista): { pct, loss }
 			benefit: {} as Record<string, { pct: number; loss: boolean; shippingUnknown?: boolean }>,
+			// Competencia por producto (quién más lo vende en ML y a cuánto).
+			comp: {} as Record<string, MlCompetencia>,
+			compLoading: false,
 			// Categoría + atributos de ML (misma función que en Cargar productos)
 			mlPredicting: false,
 			mlPredictions: [] as MlCategoryPrediction[],
@@ -698,6 +775,22 @@ export default defineComponent({
 			];
 		},
 		/** ¿Se puede calcular/consultar comisión? (categoría + conexión). */
+		/** ¿El producto abierto se puede comparar con la competencia? */
+		compCanCheck(): boolean {
+			return !!this.edit && this.compTarget(this.edit);
+		},
+		editComp(): MlCompetencia | null {
+			return this.edit ? (this.comp[this.edit.id] ?? null) : null;
+		},
+		/** Semáforo del editor: contra el precio que está escrito ahora, no el guardado. */
+		editCompView(): { tone: CompTone; label: string; headline: string; target: number } | null {
+			return this.edit ? this.compView(this.editComp ?? undefined, this.edit.precioMl) : null;
+		},
+		/** El precio de ML está por debajo del mínimo que ML exige en esa categoría. */
+		belowMin(): boolean {
+			const min = this.fee?.minPrice;
+			return min != null && this.edit?.precioMl != null && this.edit.precioMl < min;
+		},
 		canCalc(): boolean {
 			return !!this.edit?.mlCategoryId && !!this.edit?.precio;
 		},
@@ -846,6 +939,83 @@ export default defineComponent({
 			};
 			await Promise.all([worker(), worker(), worker()]);
 		},
+		// ── Competencia ──
+		/** Solo se puede comparar lo que ML reconoce como el mismo producto: publicado, enlazado al catálogo o con código de barras. */
+		compTarget(p: { mlItemId?: string | null; mlCatalogProductId?: string | null; gtin?: string | null }): boolean {
+			return !!(p.mlItemId || p.mlCatalogProductId || p.gtin);
+		},
+		/**
+		 * Semáforo de un precio frente a la competencia. `target` es el precio a
+		 * alcanzar (el que ML dice que gana, o el más barato). Verde = en precio;
+		 * amarillo = caro por poco (hasta 5%); rojo = caro.
+		 */
+		compView(c: MlCompetencia | undefined, price: number | null): { tone: CompTone; label: string; headline: string; target: number } | null {
+			if (!c || c.estado === 'sin_datos' || c.estado === 'sin_competencia') return null;
+			const target = c.precioParaGanar ?? c.mejorPrecio;
+			if (target == null || price == null) return null;
+			// Con el precio tal cual está publicado vale lo que dice ML (mira envío y
+			// reputación); si lo están editando, se compara el número nuevo.
+			const sinCambios = c.miPrecio != null && Math.round(c.miPrecio) === Math.round(price);
+			if (sinCambios && c.estado === 'ganando') return { tone: 'ok', label: this.$t('admin.ml.comp.winning'), headline: this.$t('admin.ml.comp.winningLong'), target };
+			if (sinCambios && c.estado === 'compartiendo') return { tone: 'ok', label: this.$t('admin.ml.comp.sharing'), headline: this.$t('admin.ml.comp.sharingLong'), target };
+			const diff = Math.round(price - target);
+			const perdiendo = sinCambios && c.estado === 'perdiendo';
+			if (diff <= 0 && !perdiendo) return { tone: 'ok', label: this.$t('admin.ml.comp.ok'), headline: this.$t('admin.ml.comp.okLong'), target };
+			const amount = this.money(Math.max(diff, 0));
+			return {
+				tone: diff / target <= 0.05 ? 'warn' : 'bad',
+				label: diff > 0 ? this.$t('admin.ml.comp.over', { amount }) : this.$t('admin.ml.comp.losing'),
+				headline: diff > 0 ? this.$t('admin.ml.comp.overLong', { amount }) : this.$t('admin.ml.comp.losingLong'),
+				target,
+			};
+		},
+		compBadge(p: Producto): { tone: CompTone; label: string } | null {
+			return this.compView(this.comp[p.id], this.mlPrice(p));
+		},
+		compToneCls(tone: CompTone): string {
+			if (tone === 'ok') return 'text-emerald-600 dark:text-emerald-400';
+			return tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : 'text-red-500';
+		},
+		compTags(c: MlCompetidor): string {
+			const tags: string[] = [];
+			if (c.full) tags.push(this.$t('admin.ml.comp.full'));
+			else if (c.envioGratis) tags.push(this.$t('admin.ml.comp.freeShipping'));
+			if (c.tiendaOficial) tags.push(this.$t('admin.ml.comp.official'));
+			return tags.join(' · ');
+		},
+		async loadComp(productoId: string, refresh = false) {
+			if (!this.rubro) return;
+			this.compLoading = true;
+			try {
+				this.comp[productoId] = await this.catalog.fetchMlCompetencia(this.rubro.id, productoId, refresh);
+			} catch {
+				/* sin dato: la tarjeta lo dice */
+			} finally {
+				this.compLoading = false;
+			}
+		},
+		/** Trae la competencia de todos los productos comparables, de a 3 y sin bloquear la lista. */
+		async computeCompetencia() {
+			if (!this.rubro) return;
+			const rubroId = this.rubro.id;
+			const queue = this.productos.filter(p => this.compTarget(p) && this.mlPrice(p) != null);
+			const worker = async () => {
+				for (;;) {
+					const p = queue.shift();
+					if (!p) return;
+					const c = await this.catalog.fetchMlCompetencia(rubroId, p.id).catch(() => null);
+					if (c) this.comp[p.id] = c;
+				}
+			};
+			await Promise.all([worker(), worker(), worker()]);
+		},
+		/** Pone en el precio de ML el que hace falta para quedar en precio; el desglose muestra cuánto se gana así. */
+		useCompPrice() {
+			if (!this.edit || !this.editCompView) return;
+			this.edit.precioMl = Math.floor(this.editCompView.target);
+			this.onMlPriceChange();
+		},
+
 		async reload() {
 			// Al recargar la página parados acá, los rubros todavía no están cargados;
 			// hay que traerlos ANTES de resolver el rubro activo, si no sale temprano
@@ -864,6 +1034,7 @@ export default defineComponent({
 			}
 			// Beneficio real por producto (en segundo plano, no bloquea la lista).
 			if (this.mlConnected) void this.computeBenefits();
+			if (this.mlConnected) void this.computeCompetencia();
 		},
 		async importListings() {
 			if (!this.rubro) return;
@@ -925,6 +1096,7 @@ export default defineComponent({
 			this.step = !this.edit.mlCategoryId ? 'ficha' : !this.hasDims ? 'envio' : 'precio';
 			this.editorVisible = true;
 			if (this.edit.precioMl) this.refreshFee();
+			if (this.compTarget(p) && !this.comp[p.id]) void this.loadComp(p.id);
 			if (p.mlCategoryId && !this.attrsByCategory[p.mlCategoryId]) void this.loadAttrs(p.mlCategoryId);
 		},
 		/** Clase de una sección del editor: solo se ve la de la pestaña activa. */
@@ -1307,6 +1479,8 @@ export default defineComponent({
 				// renglón muestre el dato nuevo sin necesidad de recargar la pantalla.
 				const fresh = this.catalog.allProductos.find(p => p.id === saved.id);
 				if (fresh) void this.computeBenefitFor(fresh);
+				// El precio pudo cambiar: la comparación guardada ya no vale.
+				if (fresh && this.compTarget(fresh)) void this.loadComp(fresh.id);
 				this.editorVisible = false;
 			} catch (err: unknown) {
 				this.$toast.add({ severity: 'error', summary: apiErrorMessage(err, this.$t('admin.carga.pub.error')), life: 7000 });

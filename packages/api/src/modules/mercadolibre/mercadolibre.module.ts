@@ -13,6 +13,7 @@ import { MlCatalogService } from './ml-catalog.service';
 import { MlPricingService } from './ml-pricing.service';
 import { MlPublishService } from './ml-publish.service';
 import { MlImportService } from './ml-import.service';
+import { MlCompetitionService } from './ml-competition.service';
 import { MlCallbackController } from './ml-callback.controller';
 import { MlConnectionsController } from './ml-connections.controller';
 import { MlCatalogController } from './ml-catalog.controller';
@@ -46,6 +47,7 @@ import { MlImportController } from './ml-import.controller';
 		MlPricingService,
 		MlPublishService,
 		MlImportService,
+		MlCompetitionService,
 		TokenCryptoService,
 		FirebaseAuthGuard,
 		RolesGuard,

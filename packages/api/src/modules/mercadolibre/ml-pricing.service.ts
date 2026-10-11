@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { MlFeeBreakdown, MlListingType, MlShippingQuote } from '@base-template/shared';
 import { MlConnectionService } from './ml-connection.service';
+import { MlCatalogService } from './ml-catalog.service';
 
 /** Dimensiones del paquete (cm) + peso (g) para cotizar envío. */
 export interface PackageDims {
@@ -34,7 +35,10 @@ export class MlPricingService {
 		return process.env.ML_API_HOST || 'https://api.mercadolibre.com';
 	}
 
-	constructor(private readonly connections: MlConnectionService) {}
+	constructor(
+		private readonly connections: MlConnectionService,
+		private readonly catalog: MlCatalogService,
+	) {}
 
 	/**
 	 * Comisión de ML para un precio dado (una llamada a la API). Devuelve el monto
@@ -71,6 +75,7 @@ export class MlPricingService {
 			percentageFee: raw.sale_fee_details?.percentage_fee ?? 0,
 			fixedFee: raw.sale_fee_details?.fixed_fee ?? 0,
 			currencyId: raw.currency_id ?? 'ARS',
+			minPrice: await this.catalog.getMinPrice(categoryId).catch(() => null),
 		};
 	}
 

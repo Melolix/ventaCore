@@ -1050,7 +1050,8 @@
 				"publicaciones": "Listings",
 				"ventas": "Sales",
 				"preguntas": "Questions",
-				"metricas": "Metrics"
+				"metricas": "Metrics",
+				"estudio": "Research"
 			},
 			"metricas": {
 				"eyebrow": "Mercado Libre",
@@ -1207,6 +1208,77 @@
 			"needCategory": "Assign the category (in Listing) to compute the fee.",
 			"noCostHint": "Add cost",
 			"benefitNoShipping": "Shipping not included. Add the product's height, width, length and weight to compute the real profit.",
+			"estudio": {
+				"eyebrow": "Mercado Libre",
+				"pageTitle": "Market research",
+				"pageSubtitle": "With your costs, which products have room on Mercado Libre and how much you would earn on each.",
+				"target": "Margin you want",
+				"targetHint": "We look up what each product sells for on Mercado Libre and work out what you keep, after the fee, selling at the cheapest price and at the middle one.",
+				"run": "Research {n} products",
+				"again": "Research again",
+				"stop": "Stop",
+				"progress": "Researching {done} of {total}…",
+				"empty": "There are no products in this business yet. Upload your price list under Load products.",
+				"goLoad": "Load products",
+				"intro": "Choose the margin you want and tap Research. It can take a few minutes depending on how many products there are.",
+				"noneInGroup": "No products in this group.",
+				"group": {
+					"conviene": "Worth it",
+					"justo": "Tight",
+					"no_conviene": "Not worth it",
+					"sin_datos": "No data",
+					"sin_costo": "Cost missing"
+				},
+				"verdict": {
+					"conviene": "Worth it",
+					"justo": "Tight",
+					"no_conviene": "Not worth it",
+					"sin_datos": "No data",
+					"pendiente": "Pending",
+					"sin_costo": "Cost missing"
+				},
+				"byName": "found by name, check it is the same product",
+				"wrongCode": "The barcode points to a different product on Mercado Libre ({name}). Please check it.",
+				"noMatch": "We could not find it on Mercado Libre. A barcode makes it easier to locate.",
+				"pending": "Searching…",
+				"sellers": "nobody else sells it | 1 seller | {n} sellers",
+				"breakdown": "Mercado Libre fee: {pct}%",
+				"shipping": "shipping: {cost}",
+				"noShipping": "shipping not deducted (package size missing)",
+				"failed": "1 product could not be researched. | {n} products could not be researched.",
+				"cheapest": "Cheapest",
+				"middle": "Middle price",
+				"keep": "you keep {amount} ({pct}%)",
+				"similar": "The same product is not on Mercado Libre. Reference from similar ones by other brands:",
+				"needCost": "Add the cost of this product to see how much you would earn."
+			},
+			"comp": {
+				"title": "Competition on Mercado Libre",
+				"refresh": "Check again",
+				"winning": "Winning",
+				"winningLong": "You are winning the sale",
+				"sharing": "Sharing 1st",
+				"sharingLong": "You share first place",
+				"ok": "Well priced",
+				"okLong": "Your price is competitive",
+				"losing": "Losing",
+				"losingLong": "Another seller is getting the sale",
+				"over": "{amount} over",
+				"overLong": "You are {amount} more expensive",
+				"toWin": "Price to win",
+				"cheapest": "Cheapest",
+				"sellers": "Other sellers",
+				"usePrice": "Try {price}",
+				"view": "View on Mercado Libre",
+				"full": "Full",
+				"freeShipping": "Free shipping",
+				"official": "Official store",
+				"noData": "Mercado Libre does not have this product in its catalog, so there is nothing to compare it with. If it has a barcode, add it under Details.",
+				"alone": "Nobody else is selling this product on Mercado Libre.",
+				"comparedWith": "Compared with:",
+				"noteCatalog": "The price to win is calculated by Mercado Libre: besides price it considers shipping, installments and reputation.",
+				"notePrice": "Compared by price only. Mercado Libre also considers shipping, installments and reputation."
+			},
 			"benefitNoShippingShort": "no shipping",
 			"secPricing": "Price & profitability",
 			"secData": "Data",
@@ -1269,7 +1341,9 @@
 			"listingType": {
 				"gold_special": "Classic",
 				"gold_pro": "Premium"
-			}
+			},
+			"minPriceBelow": "Mercado Libre does not allow listings in this category below {min}. Raise the price or sell it as a pack.",
+			"minPriceHint": "Mercado Libre minimum price in this category: {min}"
 		},
 		"publish": {
 			"button": "Publish",

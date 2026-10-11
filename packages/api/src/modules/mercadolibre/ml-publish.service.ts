@@ -315,6 +315,9 @@ export class MlPublishService {
 			throw new BadRequestException(`Faltan datos para publicar en Mercado Libre: ${faltan.join(', ')}`);
 		}
 
+		// ML rechaza lo que está por debajo del mínimo de la categoría; lo decimos antes y claro.
+		await this.catalog.assertMinPrice(producto.mlCategoryId, precioPublicacion);
+
 		const { accessToken, siteId } = await this.connections.getValidAccessToken(rubroId, espacioId);
 
 		const payload = await this.buildItemPayload(producto, precioPublicacion, accessToken, siteId, true);
@@ -372,6 +375,7 @@ export class MlPublishService {
 
 		const precio = producto.precioMl ?? producto.precio;
 		if (precio == null) throw new BadRequestException('El producto no tiene precio');
+		await this.catalog.assertMinPrice(producto.mlCategoryId, precio);
 
 		const { accessToken } = await this.connections.getValidAccessToken(rubroId, espacioId);
 

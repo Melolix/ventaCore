@@ -51,6 +51,37 @@ export class MlCatalogService {
 
 	constructor(private readonly connections: MlConnectionService) {}
 
+	private readonly minPrices = new Map<string, number | null>();
+
+	/**
+	 * Precio mínimo con el que ML deja publicar en una categoría (dato público de
+	 * la categoría; cambia según el rubro: $1.000 en la mayoría, más en otras).
+	 * null si ML no informa uno o no se pudo consultar.
+	 */
+	async getMinPrice(categoryId: string): Promise<number | null> {
+		const id = categoryId.trim();
+		if (!id) return null;
+		if (this.minPrices.has(id)) return this.minPrices.get(id) ?? null;
+		const res = await fetch(`${this.apiHost}/categories/${encodeURIComponent(id)}`, { headers: { accept: 'application/json' } }).catch(() => null);
+		if (!res?.ok) return null;
+		const body = (await res.json().catch(() => ({}))) as { settings?: { minimum_price?: number | null } };
+		const min = typeof body.settings?.minimum_price === 'number' && body.settings.minimum_price > 0 ? body.settings.minimum_price : null;
+		this.minPrices.set(id, min);
+		return min;
+	}
+
+	/** Corta con un mensaje claro si el precio está por debajo del mínimo de la categoría. */
+	async assertMinPrice(categoryId: string | null | undefined, price: number | null | undefined): Promise<void> {
+		if (!categoryId || price == null) return;
+		const min = await this.getMinPrice(categoryId);
+		if (min != null && price < min) {
+			const fmt = (n: number) => `$ ${Math.round(n).toLocaleString('es-AR')}`;
+			throw new BadRequestException(
+				`Mercado Libre no permite publicar en esta categoría por debajo de ${fmt(min)} y el precio es ${fmt(price)}. Subí el precio de Mercado Libre o vendelo en pack.`,
+			);
+		}
+	}
+
 	/**
 	 * Busca productos en el catálogo de ML por nombre o código de barras (EAN).
 	 * Si `query` son solo dígitos (8-14) se busca por identificador; si no, por texto.

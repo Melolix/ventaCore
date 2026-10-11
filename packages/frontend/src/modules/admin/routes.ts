@@ -61,6 +61,11 @@ const adminRoutes: RouteRecordRaw[] = [
 						name: 'admin-ml-metricas',
 						component: () => import('./views/MetricasView.vue'),
 					},
+					{
+						path: 'estudio',
+						name: 'admin-ml-estudio',
+						component: () => import('./views/EstudioMercadoView.vue'),
+					},
 				],
 			},
 			{

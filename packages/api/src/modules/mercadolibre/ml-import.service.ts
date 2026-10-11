@@ -14,6 +14,8 @@ interface RawMlItem {
 	price?: number;
 	available_quantity?: number;
 	category_id?: string;
+	listing_type_id?: string;
+	shipping?: { free_shipping?: boolean };
 	permalink?: string;
 	status?: string;
 	catalog_product_id?: string | null;
@@ -75,7 +77,7 @@ export class MlImportService {
 	 * actualiza como productos (dedup por `mlItemId`).
 	 */
 	async importActiveListings(rubroId: string, espacioId: string): Promise<MlImportResult> {
-		const { accessToken, mlUserId } = await this.connections.getValidAccessToken(rubroId, espacioId);
+		const { accessToken, mlUserId, siteId } = await this.connections.getValidAccessToken(rubroId, espacioId);
 
 		const ids = await this.fetchItemIds(mlUserId, accessToken);
 		if (!ids.length) return { imported: 0, updated: 0, total: 0 };
@@ -93,6 +95,16 @@ export class MlImportService {
 		const vigentes = items.filter(i => i.status !== 'closed');
 		const variantes = this.detectVariantes(vigentes);
 
+		// Precio de la vitrina: el de ML ya trae adentro la comisión, que en la tienda
+		// propia no se paga. Se le resta. Solo donde el precio de tienda sigue "atado"
+		// al de ML (producto nuevo, o nunca lo separaron): uno puesto a mano no se toca.
+		const atado = (item: RawMlItem): boolean => {
+			const e = byItem.get(item.id);
+			if (!e || e.precio == null) return true;
+			return e.precio === item.price || (e.precioMl != null && e.precio === e.precioMl);
+		};
+		const netos = await this.fetchStorePrices(vigentes.filter(atado), siteId, mlUserId, accessToken);
+
 		for (const item of vigentes) {
 			const pics = (item.pictures ?? [])
 				.map(p => (p.secure_url || p.url || '').replace(/^http:\/\//, 'https://'))
@@ -104,7 +116,10 @@ export class MlImportService {
 
 			const fields: Partial<ProductoEntity> = {
 				nombre: item.title ?? '(sin título)',
-				precio: item.price ?? null,
+				// El precio publicado va al precio de ML; el de la tienda, más abajo.
+				precioMl: item.price ?? null,
+				...(item.listing_type_id === 'gold_special' || item.listing_type_id === 'gold_pro' ? { mlListingType: item.listing_type_id } : {}),
+				...(netos.has(item.id) ? { precio: netos.get(item.id) as number } : {}),
 				stock: item.available_quantity ?? null,
 				mlCategoryId: item.category_id ?? null,
 				mlCategoryName: (item.category_id && categoryNames[item.category_id]) || null,
@@ -137,6 +152,57 @@ export class MlImportService {
 
 		await this.productos.save(toSave);
 		return { imported, updated, total: imported + updated };
+	}
+
+	/**
+	 * Precio de tienda de cada publicación: el de ML menos lo que ML se queda en
+	 * cada venta — la comisión (porcentaje + costo fijo, según categoría y tipo de
+	 * publicación) y, si la publicación tiene envío gratis, el envío que paga el
+	 * vendedor. Son uno o dos pedidos a ML por publicación, de a 5 a la vez. Lo que
+	 * no se pueda consultar no se resta: mejor de más que inventado.
+	 */
+	private async fetchStorePrices(items: RawMlItem[], siteId: string, mlUserId: string, token: string): Promise<Map<string, number>> {
+		const out = new Map<string, number>();
+		const queue = items.filter(i => i.price != null && i.price > 0);
+		const worker = async () => {
+			for (;;) {
+				const item = queue.shift();
+				if (!item) return;
+				const price = item.price as number;
+				let fee = 0;
+				if (item.category_id) {
+					const params = new URLSearchParams({ price: String(price), category_id: item.category_id, listing_type_id: item.listing_type_id || 'gold_special' });
+					try {
+						const body = await this.mlGet<{ sale_fee_amount?: number } | Array<{ sale_fee_amount?: number }>>(
+							`${this.apiHost}/sites/${siteId}/listing_prices?${params.toString()}`,
+							token,
+						);
+						fee = (Array.isArray(body) ? body[0]?.sale_fee_amount : body.sale_fee_amount) ?? 0;
+					} catch {
+						fee = 0;
+					}
+				}
+				// Envío gratis: lo paga el vendedor y también está adentro del precio de ML.
+				// ML lo cotiza por publicación (no hacen falta las medidas).
+				let envio = 0;
+				if (item.shipping?.free_shipping) {
+					try {
+						const body = await this.mlGet<{ coverage?: { all_country?: { list_cost?: number } } }>(
+							`${this.apiHost}/users/${mlUserId}/shipping_options/free?item_id=${item.id}`,
+							token,
+						);
+						envio = body.coverage?.all_country?.list_cost ?? 0;
+					} catch {
+						envio = 0;
+					}
+				}
+				// Redondeado a la centena: en una vitrina $ 48.400 se lee mejor que $ 48.410.
+				const neto = Math.round((price - fee - envio) / 100) * 100;
+				out.set(item.id, neto > 0 ? neto : price);
+			}
+		};
+		await Promise.all([worker(), worker(), worker(), worker(), worker()]);
+		return out;
 	}
 
 	/**
@@ -251,7 +317,7 @@ export class MlImportService {
 
 	/** Trae el detalle de los ítems en tandas de 20 (multiget). */
 	private async fetchItems(ids: string[], token: string): Promise<RawMlItem[]> {
-		const attrs = 'id,title,family_name,price,available_quantity,category_id,permalink,status,catalog_product_id,pictures,attributes';
+		const attrs = 'id,title,family_name,price,available_quantity,category_id,listing_type_id,shipping,permalink,status,catalog_product_id,pictures,attributes';
 		const out: RawMlItem[] = [];
 		for (let i = 0; i < ids.length; i += 20) {
 			const chunk = ids.slice(i, i + 20);
