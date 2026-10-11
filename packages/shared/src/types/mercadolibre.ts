@@ -435,3 +435,11 @@ export interface MlEstudio {
 	envioSinMedidas: boolean;
 	actualizado: string;
 }
+
+/** Resultado de una acción en lote sobre publicaciones de ML (pausar, activar, vacaciones). */
+export interface MlBulkResult {
+	/** Cuántas publicaciones cambiaron. */
+	ok: number;
+	/** Las que ML no dejó cambiar, con el motivo. */
+	failed: Array<{ id: string; nombre: string; error: string }>;
+}

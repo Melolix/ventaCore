@@ -147,6 +147,13 @@ export class ProductoEntity {
 	@Column({ type: 'varchar', nullable: true })
 	mlCatalogProductId!: string | null;
 
+	/**
+	 * La publicación la pausó el "modo vacaciones" (no el dueño a mano): al volver
+	 * de vacaciones se reactivan solo estas, y las que ya estaban pausadas siguen así.
+	 */
+	@Column({ type: 'boolean', default: false })
+	mlVacation!: boolean;
+
 	@CreateDateColumn()
 	createdAt!: Date;
 

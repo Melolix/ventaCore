@@ -380,7 +380,10 @@
 		"viewSite": "View site",
 		"menu": "Menu",
 		"sidebar": {
-			"general": "General"
+			"general": "General",
+			"products": "Products",
+			"channels": "Channels",
+			"store": "Your store"
 		},
 		"impersonating": "Viewing as {nombre}",
 		"impersonatingExit": "Exit",
@@ -878,7 +881,9 @@
 				"error": "Couldn't publish to Mercado Libre",
 				"saveFirst": "Save the product before publishing it.",
 				"alsoShared": "also shared on {n} network(s)"
-			}
+			},
+			"syncError": "Mercado Libre rejected the change",
+			"syncFailed": "Saved, but 1 listing was not updated on Mercado Libre | Saved, but {n} listings were not updated on Mercado Libre"
 		},
 		"rubros": {
 			"title": "Category Management",
@@ -1227,7 +1232,8 @@
 					"justo": "Tight",
 					"no_conviene": "Not worth it",
 					"sin_datos": "No data",
-					"sin_costo": "Cost missing"
+					"sin_costo": "Cost missing",
+					"revisar": "To review"
 				},
 				"verdict": {
 					"conviene": "Worth it",
@@ -1235,22 +1241,53 @@
 					"no_conviene": "Not worth it",
 					"sin_datos": "No data",
 					"pendiente": "Pending",
-					"sin_costo": "Cost missing"
+					"sin_costo": "Cost missing",
+					"revisar": "To review"
 				},
-				"byName": "found by name, check it is the same product",
 				"wrongCode": "The barcode points to a different product on Mercado Libre ({name}). Please check it.",
 				"noMatch": "We could not find it on Mercado Libre. A barcode makes it easier to locate.",
 				"pending": "Searching…",
 				"sellers": "nobody else sells it | 1 seller | {n} sellers",
-				"breakdown": "Mercado Libre fee: {pct}%",
+				"breakdown": "Mercado Libre fee {pct}% ({fee})",
 				"shipping": "shipping: {cost}",
 				"noShipping": "shipping not deducted (package size missing)",
 				"failed": "1 product could not be researched. | {n} products could not be researched.",
-				"cheapest": "Cheapest",
-				"middle": "Middle price",
-				"keep": "you keep {amount} ({pct}%)",
-				"similar": "The same product is not on Mercado Libre. Reference from similar ones by other brands:",
-				"needCost": "Add the cost of this product to see how much you would earn."
+				"cheapest": "At the cheapest price",
+				"middle": "At the middle price",
+				"keep": "you keep {amount} ({pct})",
+				"needCost": "Cost is missing",
+				"search": "Search product",
+				"onlyWithData": "Showing products with data. Tap \"No data\" to see the other {n}.",
+				"sellingAt": "selling at {price}",
+				"costLine": "Cost {cost}",
+				"onlyPrice": "Price on Mercado Libre",
+				"openProduct": "Adjust price and publish",
+				"reviewHint": "The profit is too high to be real. Most likely the other-brand product is not comparable (a pack versus a unit, another size). Check it before trusting this number.",
+				"wrongCodeShort": "The barcode points to a different product",
+				"noMatchShort": "Not found on Mercado Libre",
+				"conf": {
+					"publicacion": "Same product",
+					"ean": "Same product",
+					"nombre": "By name",
+					"similares": "Other brands"
+				},
+				"sort": {
+					"best": "Sort: recommended",
+					"pct": "Sort: highest profit %",
+					"amount": "Sort: most money per sale",
+					"sellers": "Sort: most sellers"
+				},
+				"comparedTitle": {
+					"publicacion": "Compared with the same product on Mercado Libre",
+					"ean": "Compared with the same product (by barcode)",
+					"nombre": "Found by name: check it is the same product",
+					"similares": "The same product is not on Mercado Libre. Reference from similar ones by other brands"
+				},
+				"basis": {
+					"label": "Work out the profit against",
+					"min": "The cheapest price",
+					"medio": "The middle price"
+				}
 			},
 			"comp": {
 				"title": "Competition on Mercado Libre",
@@ -1343,7 +1380,25 @@
 				"gold_pro": "Premium"
 			},
 			"minPriceBelow": "Mercado Libre does not allow listings in this category below {min}. Raise the price or sell it as a pack.",
-			"minPriceHint": "Mercado Libre minimum price in this category: {min}"
+			"minPriceHint": "Mercado Libre minimum price in this category: {min}",
+			"bulk": {
+				"selectAll": "Select the listing | Select all {n} listings",
+				"selected": "1 selected | {n} selected",
+				"pause": "Pause",
+				"activate": "Activate",
+				"confirmPause": "1 listing will be paused on Mercado Libre. | {n} listings will be paused on Mercado Libre.",
+				"confirmActivate": "1 listing will be activated on Mercado Libre. | {n} listings will be activated on Mercado Libre.",
+				"paused": "1 listing paused | {n} listings paused",
+				"activated": "1 listing activated | {n} listings activated",
+				"failed": "Mercado Libre did not allow changing 1 listing | Mercado Libre did not allow changing {n} listings",
+				"nothing": "There were no listings to change.",
+				"vacation": "Vacation mode",
+				"vacationStart": "Pause everything",
+				"confirmVacation": "The active listing will be paused. When you are back, one button reactivates it. | All {n} active listings will be paused. When you are back, one button reactivates them; the ones you had already paused stay paused.",
+				"vacationOn": "Vacation mode: 1 listing is paused until you are back. | Vacation mode: {n} listings are paused until you are back.",
+				"vacationEnd": "I am back: activate them",
+				"vacationNone": "You have no active listings to pause."
+			}
 		},
 		"publish": {
 			"button": "Publish",

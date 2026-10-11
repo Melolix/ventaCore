@@ -1269,6 +1269,9 @@ interface Row {
 	selected: boolean;
 	/** La fila tiene cambios sin guardar (muestra el ✔ de guardar en la fila). */
 	dirty?: boolean;
+	/** Precio de página y de ML tal como están guardados: para saber si el precio cambió. */
+	precioSaved?: number | null;
+	precioMlSaved?: number | null;
 }
 
 /** Campos de producto a los que puede mapear una columna del archivo. */
@@ -1751,6 +1754,8 @@ export default defineComponent({
 				precioCosto: p.precioCosto,
 				margen: p.margen,
 				precioMl: p.precioMl,
+				precioSaved: p.precio,
+				precioMlSaved: p.precioMl,
 				mlListingType: p.mlListingType ?? 'gold_special',
 				stock: p.stock,
 				gtin: p.gtin ?? '',
@@ -2407,18 +2412,38 @@ export default defineComponent({
 
 		// ── Guardar ──
 		/**
-		 * Recalcula el precio de Mercado Libre (= precio de página + comisión) con la
-		 * calculadora de ML, para una fila CON categoría (la comisión depende de ella).
-		 * Sin categoría no se puede calcular: se deja el precioMl como estaba.
+		 * Recalcula el precio de Mercado Libre a partir del precio de página, para una
+		 * fila CON categoría (la comisión depende de ella). Solo cuando el precio de
+		 * página CAMBIÓ (o todavía no hay precio de ML): guardar otra cosa —el stock,
+		 * la descripción— no tiene que mover el precio publicado.
+		 *
+		 * El precio de ML es el de página + la comisión + el envío a cargo del
+		 * vendedor. Ese envío se saca del precio anterior: lo que el precio de ML
+		 * dejaba por encima del de página una vez pagada la comisión. Así una
+		 * publicación con envío gratis no pierde el envío al cambiarle el precio.
 		 */
 		async recomputeMlPrice(row: Row): Promise<void> {
 			if (!this.mlConnected || !row.mlCategoryId || row.precio == null) return;
+			if (row.precioMl != null && row.precio === row.precioSaved) return;
 			try {
-				const fee = await this.catalog.suggestMlPrice(this.selectedRubroId, row.precio, row.mlCategoryId, row.mlListingType);
+				let envio = 0;
+				if (row.precioMlSaved != null && row.precioSaved != null && row.precioMlSaved > row.precioSaved) {
+					const antes = await this.catalog.fetchMlFee(this.selectedRubroId, row.precioMlSaved, row.mlCategoryId, row.mlListingType);
+					envio = Math.max(0, Math.round(row.precioMlSaved - antes.saleFeeAmount - row.precioSaved));
+					// Diferencias chicas son redondeo, no envío.
+					if (envio < 500) envio = 0;
+				}
+				const fee = await this.catalog.suggestMlPrice(this.selectedRubroId, row.precio + envio, row.mlCategoryId, row.mlListingType);
 				if (fee?.price != null) row.precioMl = fee.price;
 			} catch {
 				/* si la calculadora falla (categoría rara, sin conexión), dejamos precioMl */
 			}
+		},
+		/** Después de guardar: lo que hay en la fila pasa a ser lo guardado. */
+		markSaved(row: Row) {
+			row.dirty = false;
+			row.precioSaved = row.precio;
+			row.precioMlSaved = row.precioMl;
 		},
 		/** Arma el payload de guardado de una fila. */
 		rowToBatchItem(r: Row): BatchProductoItem {
@@ -2461,7 +2486,7 @@ export default defineComponent({
 				const [res] = await this.catalog.batchUpsert([this.rowToBatchItem(row)]);
 				if (!res?.ok || !res.id) throw new Error(res?.error || this.$t('admin.carga.saveError'));
 				row.id = res.id;
-				row.dirty = false;
+				this.markSaved(row);
 				this.dirty = this.rows.some(r => r.dirty);
 				// El servidor suma las categorías nuevas a la lista del rubro: la refrescamos.
 				void this.catalog.fetchRubros().catch(() => undefined);
@@ -2472,7 +2497,16 @@ export default defineComponent({
 					synced = await this.catalog
 						.updateMlListing(this.selectedRubroId, row.id)
 						.then(() => true)
-						.catch(() => false);
+						.catch((e: unknown) => {
+							// Guardó acá pero ML no tomó el cambio: se avisa con el motivo.
+							this.$toast.add({
+								severity: 'warn',
+								summary: this.$t('admin.carga.syncFailed', 1),
+								detail: apiErrorMessage(e, this.$t('admin.carga.syncError')),
+								life: 9000,
+							});
+							return false;
+						});
 				}
 				this.$toast.add({
 					severity: 'success',
@@ -2518,7 +2552,7 @@ export default defineComponent({
 						const row = seleccionadas[i];
 						row.id = res.id;
 						row.selected = false;
-						row.dirty = false;
+						this.markSaved(row);
 					}
 				});
 				// El indicador global refleja si quedó alguna fila sin guardar.
@@ -2531,9 +2565,25 @@ export default defineComponent({
 				if (this.mlConnected) {
 					const publicadas = seleccionadas.filter(r => r.mlItemId && r.id);
 					const res = await Promise.all(
-						publicadas.map(r => this.catalog.updateMlListing(this.selectedRubroId, r.id as string).then(() => true).catch(() => false)),
+						publicadas.map(r =>
+							this.catalog
+								.updateMlListing(this.selectedRubroId, r.id as string)
+								.then(() => '')
+								.catch((e: unknown) => `${r.variante ? `${r.nombre} (${r.variante})` : r.nombre}: ${apiErrorMessage(e, this.$t('admin.carga.syncError'))}`),
+						),
 					);
-					synced = res.filter(Boolean).length;
+					synced = res.filter(m => !m).length;
+					const noSync = res.filter(Boolean);
+					// Guardó acá pero Mercado Libre no tomó el cambio: hay que decirlo, si no
+					// el precio queda distinto en un lado y en el otro sin que nadie se entere.
+					if (noSync.length) {
+						this.$toast.add({
+							severity: 'warn',
+							summary: this.$t('admin.carga.syncFailed', noSync.length),
+							detail: noSync.slice(0, 4).join(' · '),
+							life: 9000,
+						});
+					}
 				}
 
 				if (!fail.length) {

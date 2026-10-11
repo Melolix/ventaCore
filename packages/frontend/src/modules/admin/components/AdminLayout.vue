@@ -105,7 +105,8 @@
 			class="sidebar-drawer fixed top-16 bottom-0 left-0 z-40 flex w-64 flex-col border-r border-surface-200/60 bg-surface-0/95 p-4 backdrop-blur-2xl md:bg-surface-0/60 dark:border-surface-700/60 dark:bg-surface-900/95 md:dark:bg-surface-900/60"
 			:class="{ 'is-open': sidebarOpen }"
 		>
-			<nav class="flex flex-1 flex-col gap-1 overflow-y-auto">
+			<!-- overflow-x-hidden: el corrimiento del ítem al pasar el mouse no debe abrir una barra horizontal. -->
+			<nav class="flex flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto">
 				<!-- Grupo GENERAL: cosas del CM, no dependen del negocio elegido. -->
 				<p class="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
 					{{ $t('admin.sidebar.general') }}
@@ -121,37 +122,79 @@
 					<span>{{ $t(item.label) }}</span>
 				</router-link>
 
-				<!-- Selector de negocio: encabeza y "scopea" todo lo de abajo. -->
-				<div class="mb-2 mt-6 px-1">
-					<label class="mb-1.5 block px-2 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
-						{{ $t('admin.business') }}
-					</label>
+				<!-- Negocio activo: encabeza y "scopea" todo lo de abajo. Con un solo
+				     negocio es una tarjeta fija (un desplegable de una opción no dice nada);
+				     con varios, la misma tarjeta se abre para elegir. -->
+				<div class="mb-1 mt-6">
+					<div
+						v-if="catalog.rubros.length === 1 && currentRubro"
+						class="flex items-center gap-3 rounded-xl border border-surface-200/70 bg-surface-50/60 p-2.5 dark:border-surface-700/60 dark:bg-surface-800/40"
+						:title="currentRubro.nombre"
+					>
+						<span class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10 text-sm font-bold text-primary">
+							<img v-if="currentRubro.imageUrl" :src="currentRubro.imageUrl" class="h-full w-full object-cover" alt="" />
+							<template v-else>{{ rubroInitial(currentRubro.nombre) }}</template>
+						</span>
+						<span class="min-w-0">
+							<span class="block text-[10px] font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.business') }}</span>
+							<span class="line-clamp-2 text-sm font-semibold leading-tight text-surface-900 dark:text-surface-0">{{ currentRubro.nombre }}</span>
+						</span>
+					</div>
 					<Select
-						v-if="catalog.rubros.length"
+						v-else-if="catalog.rubros.length"
 						v-model="currentRubroId"
 						:options="rubroOptions"
 						option-label="label"
 						option-value="value"
 						:placeholder="$t('admin.businessPlaceholder')"
-						class="w-full"
-					/>
-					<p v-else class="px-2 text-xs text-surface-400">{{ $t('admin.businessNone') }}</p>
+						class="business-select w-full"
+					>
+						<template #value="{ placeholder }">
+							<span v-if="currentRubro" class="flex min-w-0 items-center gap-3" :title="currentRubro.nombre">
+								<span class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10 text-sm font-bold text-primary">
+									<img v-if="currentRubro.imageUrl" :src="currentRubro.imageUrl" class="h-full w-full object-cover" alt="" />
+									<template v-else>{{ rubroInitial(currentRubro.nombre) }}</template>
+								</span>
+								<span class="min-w-0 text-left">
+									<span class="block text-[10px] font-semibold uppercase tracking-wide text-surface-400">{{ $t('admin.business') }}</span>
+									<span class="line-clamp-2 whitespace-normal text-sm font-semibold leading-tight text-surface-900 dark:text-surface-0">{{ currentRubro.nombre }}</span>
+								</span>
+							</span>
+							<span v-else>{{ placeholder }}</span>
+						</template>
+					</Select>
+					<p v-else class="px-3 text-xs text-surface-400">{{ $t('admin.businessNone') }}</p>
 				</div>
 
-				<!-- Grupo del NEGOCIO ACTIVO: cambia según el selector de arriba. -->
-				<router-link
-					v-for="item in navBusiness"
-					:key="item.key"
-					:to="item.to"
-					:class="linkClass(item)"
-					@click="item.disabled ? $event.preventDefault() : (sidebarOpen = false)"
-				>
-					<i :class="item.icon" />
-					<span>{{ $t(item.label) }}</span>
-					<span v-if="item.disabled" class="ml-auto text-[10px] uppercase text-surface-400">
-						{{ $t('admin.soon') }}
-					</span>
-				</router-link>
+				<!-- Lo del NEGOCIO ACTIVO, agrupado por cómo se trabaja: primero los
+				     productos (de ahí salen todos los canales), después los canales
+				     juntos, después la tienda propia. Un grupo vacío no se muestra. -->
+				<template v-for="group in navGroups" :key="group.key">
+					<p class="mb-1 mt-4 px-3 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+						{{ $t('admin.sidebar.' + group.key) }}
+					</p>
+					<router-link
+						v-for="item in group.items"
+						:key="item.key"
+						:to="item.to"
+						:class="linkClass(item)"
+						@click="item.disabled ? $event.preventDefault() : (sidebarOpen = false)"
+					>
+						<i :class="item.icon" />
+						<span>{{ $t(item.label) }}</span>
+						<span v-if="item.disabled" class="ml-auto text-[10px] uppercase text-surface-400">
+							{{ $t('admin.soon') }}
+						</span>
+					</router-link>
+				</template>
+
+				<!-- Configuraciones: se usa poco, va al final y separada. -->
+				<div class="mt-auto border-t border-surface-200/60 pt-2 dark:border-surface-700/60">
+					<router-link :to="navConfig.to" :class="linkClass(navConfig)" @click="sidebarOpen = false">
+						<i :class="navConfig.icon" />
+						<span>{{ $t(navConfig.label) }}</span>
+					</router-link>
+				</div>
 			</nav>
 
 			<!-- Ver el sitio también accesible al pie (fallback en pantallas chicas). -->
@@ -180,7 +223,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { channelEnabled, type EspacioChannel } from '@base-template/shared';
+import { channelEnabled, type EspacioChannel, type Rubro } from '@base-template/shared';
 import { useUserStore } from '@/modules/auth/store/user';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
@@ -214,21 +257,34 @@ export default defineComponent({
 				{ key: 'rubros', label: 'admin.nav.rubros', icon: 'pi pi-tags', to: '/admin' },
 				{ key: 'nosotros', label: 'admin.nav.nosotros', icon: 'pi pi-id-card', to: '/admin/nosotros' },
 			] as NavItem[],
-			// DEL NEGOCIO ACTIVO: cambian según el rubro elegido en el selector.
+			// DEL NEGOCIO ACTIVO: cambian según el rubro elegido arriba. El orden sigue
+			// el trabajo: se cargan los productos y de ahí salen a los canales; la
+			// tienda propia (pedidos) va aparte porque no depende de los demás.
 			// Los canales (ml/instagram) se filtran por lo habilitado en el espacio.
-			navBusinessAll: [
-				{ key: 'ml', label: 'admin.nav.ml', icon: 'pi pi-shopping-cart', to: '/admin/mercado-libre', channel: 'mercadolibre' },
-				{ key: 'instagram', label: 'admin.nav.instagram', icon: 'pi pi-instagram', to: '/admin/instagram', channel: 'instagram' },
-				{ key: 'pedidos', label: 'admin.nav.pedidos', icon: 'pi pi-shopping-bag', to: '/admin/pedidos' },
-				{ key: 'carga', label: 'admin.nav.carga', icon: 'pi pi-upload', to: '/admin/cargar-productos' },
-				{ key: 'config', label: 'admin.nav.config', icon: 'pi pi-cog', to: '/admin/configuraciones' },
-			] as NavItem[],
+			navGroupsAll: [
+				{ key: 'products', items: [{ key: 'carga', label: 'admin.nav.carga', icon: 'pi pi-upload', to: '/admin/cargar-productos' }] },
+				{
+					key: 'channels',
+					items: [
+						{ key: 'ml', label: 'admin.nav.ml', icon: 'pi pi-shopping-cart', to: '/admin/mercado-libre', channel: 'mercadolibre' },
+						{ key: 'instagram', label: 'admin.nav.instagram', icon: 'pi pi-instagram', to: '/admin/instagram', channel: 'instagram' },
+					],
+				},
+				{ key: 'store', items: [{ key: 'pedidos', label: 'admin.nav.pedidos', icon: 'pi pi-shopping-bag', to: '/admin/pedidos' }] },
+			] as { key: string; items: NavItem[] }[],
+			navConfig: { key: 'config', label: 'admin.nav.config', icon: 'pi pi-cog', to: '/admin/configuraciones' } as NavItem,
 		};
 	},
 	computed: {
-		/** Items del negocio visibles: se filtran los canales no habilitados en el espacio. */
-		navBusiness(): NavItem[] {
-			return this.navBusinessAll.filter(item => !item.channel || channelEnabled(this.catalog.miEspacio, item.channel));
+		/** Grupos del negocio visibles: sin los canales no habilitados en el espacio ni los grupos que quedan vacíos. */
+		navGroups(): { key: string; items: NavItem[] }[] {
+			return this.navGroupsAll
+				.map(g => ({ key: g.key, items: g.items.filter(item => !item.channel || channelEnabled(this.catalog.miEspacio, item.channel)) }))
+				.filter(g => g.items.length);
+		},
+		/** El negocio activo (para la tarjeta del menú). */
+		currentRubro(): Rubro | undefined {
+			return this.catalog.rubros.find(r => r.id === this.ctx.currentRubroId);
 		},
 		/** Opciones del selector de negocio. */
 		rubroOptions(): { label: string; value: string }[] {
@@ -295,6 +351,9 @@ export default defineComponent({
 			// volver: la sesión sigue viva acá, no en el host de la vitrina.
 			window.location.href = vitrinaUrlWithReturn(this.catalog.miEspacio);
 		},
+		rubroInitial(nombre: string): string {
+			return (nombre.trim()[0] || '?').toUpperCase();
+		},
 		toggleUserMenu(event: Event) {
 			(this.$refs.userMenu as { toggle: (e: Event) => void }).toggle(event);
 		},
@@ -350,6 +409,12 @@ export default defineComponent({
 }
 .sidebar-drawer.is-open {
 	transform: translateX(0);
+}
+/* Selector de negocio con forma de tarjeta: el nombre puede ocupar dos líneas
+   (PrimeVue lo corta en una) y el relleno iguala al de la tarjeta fija. */
+.business-select :deep(.p-select-label) {
+	padding: 0.625rem;
+	white-space: normal;
 }
 @media (min-width: 768px) {
 	.sidebar-drawer {

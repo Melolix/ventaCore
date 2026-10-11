@@ -43,6 +43,7 @@
 				<div v-for="f in feats" :key="f.cid" class="space-y-2 rounded-xl border border-surface-200 p-2.5 dark:border-surface-700">
 					<div class="flex items-center gap-2">
 						<Select
+							append-to="self"
 							v-model="f.nombre"
 							:options="suggestionsFor(f)"
 							editable
@@ -107,7 +108,7 @@
 				<!-- La foto es una decisión aparte: una para todo (yerba) o una por valor (cada color). -->
 				<div v-if="photoOptions.length > 1" class="flex flex-wrap items-center gap-2">
 					<label class="text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.variantes.photos') }}</label>
-					<Select v-model="photoBy" :options="photoOptions" option-label="label" option-value="value" size="small" class="min-w-0 flex-1" />
+					<Select append-to="self" v-model="photoBy" :options="photoOptions" option-label="label" option-value="value" size="small" class="min-w-0 flex-1" />
 				</div>
 			</section>
 
@@ -217,6 +218,7 @@
 				<div class="space-y-1">
 					<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.categoria') }}</label>
 					<Select
+						append-to="self"
 						v-model="form.seccion"
 						:options="categoriaOptions"
 						editable

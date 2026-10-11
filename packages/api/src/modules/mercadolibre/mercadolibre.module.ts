@@ -19,6 +19,7 @@ import { MlConnectionsController } from './ml-connections.controller';
 import { MlCatalogController } from './ml-catalog.controller';
 import { MlPublishController } from './ml-publish.controller';
 import { MlImportController } from './ml-import.controller';
+import { MlBulkController } from './ml-bulk.controller';
 
 /**
  * Integración con Mercado Libre.
@@ -39,6 +40,7 @@ import { MlImportController } from './ml-import.controller';
 		MlCatalogController,
 		MlPublishController,
 		MlImportController,
+		MlBulkController,
 	],
 	providers: [
 		MlConnectionService,

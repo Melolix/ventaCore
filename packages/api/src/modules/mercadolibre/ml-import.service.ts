@@ -243,6 +243,10 @@ export class MlImportService {
 			const elegidos = (tipicos.length ? tipicos : distintos).slice(0, 2);
 
 			const usadas = new Set<string>();
+			// Orden fijo (por id de publicación): ML no las devuelve siempre en el mismo
+			// orden y, cuando se numeran ("Opción 1", "Opción 2"), cada bajada le cambiaba
+			// el número a cada una.
+			miembros.sort((a, b) => a.id.localeCompare(b.id));
 			miembros.forEach((m, i) => {
 				let variante = elegidos.map(id => valor(m, id)).filter(Boolean).join(' / ');
 				// Sin atributo que las distinga (o etiqueta repetida): las numeramos.

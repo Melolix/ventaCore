@@ -70,6 +70,38 @@
 				</div>
 			</div>
 
+			<!-- Modo vacaciones activo: cuántas pausó y cómo volver. -->
+			<div v-if="vacationCount" class="mb-3 flex flex-col gap-2 rounded-2xl border border-sky-400/40 bg-sky-500/10 p-3 sm:flex-row sm:items-center sm:gap-3">
+				<p class="flex min-w-0 flex-1 items-start gap-2 text-sm text-sky-800 dark:text-sky-200">
+					<i class="pi pi-sun mt-0.5" />
+					<span>{{ $t('admin.ml.bulk.vacationOn', vacationCount) }}</span>
+				</p>
+				<Button :label="$t('admin.ml.bulk.vacationEnd')" icon="pi pi-play" size="small" :loading="bulkBusy" @click="endVacation" />
+			</div>
+
+			<!-- Acciones en lote: elegir publicaciones y pausarlas / activarlas juntas. -->
+			<div v-if="publishedShown.length" class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 px-1">
+				<label class="flex cursor-pointer items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
+					<Checkbox :model-value="allSelected" binary @update:model-value="toggleAll" />
+					<span v-if="selectedCount">{{ $t('admin.ml.bulk.selected', selectedCount) }}</span>
+					<span v-else>{{ $t('admin.ml.bulk.selectAll', publishedShown.length) }}</span>
+				</label>
+				<template v-if="selectedCount">
+					<Button :label="$t('admin.ml.bulk.pause')" icon="pi pi-pause" size="small" outlined severity="secondary" :loading="bulkBusy" @click="bulkStatus('paused')" />
+					<Button :label="$t('admin.ml.bulk.activate')" icon="pi pi-play" size="small" outlined :loading="bulkBusy" @click="bulkStatus('active')" />
+				</template>
+				<Button
+					v-if="!vacationCount"
+					:label="$t('admin.ml.bulk.vacation')"
+					icon="pi pi-sun"
+					size="small"
+					text
+					class="sm:ml-auto"
+					:loading="bulkBusy"
+					@click="startVacation"
+				/>
+			</div>
+
 			<!-- Lista vacía -->
 			<div v-if="!filtered.length" class="glass-card rounded-2xl p-10 text-center text-surface-500">
 				{{ $t('admin.ml.emptyList') }}
@@ -85,6 +117,10 @@
 					class="glass-card flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition-colors hover:bg-surface-50/60 sm:gap-4 sm:p-3.5 dark:hover:bg-surface-800/30"
 					@click="openEditor(p)"
 				>
+					<!-- Selección para las acciones en lote (solo lo que ya está publicado). -->
+					<span class="flex w-5 shrink-0 justify-center" @click.stop>
+						<Checkbox v-if="p.mlItemId" :model-value="!!selected[p.id]" binary @update:model-value="selected[p.id] = $event" />
+					</span>
 					<div class="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-surface-100 sm:h-14 sm:w-14 dark:bg-surface-800">
 						<img v-if="p.imageUrl" :src="p.imageUrl" class="h-full w-full object-cover" alt="" />
 						<div v-else class="flex h-full w-full items-center justify-center text-surface-400"><i class="pi pi-image" /></div>
@@ -627,6 +663,7 @@ import type {
 	MlFeeBreakdown,
 	MlCompetencia,
 	MlCompetidor,
+	MlBulkResult,
 	MlShippingQuote,
 	MlListingType,
 	BatchProductoItem,
@@ -724,6 +761,9 @@ export default defineComponent({
 			// Beneficio real por producto (para la lista): { pct, loss }
 			benefit: {} as Record<string, { pct: number; loss: boolean; shippingUnknown?: boolean }>,
 			// Competencia por producto (quién más lo vende en ML y a cuánto).
+			// Acciones en lote: publicaciones elegidas (por id de producto).
+			selected: {} as Record<string, boolean>,
+			bulkBusy: false,
 			comp: {} as Record<string, MlCompetencia>,
 			compLoading: false,
 			// Categoría + atributos de ML (misma función que en Cargar productos)
@@ -775,6 +815,27 @@ export default defineComponent({
 			];
 		},
 		/** ¿Se puede calcular/consultar comisión? (categoría + conexión). */
+		/** Publicaciones (ya en ML) de la lista que se está viendo: lo que se puede elegir. */
+		publishedShown(): Producto[] {
+			return this.filtered.filter(p => p.mlItemId);
+		},
+		selectedIds(): string[] {
+			return this.publishedShown.filter(p => this.selected[p.id]).map(p => p.id);
+		},
+		selectedCount(): number {
+			return this.selectedIds.length;
+		},
+		allSelected(): boolean {
+			return this.publishedShown.length > 0 && this.selectedCount === this.publishedShown.length;
+		},
+		/** Publicaciones activas del negocio (lo que pausaría el modo vacaciones). */
+		activeCount(): number {
+			return this.productos.filter(p => p.mlItemId && p.mlStatus === 'active').length;
+		},
+		/** Publicaciones que están pausadas por el modo vacaciones. */
+		vacationCount(): number {
+			return this.productos.filter(p => p.mlVacation).length;
+		},
 		/** ¿El producto abierto se puede comparar con la competencia? */
 		compCanCheck(): boolean {
 			return !!this.edit && this.compTarget(this.edit);
@@ -939,6 +1000,69 @@ export default defineComponent({
 			};
 			await Promise.all([worker(), worker(), worker()]);
 		},
+		// ── Acciones en lote ──
+		toggleAll(on: boolean) {
+			for (const p of this.publishedShown) this.selected[p.id] = on;
+		},
+		/** Muestra cómo salió una acción en lote: cuántas cambiaron y cuáles no (con el motivo). */
+		bulkToast(res: MlBulkResult, okKey: string) {
+			if (res.ok) this.$toast.add({ severity: 'success', summary: this.$t(okKey, res.ok), life: 4000 });
+			if (res.failed.length) {
+				this.$toast.add({
+					severity: 'warn',
+					summary: this.$t('admin.ml.bulk.failed', res.failed.length),
+					detail: res.failed.slice(0, 4).map(f => `${f.nombre}: ${f.error}`).join(' · '),
+					life: 10000,
+				});
+			}
+			if (!res.ok && !res.failed.length) this.$toast.add({ severity: 'info', summary: this.$t('admin.ml.bulk.nothing'), life: 4000 });
+		},
+		async runBulk(action: () => Promise<MlBulkResult>, okKey: string) {
+			this.bulkBusy = true;
+			try {
+				const res = await action();
+				await this.catalog.fetchAllProductos();
+				this.selected = {};
+				this.bulkToast(res, okKey);
+			} catch (e: unknown) {
+				this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.ml.statusError')), life: 6000 });
+			} finally {
+				this.bulkBusy = false;
+			}
+		},
+		bulkStatus(status: 'active' | 'paused') {
+			if (!this.rubro || !this.selectedCount) return;
+			const rubroId = this.rubro.id;
+			const ids = this.selectedIds;
+			this.$confirm.require({
+				header: this.$t(status === 'paused' ? 'admin.ml.bulk.pause' : 'admin.ml.bulk.activate'),
+				message: this.$t(status === 'paused' ? 'admin.ml.bulk.confirmPause' : 'admin.ml.bulk.confirmActivate', ids.length),
+				acceptLabel: this.$t(status === 'paused' ? 'admin.ml.bulk.pause' : 'admin.ml.bulk.activate'),
+				rejectLabel: this.$t('common.cancel'),
+				accept: () => void this.runBulk(() => this.catalog.bulkMlStatus(rubroId, ids, status), status === 'paused' ? 'admin.ml.bulk.paused' : 'admin.ml.bulk.activated'),
+			});
+		},
+		startVacation() {
+			if (!this.rubro) return;
+			if (!this.activeCount) {
+				this.$toast.add({ severity: 'info', summary: this.$t('admin.ml.bulk.vacationNone'), life: 5000 });
+				return;
+			}
+			const rubroId = this.rubro.id;
+			this.$confirm.require({
+				header: this.$t('admin.ml.bulk.vacation'),
+				message: this.$t('admin.ml.bulk.confirmVacation', this.activeCount),
+				acceptLabel: this.$t('admin.ml.bulk.vacationStart'),
+				rejectLabel: this.$t('common.cancel'),
+				accept: () => void this.runBulk(() => this.catalog.setMlVacation(rubroId, true), 'admin.ml.bulk.paused'),
+			});
+		},
+		endVacation() {
+			if (!this.rubro) return;
+			const rubroId = this.rubro.id;
+			void this.runBulk(() => this.catalog.setMlVacation(rubroId, false), 'admin.ml.bulk.activated');
+		},
+
 		// ── Competencia ──
 		/** Solo se puede comparar lo que ML reconoce como el mismo producto: publicado, enlazado al catálogo o con código de barras. */
 		compTarget(p: { mlItemId?: string | null; mlCatalogProductId?: string | null; gtin?: string | null }): boolean {
@@ -1035,6 +1159,12 @@ export default defineComponent({
 			// Beneficio real por producto (en segundo plano, no bloquea la lista).
 			if (this.mlConnected) void this.computeBenefits();
 			if (this.mlConnected) void this.computeCompetencia();
+			// Llegada desde el Estudio de mercado ("Ajustar precio y publicar"): abre ese producto.
+			const pedido = typeof this.$route.query.p === 'string' ? this.productos.find(p => p.id === this.$route.query.p) : undefined;
+			if (pedido) {
+				this.openEditor(pedido);
+				void this.$router.replace({ query: {} });
+			}
 		},
 		async importListings() {
 			if (!this.rubro) return;

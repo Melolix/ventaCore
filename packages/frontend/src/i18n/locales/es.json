@@ -380,7 +380,10 @@
 		"viewSite": "Ver el sitio",
 		"menu": "Menú",
 		"sidebar": {
-			"general": "General"
+			"general": "General",
+			"products": "Productos",
+			"channels": "Canales",
+			"store": "Tu tienda"
 		},
 		"impersonating": "Viendo como {nombre}",
 		"impersonatingExit": "Salir",
@@ -878,7 +881,9 @@
 				"error": "No se pudo publicar en Mercado Libre",
 				"saveFirst": "Guardá el producto antes de publicarlo.",
 				"alsoShared": "también compartido en {n} red(es)"
-			}
+			},
+			"syncError": "Mercado Libre no aceptó el cambio",
+			"syncFailed": "Se guardó, pero 1 publicación no se actualizó en Mercado Libre | Se guardó, pero {n} publicaciones no se actualizaron en Mercado Libre"
 		},
 		"rubros": {
 			"title": "Gestión de Rubros",
@@ -1227,7 +1232,8 @@
 					"justo": "Queda justo",
 					"no_conviene": "No conviene",
 					"sin_datos": "Sin datos",
-					"sin_costo": "Falta el costo"
+					"sin_costo": "Falta el costo",
+					"revisar": "A revisar"
 				},
 				"verdict": {
 					"conviene": "Conviene",
@@ -1235,22 +1241,53 @@
 					"no_conviene": "No conviene",
 					"sin_datos": "Sin datos",
 					"pendiente": "Pendiente",
-					"sin_costo": "Falta el costo"
+					"sin_costo": "Falta el costo",
+					"revisar": "A revisar"
 				},
-				"byName": "encontrado por el nombre, revisá que sea el mismo",
 				"wrongCode": "El código de barras lleva a otro producto en Mercado Libre ({name}). Revisalo.",
 				"noMatch": "No lo encontramos en Mercado Libre. Con el código de barras cargado es más fácil ubicarlo.",
 				"pending": "Buscando…",
 				"sellers": "nadie más lo vende | 1 vendedor | {n} vendedores",
-				"breakdown": "Comisión de ML: {pct}%",
+				"breakdown": "Comisión de ML {pct}% ({fee})",
 				"shipping": "envío: {cost}",
 				"noShipping": "sin descontar el envío (faltan las medidas)",
 				"failed": "No se pudo estudiar 1 producto. | No se pudieron estudiar {n} productos.",
-				"cheapest": "El más barato",
-				"middle": "El del medio",
-				"keep": "te queda {amount} ({pct}%)",
-				"similar": "No está el mismo producto en Mercado Libre. Referencia con parecidos de otras marcas:",
-				"needCost": "Cargá el costo de este producto para ver cuánto ganarías."
+				"cheapest": "Al precio más barato",
+				"middle": "Al precio del medio",
+				"keep": "te queda {amount} ({pct})",
+				"needCost": "Falta cargar el costo",
+				"search": "Buscar producto",
+				"onlyWithData": "Se muestran los productos con datos. Tocá \"Sin datos\" para ver los otros {n}.",
+				"sellingAt": "vendiendo a {price}",
+				"costLine": "Costo {cost}",
+				"onlyPrice": "Precio en Mercado Libre",
+				"openProduct": "Ajustar precio y publicar",
+				"reviewHint": "La ganancia sale demasiado alta para ser real. Lo más probable es que el producto de otra marca no sea comparable (un pack contra una unidad, otra medida). Revisalo antes de confiar en este número.",
+				"wrongCodeShort": "El código de barras lleva a otro producto",
+				"noMatchShort": "No lo encontramos en Mercado Libre",
+				"conf": {
+					"publicacion": "Mismo producto",
+					"ean": "Mismo producto",
+					"nombre": "Por nombre",
+					"similares": "Otras marcas"
+				},
+				"sort": {
+					"best": "Orden: recomendado",
+					"pct": "Orden: mayor % de ganancia",
+					"amount": "Orden: más plata por venta",
+					"sellers": "Orden: más vendedores"
+				},
+				"comparedTitle": {
+					"publicacion": "Comparado con el mismo producto en Mercado Libre",
+					"ean": "Comparado con el mismo producto (por código de barras)",
+					"nombre": "Encontrado por el nombre: revisá que sea el mismo producto",
+					"similares": "No está el mismo producto en Mercado Libre. Referencia con parecidos de otras marcas"
+				},
+				"basis": {
+					"label": "Calcular la ganancia contra",
+					"min": "El precio más barato",
+					"medio": "El precio del medio"
+				}
 			},
 			"comp": {
 				"title": "Competencia en Mercado Libre",
@@ -1343,7 +1380,25 @@
 				"gold_pro": "Premium"
 			},
 			"minPriceBelow": "Mercado Libre no deja publicar en esta categoría por debajo de {min}. Subí el precio o vendelo en pack.",
-			"minPriceHint": "Precio mínimo de Mercado Libre en esta categoría: {min}"
+			"minPriceHint": "Precio mínimo de Mercado Libre en esta categoría: {min}",
+			"bulk": {
+				"selectAll": "Elegir la publicación | Elegir las {n} publicaciones",
+				"selected": "1 elegida | {n} elegidas",
+				"pause": "Pausar",
+				"activate": "Activar",
+				"confirmPause": "Se va a pausar 1 publicación en Mercado Libre. | Se van a pausar {n} publicaciones en Mercado Libre.",
+				"confirmActivate": "Se va a activar 1 publicación en Mercado Libre. | Se van a activar {n} publicaciones en Mercado Libre.",
+				"paused": "Se pausó 1 publicación | Se pausaron {n} publicaciones",
+				"activated": "Se activó 1 publicación | Se activaron {n} publicaciones",
+				"failed": "Mercado Libre no dejó cambiar 1 publicación | Mercado Libre no dejó cambiar {n} publicaciones",
+				"nothing": "No había publicaciones para cambiar.",
+				"vacation": "Modo vacaciones",
+				"vacationStart": "Pausar todo",
+				"confirmVacation": "Se va a pausar la publicación activa. Al volver se reactiva con un botón. | Se van a pausar las {n} publicaciones activas. Al volver se reactivan todas con un botón; las que ya tenías pausadas siguen pausadas.",
+				"vacationOn": "Modo vacaciones: hay 1 publicación pausada hasta que vuelvas. | Modo vacaciones: hay {n} publicaciones pausadas hasta que vuelvas.",
+				"vacationEnd": "Volví: activarlas",
+				"vacationNone": "No tenés publicaciones activas para pausar."
+			}
 		},
 		"publish": {
 			"button": "Publicar",

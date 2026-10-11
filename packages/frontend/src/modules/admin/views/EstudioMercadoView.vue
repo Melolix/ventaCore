@@ -64,13 +64,13 @@
 			</div>
 
 			<template v-else>
-				<!-- Resumen: cada grupo filtra la lista -->
-				<div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+				<!-- Resumen: cada grupo filtra la lista. Los grupos vacíos no se muestran. -->
+				<div class="mb-3 flex flex-wrap gap-2">
 					<button
-						v-for="g in groups"
+						v-for="g in visibleGroups"
 						:key="g.key"
 						type="button"
-						class="glass-card min-w-0 rounded-2xl p-3 text-left transition-colors"
+						class="glass-card min-w-[7.5rem] flex-1 rounded-2xl p-3 text-left transition-colors"
 						:class="filter === g.key ? 'ring-2 ring-amber-500' : 'hover:bg-surface-50/60 dark:hover:bg-surface-800/30'"
 						@click="filter = filter === g.key ? 'all' : g.key"
 					>
@@ -79,62 +79,104 @@
 					</button>
 				</div>
 
+				<!-- Contra qué precio se calcula la ganancia de TODAS las filas -->
+				<div class="mb-3 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+					<span class="text-xs font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.ml.estudio.basis.label') }}</span>
+					<SelectButton v-model="basisKey" :options="basisOptions" option-label="label" option-value="value" :allow-empty="false" />
+				</div>
+
+				<!-- Buscar + ordenar -->
+				<div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+					<IconField class="min-w-0 flex-1">
+						<InputIcon class="pi pi-search" />
+						<InputText v-model="search" fluid :placeholder="$t('admin.ml.estudio.search')" />
+					</IconField>
+					<Select v-model="sort" :options="sortOptions" option-label="label" option-value="value" class="sm:w-60" />
+				</div>
+				<p v-if="filter === 'all' && counts.sin_datos" class="mb-3 text-xs text-surface-500">
+					{{ $t('admin.ml.estudio.onlyWithData', { n: counts.sin_datos }) }}
+				</p>
+
 				<div v-if="!shown.length" class="glass-card rounded-2xl p-8 text-center text-sm text-surface-500">{{ $t('admin.ml.estudio.noneInGroup') }}</div>
 
-				<!-- Resultados: primero lo que conviene, de mayor a menor ganancia -->
+				<!-- Resultados. La fila muestra la conclusión; al tocarla se abre el detalle. -->
 				<div v-else class="space-y-2">
-					<div v-for="row in shown" :key="row.p.id" class="glass-card rounded-2xl p-3 sm:p-4">
-						<div class="flex items-start gap-3">
+					<div v-for="row in shown" :key="row.p.id" class="glass-card overflow-hidden rounded-2xl">
+						<button type="button" class="flex w-full items-center gap-3 p-3 text-left sm:gap-4 sm:p-3.5" :aria-expanded="open === row.p.id" @click="open = open === row.p.id ? null : row.p.id">
 							<div class="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-surface-100 sm:h-12 sm:w-12 dark:bg-surface-800">
 								<img v-if="row.p.imageUrl" :src="row.p.imageUrl" class="h-full w-full object-cover" alt="" />
 								<div v-else class="flex h-full w-full items-center justify-center text-surface-400"><i class="pi pi-image" /></div>
 							</div>
 							<div class="min-w-0 flex-1">
-								<div class="flex items-start justify-between gap-2">
-									<p class="min-w-0 truncate text-sm font-semibold text-surface-900 sm:text-base dark:text-surface-0">{{ row.p.nombre }}</p>
-									<span class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="verdictCls(row.v)">
-										<span class="h-1.5 w-1.5 rounded-full bg-current" />{{ $t('admin.ml.estudio.verdict.' + row.v) }}
+								<p class="truncate text-sm font-semibold text-surface-900 sm:text-base dark:text-surface-0">{{ row.p.nombre }}</p>
+								<p class="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-surface-500">
+									<span v-if="row.r && row.r.via && !row.r.noCoincide" class="shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-semibold" :class="confCls(row.r.via)">
+										{{ $t('admin.ml.estudio.conf.' + row.r.via) }}
 									</span>
-								</div>
+									<span class="truncate">{{ subline(row) }}</span>
+								</p>
+							</div>
+							<!-- Lo que decide: cuánto queda. Grande y a la derecha. -->
+							<div class="shrink-0 text-right">
+								<template v-if="row.e && row.e.ganancia != null">
+									<p class="text-base font-extrabold sm:text-lg" :class="toneCls(row.v)">{{ money(row.e.ganancia) }}</p>
+									<p class="text-xs font-semibold" :class="toneCls(row.v)">{{ pctLabel(row.e.gananciaPct) }}</p>
+								</template>
+								<p v-else-if="row.e" class="text-sm font-semibold text-surface-700 dark:text-surface-200">{{ money(row.e.precio) }}</p>
+								<span class="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="verdictCls(row.v)">
+									<span class="h-1.5 w-1.5 rounded-full bg-current" />{{ $t('admin.ml.estudio.verdict.' + row.v) }}
+								</span>
+							</div>
+							<span class="hidden shrink-0 text-surface-400 transition-transform sm:inline-flex" :class="open === row.p.id ? 'rotate-180' : ''">
+								<i class="pi pi-chevron-down text-xs" />
+							</span>
+						</button>
 
+						<!-- Detalle -->
+						<div v-if="open === row.p.id" class="space-y-3 border-t border-surface-200/60 p-3 text-sm sm:p-4 dark:border-surface-700/60">
+							<p v-if="row.v === 'revisar'" class="flex items-start gap-1.5 rounded-lg bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+								<i class="pi pi-exclamation-triangle mt-0.5" /><span>{{ $t('admin.ml.estudio.reviewHint') }}</span>
+							</p>
+							<p v-if="row.r && row.r.noCoincide" class="text-xs text-amber-600 dark:text-amber-400">{{ $t('admin.ml.estudio.wrongCode', { name: row.r.catalogName }) }}</p>
+							<p v-else-if="row.v === 'sin_datos'" class="text-xs text-surface-500">{{ $t('admin.ml.estudio.noMatch') }}</p>
+
+							<template v-if="row.r && row.r.precioMin != null && !row.r.noCoincide">
 								<!-- Contra qué se comparó -->
-								<p v-if="row.r && row.r.noCoincide" class="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
-									{{ $t('admin.ml.estudio.wrongCode', { name: row.r.catalogName }) }}
-								</p>
-								<p v-else-if="row.r && row.r.via === 'similares'" class="mt-0.5 text-xs text-surface-500">
-									<span class="font-semibold text-amber-600 dark:text-amber-400">{{ $t('admin.ml.estudio.similar') }}</span>
-									{{ row.r.similares.join(' · ') }}
-								</p>
-								<p v-else-if="row.r && row.r.catalogName && row.r.via" class="mt-0.5 text-xs text-surface-500">
-									{{ $t('admin.ml.comp.comparedWith') }}
-									<a v-if="row.r.permalink" :href="row.r.permalink" target="_blank" rel="noopener" class="font-medium text-primary hover:underline">{{ row.r.catalogName }}</a>
-									<span v-else class="font-medium">{{ row.r.catalogName }}</span>
-									<span v-if="row.r.via === 'nombre'" class="ml-1 font-semibold text-amber-600 dark:text-amber-400">· {{ $t('admin.ml.estudio.byName') }}</span>
-								</p>
-								<p v-else-if="row.v === 'sin_datos'" class="mt-0.5 text-xs text-surface-400">{{ $t('admin.ml.estudio.noMatch') }}</p>
-								<p v-else-if="row.v === 'pendiente'" class="mt-0.5 text-xs text-surface-400"><i class="pi pi-spin pi-spinner text-[10px]" /> {{ $t('admin.ml.estudio.pending') }}</p>
-
-								<!-- Números: el costo y qué queda al precio más barato y al del medio -->
-								<div v-if="row.r && row.r.precioMin != null && !row.r.noCoincide" class="mt-2 grid grid-cols-3 gap-2 text-xs">
-									<div class="min-w-0">
-										<p class="truncate text-surface-400">{{ $t('admin.ml.cost') }}</p>
-										<p class="truncate font-semibold text-surface-700 dark:text-surface-200">{{ row.r.costo != null ? money(row.r.costo) : '—' }}</p>
-										<p class="truncate text-[11px] text-surface-400">{{ $t('admin.ml.estudio.sellers', row.r.vendedores) }}</p>
-									</div>
-									<div v-for="col in priceCols(row.r)" :key="col.key" class="min-w-0">
-										<p class="truncate text-surface-400">{{ $t('admin.ml.estudio.' + col.key) }}</p>
-										<p class="truncate font-semibold text-surface-700 dark:text-surface-200">{{ money(col.precio) }}</p>
-										<p v-if="col.e && col.e.ganancia != null" class="truncate text-[11px] font-semibold" :class="gainCls(col.e.gananciaPct)">
-											{{ $t('admin.ml.estudio.keep', { amount: money(col.e.ganancia), pct: (col.e.gananciaPct! >= 0 ? '+' : '') + col.e.gananciaPct }) }}
+								<div class="text-xs text-surface-500">
+									<p class="font-semibold text-surface-600 dark:text-surface-300">{{ $t('admin.ml.estudio.comparedTitle.' + row.r.via) }}</p>
+									<p class="mt-0.5">
+										<template v-if="row.r.via === 'similares'">{{ row.r.similares.join(' · ') }}</template>
+										<a v-else-if="row.r.permalink" :href="row.r.permalink" target="_blank" rel="noopener" class="font-medium text-primary hover:underline">{{ row.r.catalogName }}</a>
+										<template v-else>{{ row.r.catalogName }}</template>
+									</p>
+								</div>
+								<!-- Los dos precios, cada uno con lo que queda -->
+								<div class="grid gap-2" :class="priceCols(row.r).length > 1 ? 'sm:grid-cols-2' : ''">
+									<div
+										v-for="col in priceCols(row.r)"
+										:key="col.key"
+										class="rounded-xl border p-3"
+										:class="col.e === row.e ? 'border-amber-400/60 bg-amber-500/5' : 'border-surface-200 dark:border-surface-700'"
+									>
+										<p class="text-xs text-surface-500">{{ $t('admin.ml.estudio.' + col.key) }}</p>
+										<p class="font-semibold text-surface-800 dark:text-surface-100">{{ $t('admin.ml.estudio.sellingAt', { price: money(col.precio) }) }}</p>
+										<p v-if="col.e && col.e.ganancia != null" class="text-xs font-semibold" :class="gainCls(col.e.gananciaPct)">
+											{{ $t('admin.ml.estudio.keep', { amount: money(col.e.ganancia), pct: pctLabel(col.e.gananciaPct) }) }}
+										</p>
+										<p v-if="col.e" class="mt-1 text-[11px] text-surface-500">
+											{{ $t('admin.ml.estudio.breakdown', { pct: dec(col.e.comisionPct), fee: money(col.e.comision) }) }}
+											<template v-if="col.e.envio"> · {{ $t('admin.ml.estudio.shipping', { cost: money(col.e.envio) }) }}</template>
 										</p>
 									</div>
 								</div>
-								<p v-if="row.v === 'sin_costo'" class="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">{{ $t('admin.ml.estudio.needCost') }}</p>
-								<p v-else-if="row.r && row.r.alMin && !row.r.noCoincide" class="mt-1.5 text-[11px] leading-snug text-surface-400">
-									{{ $t('admin.ml.estudio.breakdown', { pct: row.r.alMin.comisionPct }) }}
-									<template v-if="row.r.alMin.envio">· {{ $t('admin.ml.estudio.shipping', { cost: money(row.r.alMin.envio) }) }}</template>
+								<p class="text-xs text-surface-500">
+									{{ row.r.costo != null ? $t('admin.ml.estudio.costLine', { cost: money(row.r.costo) }) : $t('admin.ml.estudio.needCost') }}
+									· {{ $t('admin.ml.estudio.sellers', row.r.vendedores) }}
 									<span v-if="row.r.envioSinMedidas" class="text-amber-600 dark:text-amber-400">· {{ $t('admin.ml.estudio.noShipping') }}</span>
 								</p>
+							</template>
+							<div>
+								<Button :label="$t('admin.ml.estudio.openProduct')" icon="pi pi-sliders-h" size="small" outlined @click="goProduct(row.p)" />
 							</div>
 						</div>
 					</div>
@@ -150,10 +192,30 @@ import type { MlEstudio, MlEstudioEscenario, Producto, Rubro } from '@base-templ
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 
-/** conviene = llega al margen buscado; justo = gana pero menos; no_conviene = pierde. */
-type Verdict = 'conviene' | 'justo' | 'no_conviene' | 'sin_costo' | 'sin_datos' | 'pendiente';
+/**
+ * conviene = llega al margen buscado; justo = gana pero menos; no_conviene =
+ * pierde; revisar = la referencia de otra marca da una ganancia imposible.
+ */
+type Verdict = 'conviene' | 'justo' | 'no_conviene' | 'revisar' | 'sin_costo' | 'sin_datos' | 'pendiente';
 type GroupKey = Exclude<Verdict, 'pendiente'>;
-const ORDER: Record<Verdict, number> = { conviene: 0, justo: 1, no_conviene: 2, sin_costo: 3, pendiente: 4, sin_datos: 5 };
+type SortKey = 'best' | 'pct' | 'amount' | 'sellers';
+interface Row {
+	p: Producto;
+	r: MlEstudio | undefined;
+	v: Verdict;
+	/** El precio con el que se decide (ver `basis`). */
+	e: MlEstudioEscenario | null;
+}
+
+const ORDER: Record<Verdict, number> = { conviene: 0, justo: 1, no_conviene: 2, revisar: 3, sin_costo: 4, pendiente: 5, sin_datos: 6 };
+/** Qué tan seguro es que se comparó contra el mismo producto (menos = más seguro). */
+const CONF: Record<string, number> = { publicacion: 0, ean: 0, nombre: 1, similares: 2 };
+/**
+ * Una referencia de OTRA marca que deja más de esto sobre el costo casi seguro no
+ * es comparable (un pack contra la unidad, otra medida): se manda a revisar en vez
+ * de mostrarla como la mejor oportunidad.
+ */
+const MAX_PCT_REFERENCIA = 200;
 
 /**
  * Resultados por producto. Viven fuera del componente para que no se pierdan al
@@ -163,9 +225,9 @@ const results = reactive<Record<string, MlEstudio>>({});
 
 /**
  * Estudio de mercado: busca a cuánto se vende cada producto en Mercado Libre y,
- * con su costo, calcula cuánto quedaría vendiéndolo al precio más barato y al
- * del medio. Con el margen que busca el dueño los separa en "conviene", "queda
- * justo" y "no conviene".
+ * con su costo, calcula cuánto quedaría. Con el margen que busca el dueño los
+ * separa en "conviene", "queda justo" y "no conviene". La fila muestra la
+ * conclusión (cuánto queda); el detalle se abre al tocarla.
  */
 export default defineComponent({
 	name: 'EstudioMercadoView',
@@ -182,10 +244,17 @@ export default defineComponent({
 			done: 0,
 			total: 0,
 			filter: 'all' as GroupKey | 'all',
+			search: '',
+			sort: 'best' as SortKey,
+			/** Contra qué precio se calcula lo que queda: el más barato (por defecto) o el del medio. */
+			basisKey: 'min' as 'min' | 'medio',
+			/** Fila con el detalle abierto. */
+			open: null as string | null,
 			groups: [
 				{ key: 'conviene', cls: 'text-emerald-600 dark:text-emerald-400' },
 				{ key: 'justo', cls: 'text-amber-600 dark:text-amber-400' },
 				{ key: 'no_conviene', cls: 'text-red-500' },
+				{ key: 'revisar', cls: 'text-violet-600 dark:text-violet-400' },
 				{ key: 'sin_costo', cls: 'text-sky-600 dark:text-sky-400' },
 				{ key: 'sin_datos', cls: 'text-surface-400' },
 			] as { key: GroupKey; cls: string }[],
@@ -205,19 +274,46 @@ export default defineComponent({
 		progressPct(): number {
 			return this.total ? Math.round((this.done / this.total) * 100) : 0;
 		},
-		rows(): { p: Producto; r: MlEstudio | undefined; v: Verdict }[] {
-			return this.productos
-				.map(p => ({ p, r: this.results[p.id] as MlEstudio | undefined, v: this.verdict(this.results[p.id]) }))
-				// Primero lo que conviene, al final lo que no tiene datos; dentro de cada grupo, de mayor a menor ganancia.
-				.sort((a, b) => ORDER[a.v] - ORDER[b.v] || (this.basis(b.r)?.gananciaPct ?? -Infinity) - (this.basis(a.r)?.gananciaPct ?? -Infinity));
+		basisOptions(): { label: string; value: 'min' | 'medio' }[] {
+			return [
+				{ value: 'min', label: this.$t('admin.ml.estudio.basis.min') },
+				{ value: 'medio', label: this.$t('admin.ml.estudio.basis.medio') },
+			];
+		},
+		sortOptions(): { label: string; value: SortKey }[] {
+			return (['best', 'pct', 'amount', 'sellers'] as SortKey[]).map(value => ({ value, label: this.$t('admin.ml.estudio.sort.' + value) }));
+		},
+		rows(): Row[] {
+			return this.productos.map(p => {
+				const r = this.results[p.id] as MlEstudio | undefined;
+				return { p, r, v: this.verdict(r), e: this.basis(r) };
+			});
 		},
 		counts(): Record<GroupKey, number> {
-			const c: Record<GroupKey, number> = { conviene: 0, justo: 0, no_conviene: 0, sin_costo: 0, sin_datos: 0 };
+			const c: Record<GroupKey, number> = { conviene: 0, justo: 0, no_conviene: 0, revisar: 0, sin_costo: 0, sin_datos: 0 };
 			for (const row of this.rows) if (row.v !== 'pendiente') c[row.v]++;
 			return c;
 		},
-		shown(): { p: Producto; r: MlEstudio | undefined; v: Verdict }[] {
-			return this.filter === 'all' ? this.rows : this.rows.filter(row => row.v === this.filter);
+		visibleGroups(): { key: GroupKey; cls: string }[] {
+			return this.groups.filter(g => this.counts[g.key] > 0);
+		},
+		shown(): Row[] {
+			const q = this.search.trim().toLowerCase();
+			const pct = (row: Row) => row.e?.gananciaPct ?? -Infinity;
+			const by: Record<SortKey, (a: Row, b: Row) => number> = {
+				// Recomendado: por grupo, después lo más confiable, después la ganancia.
+				best: (a, b) => ORDER[a.v] - ORDER[b.v] || (CONF[a.r?.via ?? ''] ?? 9) - (CONF[b.r?.via ?? ''] ?? 9) || pct(b) - pct(a),
+				pct: (a, b) => pct(b) - pct(a),
+				amount: (a, b) => (b.e?.ganancia ?? -Infinity) - (a.e?.ganancia ?? -Infinity),
+				sellers: (a, b) => (b.r?.vendedores ?? 0) - (a.r?.vendedores ?? 0),
+			};
+			return this.rows
+				.filter(row => {
+					// Sin filtro: solo lo que tiene datos. "Sin datos" se ve al tocar su contador.
+					if (this.filter === 'all' ? row.v === 'sin_datos' || row.v === 'pendiente' : row.v !== this.filter) return false;
+					return !q || row.p.nombre.toLowerCase().includes(q);
+				})
+				.sort(by[this.sort]);
 		},
 	},
 	async created() {
@@ -240,41 +336,74 @@ export default defineComponent({
 		money(n: number): string {
 			return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
 		},
+		/** Porcentaje con un decimal como mucho ("14,8"). */
+		dec(n: number): string {
+			return new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 }).format(n);
+		},
+		pctLabel(pct: number | null): string {
+			return pct == null ? '' : `${pct > 0 ? '+' : ''}${pct}%`;
+		},
 		/**
-		 * Con qué precio se decide. Si es el mismo producto, contra el más barato (es
-		 * a quien hay que ganarle). Si son parecidos de otras marcas, contra el del
-		 * medio: el más barato ahí suele ser una marca de menor calidad.
+		 * Con qué precio se decide: el mismo para todas las filas, el que eligió el
+		 * dueño arriba (el más barato por defecto, o el del medio).
 		 */
 		basis(r: MlEstudio | undefined): MlEstudioEscenario | null {
-			if (!r) return null;
-			return r.via === 'similares' ? r.alMedio : r.alMin;
+			if (!r || r.noCoincide) return null;
+			return this.basisKey === 'medio' ? r.alMedio : r.alMin;
 		},
 		verdict(r: MlEstudio | undefined): Verdict {
 			if (!r) return 'pendiente';
 			if (!r.via || r.noCoincide || r.precioMin == null) return 'sin_datos';
 			const pct = this.basis(r)?.gananciaPct;
 			if (pct == null) return r.costo == null || r.costo <= 0 ? 'sin_costo' : 'sin_datos';
+			if (r.via === 'similares' && pct > MAX_PCT_REFERENCIA) return 'revisar';
 			if (pct <= 0) return 'no_conviene';
 			return pct >= (this.target ?? 0) ? 'conviene' : 'justo';
 		},
-		/** Las dos columnas de precio: el más barato y el del medio. */
-		priceCols(r: MlEstudio): { key: 'cheapest' | 'middle'; precio: number; e: MlEstudioEscenario | null }[] {
-			const cols: { key: 'cheapest' | 'middle'; precio: number; e: MlEstudioEscenario | null }[] = [];
-			if (r.precioMin != null) cols.push({ key: 'cheapest', precio: r.precioMin, e: r.alMin });
-			if (r.precioMediana != null) cols.push({ key: 'middle', precio: r.precioMediana, e: r.alMedio });
-			return cols;
+		/** Segunda línea de la fila: a qué precio se calculó y cuánta competencia hay. */
+		subline(row: Row): string {
+			const r = row.r;
+			if (!r) return this.$t('admin.ml.estudio.pending');
+			if (r.noCoincide) return this.$t('admin.ml.estudio.wrongCodeShort');
+			if (!row.e) return this.$t('admin.ml.estudio.noMatchShort');
+			return `${this.$t('admin.ml.estudio.sellingAt', { price: this.money(row.e.precio) })} · ${this.$t('admin.ml.estudio.sellers', r.vendedores)}`;
+		},
+		/** Las columnas de precio del detalle; una sola si el más barato y el del medio coinciden. */
+		priceCols(r: MlEstudio): { key: 'cheapest' | 'middle' | 'onlyPrice'; precio: number; e: MlEstudioEscenario | null }[] {
+			if (r.precioMin == null) return [];
+			if (r.precioMediana == null || r.precioMediana === r.precioMin) return [{ key: 'onlyPrice', precio: r.precioMin, e: r.alMin }];
+			return [
+				{ key: 'cheapest', precio: r.precioMin, e: r.alMin },
+				{ key: 'middle', precio: r.precioMediana, e: r.alMedio },
+			];
+		},
+		confCls(via: string): string {
+			if (via === 'similares') return 'bg-amber-500/10 text-amber-700 dark:text-amber-400';
+			if (via === 'nombre') return 'bg-sky-500/10 text-sky-700 dark:text-sky-400';
+			return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+		},
+		toneCls(v: Verdict): string {
+			if (v === 'conviene') return 'text-emerald-600 dark:text-emerald-400';
+			if (v === 'justo') return 'text-amber-600 dark:text-amber-400';
+			if (v === 'no_conviene') return 'text-red-500';
+			return 'text-surface-400';
 		},
 		verdictCls(v: Verdict): string {
-			if (v === 'conviene') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
-			if (v === 'justo') return 'bg-amber-500/10 text-amber-600 dark:text-amber-400';
-			if (v === 'no_conviene') return 'bg-red-500/10 text-red-500';
-			if (v === 'sin_costo') return 'bg-sky-500/10 text-sky-600 dark:text-sky-400';
-			return 'bg-surface-500/10 text-surface-400';
+			if (v === 'conviene') return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+			if (v === 'justo') return 'bg-amber-500/10 text-amber-700 dark:text-amber-400';
+			if (v === 'no_conviene') return 'bg-red-500/10 text-red-600 dark:text-red-400';
+			if (v === 'revisar') return 'bg-violet-500/10 text-violet-700 dark:text-violet-400';
+			if (v === 'sin_costo') return 'bg-sky-500/10 text-sky-700 dark:text-sky-400';
+			return 'bg-surface-500/10 text-surface-500';
 		},
 		gainCls(pct: number | null): string {
 			if (pct == null) return 'text-surface-400';
 			if (pct <= 0) return 'text-red-500';
 			return pct >= (this.target ?? 0) ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400';
+		},
+		/** Abre el producto en Publicaciones, donde se le ajusta el precio y se publica. */
+		goProduct(p: Producto) {
+			void this.$router.push({ name: 'admin-ml-publicaciones', query: { p: p.id } });
 		},
 		async reload() {
 			if (!this.catalog.rubros.length) await this.catalog.fetchRubros().catch(() => undefined);

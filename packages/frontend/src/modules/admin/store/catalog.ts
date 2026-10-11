@@ -31,6 +31,7 @@ import type {
 	MlFeeBreakdown,
 	MlCompetencia,
 	MlEstudio,
+	MlBulkResult,
 	MlShippingQuote,
 	MlListingType,
 	MlOrderView,
@@ -410,6 +411,18 @@ export const useCatalogStore = defineStore('catalog', {
 			const { data } = await api.get<MlEstudio>(`/rubros/${rubroId}/ml/productos/${productoId}/estudio`, {
 				params: refresh ? { refresh: 1 } : {},
 			});
+			return data;
+		},
+
+		/** Pausa o reactiva varias publicaciones de ML a la vez. */
+		async bulkMlStatus(rubroId: string, ids: string[], status: 'active' | 'paused'): Promise<MlBulkResult> {
+			const { data } = await api.post<MlBulkResult>(`/rubros/${rubroId}/ml/bulk-status`, { ids, status });
+			return data;
+		},
+
+		/** Modo vacaciones: pausa todas las activas (on) o reactiva las que pausó (off). */
+		async setMlVacation(rubroId: string, on: boolean): Promise<MlBulkResult> {
+			const { data } = await api.post<MlBulkResult>(`/rubros/${rubroId}/ml/vacation`, { on });
 			return data;
 		},
 

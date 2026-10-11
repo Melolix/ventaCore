@@ -244,6 +244,8 @@ export interface Producto {
 	mlStatus: string | null;
 	/** Id del producto de catálogo de ML al que se enlaza al publicar, o null. */
 	mlCatalogProductId: string | null;
+	/** La pausó el "modo vacaciones": al volver se reactiva sola. */
+	mlVacation: boolean;
 	createdAt: string;
 	updatedAt: string;
 }

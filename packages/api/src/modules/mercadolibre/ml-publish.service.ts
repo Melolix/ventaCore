@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { matchOpcionAttr, type MlPublishResult } from '@base-template/shared';
+import { In, Repository } from 'typeorm';
+import { matchOpcionAttr, type MlBulkResult, type MlPublishResult } from '@base-template/shared';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
 import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { MlConnectionService } from './ml-connection.service';
@@ -357,8 +357,82 @@ export class MlPublishService {
 		const { accessToken } = await this.connections.getValidAccessToken(rubroId, espacioId);
 		const updated = await this.mlPut<{ id?: string; status?: string }>(`/items/${producto.mlItemId}`, accessToken, { status });
 		producto.mlStatus = updated.status ?? status;
+		// Activarla a mano la saca del modo vacaciones.
+		if (status === 'active') producto.mlVacation = false;
 		await this.productos.save(producto);
 		return { ok: true, itemId: producto.mlItemId, permalink: producto.mlPermalink ?? undefined };
+	}
+
+	/**
+	 * Pausa o reactiva VARIAS publicaciones. Va de a 4 (ML limita los pedidos) y no
+	 * se corta por una que falle: devuelve cuáles no se pudieron y por qué (ML no
+	 * deja activar, por ejemplo, una publicación en revisión o sin fotos).
+	 * `vacation`: marca (true) o desmarca (false) las que cambian como pausadas por vacaciones.
+	 */
+	private async bulkStatus(productos: ProductoEntity[], accessToken: string, status: 'active' | 'paused', vacation?: boolean): Promise<MlBulkResult> {
+		const out: MlBulkResult = { ok: 0, failed: [] };
+		const queue = productos.filter(p => p.mlItemId);
+		const worker = async () => {
+			for (;;) {
+				const p = queue.shift();
+				if (!p) return;
+				try {
+					const updated = await this.mlPut<{ status?: string }>(`/items/${p.mlItemId}`, accessToken, { status });
+					p.mlStatus = updated.status ?? status;
+					if (vacation !== undefined) p.mlVacation = vacation;
+					// Activarla a mano la saca del modo vacaciones.
+					else if (status === 'active') p.mlVacation = false;
+					await this.productos.save(p);
+					out.ok++;
+				} catch (e) {
+					// ML contesta en inglés y con el detalle técnico ("Cannot update item …
+					// [status:under_review]"): se traduce a algo que el dueño pueda entender,
+					// y de paso se guarda el estado real que informó.
+					const raw = e instanceof Error ? e.message : '';
+					const real = /status:([a-z_]+)/.exec(raw)?.[1];
+					if (real && real !== p.mlStatus) {
+						p.mlStatus = real;
+						await this.productos.save(p).catch(() => undefined);
+					}
+					const motivos: Record<string, string> = {
+						under_review: 'está en revisión en Mercado Libre y no se puede cambiar hasta que termine',
+						inactive: 'Mercado Libre la tiene inactiva; hay que reactivarla desde Mercado Libre',
+						closed: 'está finalizada en Mercado Libre',
+						payment_required: 'tiene un pago pendiente en Mercado Libre',
+					};
+					const error = (real && motivos[real]) || raw.replace(/^Mercado Libre:\s*/, '').replace(/\s*\(\[.*$/s, '') || 'Mercado Libre no aceptó el cambio';
+					out.failed.push({ id: p.id, nombre: p.variante ? `${p.nombre} (${p.variante})` : p.nombre, error });
+				}
+			}
+		};
+		await Promise.all([worker(), worker(), worker(), worker()]);
+		return out;
+	}
+
+	/** Pausa o reactiva las publicaciones elegidas (acción en lote de la pantalla de Publicaciones). */
+	async setStatusMany(rubroId: string, espacioId: string, ids: string[], status: 'active' | 'paused'): Promise<MlBulkResult> {
+		const rubro = await this.rubros.findOne({ where: { id: rubroId, espacioId } });
+		if (!rubro) throw new NotFoundException('Rubro no encontrado');
+		if (!ids.length) return { ok: 0, failed: [] };
+		const productos = await this.productos.find({ where: { rubroId, id: In(ids) } });
+		const { accessToken } = await this.connections.getValidAccessToken(rubroId, espacioId);
+		return this.bulkStatus(productos, accessToken, status);
+	}
+
+	/**
+	 * Modo vacaciones. Al activarlo pausa TODAS las publicaciones activas del
+	 * negocio y las marca; al desactivarlo reactiva solo las marcadas (las que el
+	 * dueño ya tenía pausadas antes siguen pausadas).
+	 */
+	async setVacation(rubroId: string, espacioId: string, on: boolean): Promise<MlBulkResult> {
+		const rubro = await this.rubros.findOne({ where: { id: rubroId, espacioId } });
+		if (!rubro) throw new NotFoundException('Rubro no encontrado');
+		const productos = on
+			? await this.productos.find({ where: { rubroId, mlStatus: 'active' } })
+			: await this.productos.find({ where: { rubroId, mlVacation: true } });
+		if (!productos.length) return { ok: 0, failed: [] };
+		const { accessToken } = await this.connections.getValidAccessToken(rubroId, espacioId);
+		return this.bulkStatus(productos, accessToken, on ? 'paused' : 'active', on);
 	}
 
 	/**
