@@ -382,7 +382,13 @@ export class MlCatalogService {
 			if (!required && (tags.has('hidden') || tags.has('read_only') || tags.has('fixed'))) continue;
 
 			const mainCandidate = tags.has('main_attribute_candidate');
+			// Medida (no talle): las que ML marca como del cuerpo / de la prenda, o
+			// cualquier número que no pueda ser talle principal (ej. largo del pie).
+			const measure = tags.has('CLOTHING_MEASURE') ? 'CLOTHING' : tags.has('BODY_MEASURE') ? 'BODY' : null;
+			const isNumber = a.value_type === 'number' || a.value_type === 'number_unit';
 			const column: MlSizeChartColumn = {
+				isMeasure: !!measure || (isNumber && !mainCandidate),
+				measure,
 				id: a.id,
 				name: a.name ?? a.id,
 				valueType: a.value_type ?? 'string',
@@ -393,15 +399,11 @@ export class MlCatalogService {
 				defaultUnit: a.default_unit_id ?? null,
 				values: (a.values ?? []).filter(v => v.id && v.name).map(v => ({ id: v.id!, name: v.name! })),
 			};
-			// Talles y medidas van por fila (CHILD_PK); lo demás es general de la guía.
-			const isRow =
-				a.hierarchy === 'CHILD_PK' ||
-				mainCandidate ||
-				a.id === 'SIZE' ||
-				tags.has('BODY_MEASURE') ||
-				tags.has('CLOTHING_MEASURE') ||
-				tags.has('variation_attribute');
-			if (isRow) columns.push(column);
+			// Talles y medidas van por fila: cada talle tiene las suyas (en el ejemplo de
+			// ML, AR_SIZE y FOOT_LENGTH van en cada fila). A la guía general solo va lo
+			// que ML marca como dato del producto padre y no es un número ni una medida.
+			const isGeneral = (a.hierarchy === 'PARENT_PK' || a.hierarchy === 'FAMILY') && !mainCandidate && !isNumber && !measure && a.id !== 'SIZE';
+			if (!isGeneral) columns.push(column);
 			else if (required) general.push(column);
 		}
 		if (!columns.some(c => c.mainCandidate)) {
@@ -414,7 +416,14 @@ export class MlCatalogService {
 		const suggested =
 			candidates.find(c => country && c.id === `${country}_SIZE`) ?? candidates.find(c => c.id === 'SIZE') ?? candidates[0];
 
-		return { domainId: full, maxRows: maxRows || 75, columns, suggestedMainId: suggested?.id ?? null, general };
+		return {
+			domainId: full,
+			maxRows: maxRows || 75,
+			columns,
+			suggestedMainId: suggested?.id ?? null,
+			general,
+			clothingMeasures: columns.some(c => c.measure === 'CLOTHING'),
+		};
 	}
 
 	/** Crea una guía de talles propia (SPECIFIC) en la cuenta del vendedor y la devuelve con sus filas. */
@@ -455,6 +464,8 @@ export class MlCatalogService {
 				// Sin el prefijo del sitio: ML lo agrega según site_id.
 				domain_id: short,
 				site_id: siteId,
+				// Ropa: medidas del cuerpo (default de ML) o de la prenda. No se puede cambiar después.
+				...(input.measureType ? { measure_type: input.measureType } : {}),
 				main_attribute: { attributes: [{ site_id: siteId, id: input.mainAttributeId }] },
 				attributes,
 				rows,

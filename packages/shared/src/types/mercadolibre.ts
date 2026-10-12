@@ -225,7 +225,14 @@ export interface MlSizeChartColumn {
 	defaultUnit: string | null;
 	/** Opciones permitidas (list). */
 	values: MlAttributeValue[];
+	/** Es una medida (largo del pie, pecho, largo de la prenda…), no un talle. */
+	isMeasure: boolean;
+	/** Medida del cuerpo o de la prenda (ropa); null si ML no lo distingue (ej. calzado). */
+	measure: 'BODY' | 'CLOTHING' | null;
 }
+
+/** Tipo de medidas de una guía de ropa: del cuerpo o de la prenda. */
+export type MlSizeChartMeasureType = 'BODY_MEASURE' | 'CLOTHING_MEASURE';
 
 /** Qué pide ML para crear una guía de talles propia (SPECIFIC) en un dominio. */
 export interface MlSizeChartTemplate {
@@ -239,6 +246,8 @@ export interface MlSizeChartTemplate {
 	suggestedMainId: string | null;
 	/** Otros atributos generales de la guía (además de GENDER y BRAND). */
 	general: MlSizeChartColumn[];
+	/** Ropa (TOPS y BOTTOMS): se puede elegir medidas de la prenda en vez del cuerpo. */
+	clothingMeasures: boolean;
 }
 
 /** Un valor de una celda: opción de lista (`id`), texto (`name`) o número + unidad. */
@@ -262,6 +271,8 @@ export interface MlCreateSizeChartInput {
 	brand?: string;
 	/** Columna que es el talle principal. */
 	mainAttributeId: string;
+	/** Ropa: medidas del cuerpo (default de ML) o de la prenda. */
+	measureType?: MlSizeChartMeasureType;
 	/** Atributos generales extra (de `MlSizeChartTemplate.general`). */
 	attributes?: MlSizeChartCellInput[];
 	rows: Array<{ attributes: MlSizeChartCellInput[] }>;

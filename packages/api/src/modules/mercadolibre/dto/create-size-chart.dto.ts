@@ -4,6 +4,7 @@ import {
 	ArrayMaxSize,
 	ArrayMinSize,
 	IsArray,
+	IsIn,
 	IsNumber,
 	IsOptional,
 	IsString,
@@ -11,7 +12,7 @@ import {
 	MinLength,
 	ValidateNested,
 } from 'class-validator';
-import type { MlCreateSizeChartInput, MlSizeChartCellInput, MlSizeChartValueInput } from '@base-template/shared';
+import type { MlCreateSizeChartInput, MlSizeChartCellInput, MlSizeChartMeasureType, MlSizeChartValueInput } from '@base-template/shared';
 
 /** Un valor de una celda: opción de lista (id), texto (name) o número + unidad. */
 export class SizeChartValueDto implements MlSizeChartValueInput {
@@ -81,6 +82,11 @@ export class CreateSizeChartDto implements MlCreateSizeChartInput {
 	@IsString()
 	@MinLength(1)
 	mainAttributeId!: string;
+
+	@ApiProperty({ required: false, enum: ['BODY_MEASURE', 'CLOTHING_MEASURE'], description: 'Ropa: medidas del cuerpo o de la prenda.' })
+	@IsOptional()
+	@IsIn(['BODY_MEASURE', 'CLOTHING_MEASURE'])
+	measureType?: MlSizeChartMeasureType;
 
 	@ApiProperty({ type: [SizeChartCellDto], required: false })
 	@IsOptional()
