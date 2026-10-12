@@ -4,8 +4,12 @@ import type {
 	MlCategoryPrediction,
 	MlCatalogProduct,
 	MlCatalogSearchResult,
+	MlCreateSizeChartInput,
 	MlSizeChart,
+	MlSizeChartColumn,
 	MlSizeChartsResult,
+	MlSizeChartTemplate,
+	MlSizeChartValueInput,
 	MlVariationAttr,
 } from '@base-template/shared';
 import { MlConnectionService } from './ml-connection.service';
@@ -40,6 +44,46 @@ const MAX_CHARTS = 15;
 
 /** Atributo de la guía de talles (id de la guía). ML lo exige en ropa y calzado. */
 const SIZE_GRID_ATTR = 'SIZE_GRID_ID';
+
+/** Atributo de la ficha técnica de la guía de talles (ahí los tags son un array). */
+interface RawGridAttribute {
+	id: string;
+	name?: string;
+	value_type?: string;
+	tags?: string[];
+	hierarchy?: string;
+	default_unit_id?: string;
+	units?: Array<{ id?: string; name?: string }>;
+	values?: Array<{ id?: string; name?: string }>;
+}
+
+/** Componente de la ficha técnica: anida componentes y/o trae atributos. */
+interface RawSpecComponent {
+	ui_config?: { max_allowed?: number };
+	components?: RawSpecComponent[];
+	attributes?: RawGridAttribute[];
+}
+
+/** Atributo de una guía en el formato del alta de ML. */
+type MlChartCell = {
+	id: string;
+	values: Array<{ id?: string; name?: string; struct?: { number: number; unit: string } }>;
+};
+
+/** Atributos generales de la guía que completamos con los del producto. */
+const GRID_PRODUCT_ATTRS = ['GENDER', 'BRAND'];
+
+/** País de cada sitio, para sugerir su talle como principal (AR_SIZE en MLA). */
+const SITE_COUNTRY: Record<string, string> = {
+	MLA: 'AR',
+	MLB: 'BR',
+	MLM: 'MX',
+	MLC: 'CL',
+	MCO: 'CO',
+	MLU: 'UY',
+	MPE: 'PE',
+	MEC: 'EC',
+};
 
 /**
  * Consultas al catálogo de Mercado Libre: predicción de categoría (por título)
@@ -281,6 +325,174 @@ export class MlCatalogService {
 		const body = (await res.json().catch(() => ({}))) as { message?: string };
 		if (!res.ok) throw new BadRequestException(`Mercado Libre: no se pudo leer la ficha de la guía de talles (${body.message || res.statusText})`);
 		return body;
+	}
+
+	/**
+	 * Qué columnas pide ML para crear una guía propia: la ficha técnica de la guía
+	 * (la misma de `getSizeChartSpec`) ya ordenada en columnas por fila (talles y
+	 * medidas) y atributos generales, más el talle principal sugerido.
+	 */
+	async getSizeChartTemplate(
+		rubroId: string,
+		espacioId: string,
+		categoryId: string,
+		gender: string,
+		brand: string,
+	): Promise<MlSizeChartTemplate> {
+		if (!gender.trim()) throw new BadRequestException('Falta el género para armar la guía de talles');
+		const { full } = await this.categoryDomain(categoryId);
+		if (!full) throw new BadRequestException('La categoría no tiene dominio de catálogo');
+		const { accessToken, siteId } = await this.connections.getValidAccessToken(rubroId, espacioId);
+		const genderValue = await this.genderValue(categoryId, gender);
+
+		// GENDER va con el id del valor: la ficha lo espera como opción de la lista.
+		const attributes: Array<Record<string, unknown>> = [
+			{ id: 'GENDER', value_id: genderValue.id ?? null, value_name: genderValue.name, values: [{ id: genderValue.id ?? null, name: genderValue.name }] },
+		];
+		if (brand.trim()) attributes.push({ id: 'BRAND', value_name: brand.trim(), values: [{ name: brand.trim() }] });
+
+		const res = await fetch(`${this.apiHost}/domains/${encodeURIComponent(full)}/technical_specs?section=grids`, {
+			method: 'POST',
+			headers: { accept: 'application/json', 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
+			body: JSON.stringify({ attributes }),
+		});
+		const spec = (await res.json().catch(() => ({}))) as { input?: { groups?: RawSpecComponent[] }; message?: string };
+		if (!res.ok) throw new BadRequestException(`Mercado Libre: no se pudo leer la ficha de la guía de talles (${spec.message || res.statusText})`);
+
+		// Los atributos vienen anidados: grupos → componente GRID → componentes.
+		let maxRows = 0;
+		const raw = new Map<string, RawGridAttribute>();
+		const walk = (nodes: RawSpecComponent[] = []) => {
+			for (const n of nodes) {
+				if (n.ui_config?.max_allowed) maxRows = Math.max(maxRows, n.ui_config.max_allowed);
+				for (const a of n.attributes ?? []) if (a.id && !raw.has(a.id)) raw.set(a.id, a);
+				walk(n.components);
+			}
+		};
+		walk(spec.input?.groups);
+
+		const columns: MlSizeChartColumn[] = [];
+		const general: MlSizeChartColumn[] = [];
+		for (const a of raw.values()) {
+			const tags = new Set(a.tags ?? []);
+			if (GRID_PRODUCT_ATTRS.includes(a.id) || tags.has('grid_template_required')) continue;
+			if (a.value_type === 'grid_id' || a.value_type === 'grid_row_id') continue;
+			const required = tags.has('required');
+			// Ocultos / de solo lectura solo si son obligatorios (ej. FILTRABLE_SIZE en TOPS y BOTTOMS).
+			if (!required && (tags.has('hidden') || tags.has('read_only') || tags.has('fixed'))) continue;
+
+			const mainCandidate = tags.has('main_attribute_candidate');
+			const column: MlSizeChartColumn = {
+				id: a.id,
+				name: a.name ?? a.id,
+				valueType: a.value_type ?? 'string',
+				required,
+				mainCandidate,
+				multivalued: tags.has('multivalued'),
+				units: (a.units ?? []).map(u => u.id ?? '').filter(Boolean),
+				defaultUnit: a.default_unit_id ?? null,
+				values: (a.values ?? []).filter(v => v.id && v.name).map(v => ({ id: v.id!, name: v.name! })),
+			};
+			// Talles y medidas van por fila (CHILD_PK); lo demás es general de la guía.
+			const isRow =
+				a.hierarchy === 'CHILD_PK' ||
+				mainCandidate ||
+				a.id === 'SIZE' ||
+				tags.has('BODY_MEASURE') ||
+				tags.has('CLOTHING_MEASURE') ||
+				tags.has('variation_attribute');
+			if (isRow) columns.push(column);
+			else if (required) general.push(column);
+		}
+		if (!columns.some(c => c.mainCandidate)) {
+			throw new BadRequestException('Mercado Libre no permite crear guías de talles propias en esta categoría');
+		}
+
+		// Talle principal sugerido: el del país del sitio (AR_SIZE en MLA) o SIZE.
+		const country = SITE_COUNTRY[siteId];
+		const candidates = columns.filter(c => c.mainCandidate);
+		const suggested =
+			candidates.find(c => country && c.id === `${country}_SIZE`) ?? candidates.find(c => c.id === 'SIZE') ?? candidates[0];
+
+		return { domainId: full, maxRows: maxRows || 75, columns, suggestedMainId: suggested?.id ?? null, general };
+	}
+
+	/** Crea una guía de talles propia (SPECIFIC) en la cuenta del vendedor y la devuelve con sus filas. */
+	async createSizeChart(rubroId: string, espacioId: string, categoryId: string, input: MlCreateSizeChartInput): Promise<MlSizeChart> {
+		// ML acepta hasta 60 caracteres, solo letras, números y espacios.
+		const name = input.name
+			.replace(/[^\p{L}\p{N} ]+/gu, ' ')
+			.replace(/\s+/g, ' ')
+			.trim()
+			.slice(0, 60)
+			.trim();
+		if (!name) throw new BadRequestException('El nombre de la guía tiene que tener letras o números');
+		if (!input.gender.trim()) throw new BadRequestException('Falta el género de la guía de talles');
+		const rows = input.rows
+			.map(r => ({ attributes: r.attributes.filter(c => c.values.length).map(c => this.toMlCell(c.id, c.values)) }))
+			.filter(r => r.attributes.length);
+		if (!rows.length) throw new BadRequestException('La guía de talles necesita al menos un talle');
+		if (rows.some(r => !r.attributes.some(a => a.id === input.mainAttributeId))) {
+			throw new BadRequestException('Todos los talles tienen que tener completo el talle principal');
+		}
+
+		const { short } = await this.categoryDomain(categoryId);
+		if (!short) throw new BadRequestException('La categoría no tiene dominio de catálogo');
+		const { accessToken, siteId } = await this.connections.getValidAccessToken(rubroId, espacioId);
+		const genderValue = await this.genderValue(categoryId, input.gender);
+
+		const attributes: MlChartCell[] = [{ id: 'GENDER', values: [genderValue] }];
+		if (input.brand?.trim()) attributes.push({ id: 'BRAND', values: [{ name: input.brand.trim() }] });
+		for (const c of input.attributes ?? []) {
+			if (c.values.length && !GRID_PRODUCT_ATTRS.includes(c.id)) attributes.push(this.toMlCell(c.id, c.values));
+		}
+
+		const res = await fetch(`${this.apiHost}/catalog/charts`, {
+			method: 'POST',
+			headers: { accept: 'application/json', 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
+			body: JSON.stringify({
+				names: { [siteId]: name },
+				// Sin el prefijo del sitio: ML lo agrega según site_id.
+				domain_id: short,
+				site_id: siteId,
+				main_attribute: { attributes: [{ site_id: siteId, id: input.mainAttributeId }] },
+				attributes,
+				rows,
+			}),
+		});
+		const body = (await res.json().catch(() => ({}))) as RawMlChart & { message?: string; cause?: unknown };
+		if (!res.ok) {
+			// ML explica en `cause` qué columna o fila no le gustó: lo pasamos tal cual.
+			const cause = body.cause ? ` (${JSON.stringify(body.cause).slice(0, 400)})` : '';
+			throw new BadRequestException(`Mercado Libre: no se pudo crear la guía de talles: ${body.message || res.statusText}${cause}`);
+		}
+		return this.toSizeChart(body, siteId);
+	}
+
+	/** Valor de GENDER con su id de ML (la guía lo espera como opción de la lista). */
+	private async genderValue(categoryId: string, gender: string): Promise<{ id?: string; name: string }> {
+		const name = gender.trim();
+		const res = await fetch(`${this.apiHost}/categories/${encodeURIComponent(categoryId.trim())}/attributes`, {
+			headers: { accept: 'application/json' },
+		});
+		const attrs = (await res.json().catch(() => [])) as RawMlAttribute[];
+		const values = (Array.isArray(attrs) ? attrs : []).find(a => a.id === 'GENDER')?.values ?? [];
+		const match = values.find(v => v.id === name || v.name?.toLowerCase() === name.toLowerCase());
+		return match?.id && match.name ? { id: match.id, name: match.name } : { name };
+	}
+
+	/** Celda de la guía en el formato de ML (number_unit siempre con struct). */
+	private toMlCell(id: string, values: MlSizeChartValueInput[]): MlChartCell {
+		return {
+			id,
+			values: values.map(v => {
+				if (v.number != null && Number.isFinite(v.number) && v.unit) {
+					return { name: `${String(v.number).replace('.', ',')} ${v.unit}`, struct: { number: v.number, unit: v.unit } };
+				}
+				if (v.id) return v.name ? { id: v.id, name: v.name } : { id: v.id };
+				return { name: (v.name ?? '').trim() };
+			}),
+		};
 	}
 
 	/** Trae una guía de talles por id (con sus filas). */

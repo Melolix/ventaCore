@@ -379,11 +379,16 @@
 								:placeholder="$t('admin.carga.ml.attrPick')"
 								class="w-full"
 							/>
-							<!-- Guía de talles: acá se carga por código (el selector completo está en Cargar productos). -->
-							<template v-else-if="attr.id === 'SIZE_GRID_ID'">
-								<InputText v-model="mlAttrValues[attr.id]" class="w-full" inputmode="numeric" :placeholder="$t('admin.carga.ml.chart.codePlaceholder')" />
-								<p class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.chart.codeHint') }}</p>
-							</template>
+							<!-- Guía de talles: buscar, cargar por código o crearla sin salir de VentaCore. -->
+							<MlSizeChartField
+								v-else-if="attr.id === 'SIZE_GRID_ID' && rubro"
+								v-model="mlAttrValues[attr.id]"
+								:rubro-id="rubro.id"
+								:category-id="edit.mlCategoryId"
+								:gender="mlAttrValues.GENDER ?? ''"
+								:brand="mlAttrValues.BRAND ?? ''"
+								:sizes="mlAttrValues.SIZE?.trim() ? [mlAttrValues.SIZE.trim()] : []"
+							/>
 							<InputText v-else v-model="mlAttrValues[attr.id]" class="w-full" :placeholder="$t('admin.carga.ml.attrValue')" />
 						</div>
 					</div>
@@ -682,6 +687,7 @@ import { apiErrorMessage } from '@/shared/utils/apiError';
 import { stripBackgroundToUpload, deleteImage } from '@/shared/utils/image';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
 import HandoffButton from '@/shared/components/HandoffButton.vue';
+import MlSizeChartField from '@/modules/admin/components/MlSizeChartField.vue';
 
 type FilterKey = 'all' | 'published' | 'ready' | 'missing';
 type ProductState = 'published' | 'ready' | 'missing';
@@ -721,7 +727,7 @@ interface EditState {
 
 export default defineComponent({
 	name: 'MercadoLibreView',
-	components: { ImageUpload, HandoffButton },
+	components: { ImageUpload, HandoffButton, MlSizeChartField },
 	data() {
 		return {
 			catalog: useCatalogStore(),

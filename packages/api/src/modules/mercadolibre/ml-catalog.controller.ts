@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, ForbiddenException, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthenticatedUser, ML_LISTING_TYPES, Role, type MlListingType } from '@base-template/shared';
 import { FirebaseAuthGuard } from '../../common/auth/firebase-auth.guard';
@@ -7,6 +7,7 @@ import { Roles } from '../../common/auth/roles.decorator';
 import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { MlCatalogService } from './ml-catalog.service';
 import { MlPricingService } from './ml-pricing.service';
+import { CreateSizeChartDto } from './dto/create-size-chart.dto';
 
 function espacioDe(user: AuthenticatedUser): string {
 	if (!user.espacioId) throw new ForbiddenException('El usuario no tiene un espacio asignado');
@@ -94,6 +95,29 @@ export class MlCatalogController {
 		@Query('brand') brand = '',
 	) {
 		return this.catalog.getSizeChartSpec(rubroId, espacioDe(user), categoryId, gender, brand);
+	}
+
+	/** Columnas para crear una guía de talles propia (talles, medidas y datos generales). */
+	@Get('size-charts/template')
+	sizeChartTemplate(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Query('categoryId') categoryId = '',
+		@Query('gender') gender = '',
+		@Query('brand') brand = '',
+	) {
+		return this.catalog.getSizeChartTemplate(rubroId, espacioDe(user), categoryId, gender, brand);
+	}
+
+	/** Crea una guía de talles propia en la cuenta de ML del vendedor (sin salir de VentaCore). */
+	@Post('size-charts')
+	createSizeChart(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Query('categoryId') categoryId = '',
+		@Body() dto: CreateSizeChartDto,
+	) {
+		return this.catalog.createSizeChart(rubroId, espacioDe(user), categoryId, dto);
 	}
 
 	/** Una guía de talles por su código (el que ML muestra al crearla). */

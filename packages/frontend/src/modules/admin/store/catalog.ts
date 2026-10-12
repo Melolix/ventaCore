@@ -23,6 +23,8 @@ import type {
 	MlAttribute,
 	MlSizeChart,
 	MlSizeChartsResult,
+	MlSizeChartTemplate,
+	MlCreateSizeChartInput,
 	MlVariationAttr,
 	MlPublishResult,
 	MlCatalogSearchResult,
@@ -357,6 +359,20 @@ export const useCatalogStore = defineStore('catalog', {
 			const { data } = await api.get<MlSizeChart>(`/rubros/${rubroId}/ml/size-charts/by-id/${encodeURIComponent(chartId)}`, {
 				params: { categoryId },
 			});
+			return data;
+		},
+
+		/** Qué pide ML para crear una guía de talles propia (talles, medidas y datos generales). */
+		async fetchMlSizeChartTemplate(rubroId: string, categoryId: string, gender: string, brand: string): Promise<MlSizeChartTemplate> {
+			const { data } = await api.get<MlSizeChartTemplate>(`/rubros/${rubroId}/ml/size-charts/template`, {
+				params: { categoryId, gender, brand: brand || undefined },
+			});
+			return data;
+		},
+
+		/** Crea una guía de talles propia en la cuenta de ML del vendedor. */
+		async createMlSizeChart(rubroId: string, categoryId: string, input: MlCreateSizeChartInput): Promise<MlSizeChart> {
+			const { data } = await api.post<MlSizeChart>(`/rubros/${rubroId}/ml/size-charts`, input, { params: { categoryId } });
 			return data;
 		},
 

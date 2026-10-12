@@ -204,6 +204,69 @@ export interface MlSizeChartsResult {
 	otherGenders?: Array<{ gender: string; chart: MlSizeChart }>;
 }
 
+/**
+ * Una columna de la ficha técnica de la guía de talles (POST
+ * /domains/$DOMAIN/technical_specs?section=grids): un talle (AR, US, "Talle de
+ * marca"…) o una medida (largo del pie, contorno de pecho…).
+ */
+export interface MlSizeChartColumn {
+	id: string;
+	name: string;
+	/** "string" | "number" | "number_unit" | "list"… */
+	valueType: string;
+	/** Hay que completarla en todas las filas. */
+	required: boolean;
+	/** Puede ser el talle principal (lo que el comprador ve en el selector). */
+	mainCandidate: boolean;
+	/** Acepta más de un valor por fila (solo listas). */
+	multivalued: boolean;
+	/** Unidades permitidas (number_unit). */
+	units: string[];
+	defaultUnit: string | null;
+	/** Opciones permitidas (list). */
+	values: MlAttributeValue[];
+}
+
+/** Qué pide ML para crear una guía de talles propia (SPECIFIC) en un dominio. */
+export interface MlSizeChartTemplate {
+	/** Dominio con prefijo del sitio (ej. "MLA-SNEAKERS"). */
+	domainId: string;
+	/** Tope de filas (talles) por guía. */
+	maxRows: number;
+	/** Columnas de cada fila. */
+	columns: MlSizeChartColumn[];
+	/** Talle principal sugerido (el del país del sitio, ej. AR_SIZE en MLA). */
+	suggestedMainId: string | null;
+	/** Otros atributos generales de la guía (además de GENDER y BRAND). */
+	general: MlSizeChartColumn[];
+}
+
+/** Un valor de una celda: opción de lista (`id`), texto (`name`) o número + unidad. */
+export interface MlSizeChartValueInput {
+	id?: string;
+	name?: string;
+	number?: number;
+	unit?: string;
+}
+
+export interface MlSizeChartCellInput {
+	id: string;
+	values: MlSizeChartValueInput[];
+}
+
+/** Alta de una guía de talles propia (SPECIFIC). */
+export interface MlCreateSizeChartInput {
+	/** Nombre (máx. 60, solo letras, números y espacios). */
+	name: string;
+	gender: string;
+	brand?: string;
+	/** Columna que es el talle principal. */
+	mainAttributeId: string;
+	/** Atributos generales extra (de `MlSizeChartTemplate.general`). */
+	attributes?: MlSizeChartCellInput[];
+	rows: Array<{ attributes: MlSizeChartCellInput[] }>;
+}
+
 /** Valor permitido de un atributo de ML (para atributos con opciones cerradas). */
 export interface MlAttributeValue {
 	id: string;

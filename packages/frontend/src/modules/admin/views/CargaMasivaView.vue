@@ -885,6 +885,8 @@
 						<p v-if="mlChartMissing.length" class="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
 							<i class="pi pi-exclamation-triangle mt-px" /> {{ $t('admin.carga.ml.chart.missing', { sizes: mlChartMissing.join(', ') }) }}
 						</p>
+						<!-- Ninguna le sirve (le faltan talles, es de otra prenda…): crear una nueva acá. -->
+						<Button :label="$t('admin.carga.ml.chart.create.button')" icon="pi pi-plus" size="small" text @click="mlChartCreateVisible = true" />
 						<p v-if="mlChartSelected && mlChartSelected.sameDomain === false" class="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
 							<i class="pi pi-exclamation-triangle mt-px" /> {{ $t('admin.carga.ml.chart.otherDomain', { category: mlPendingCategoryName }) }}
 						</p>
@@ -917,7 +919,10 @@
 								· {{ o.chart.name }} ({{ o.gender }}) — {{ o.chart.rows.map(r => r.size).join(', ') }}
 							</p>
 						</div>
-						<!-- Las guías se crean en Mercado Libre: link a su pantalla de guías de talles. -->
+						<!-- Crear la guía acá mismo, con los talles del producto ya cargados. -->
+						<p class="text-xs text-amber-700 dark:text-amber-300">{{ $t('admin.carga.ml.chart.orCreate') }}</p>
+						<Button :label="$t('admin.carga.ml.chart.create.button')" icon="pi pi-plus" size="small" @click="mlChartCreateVisible = true" />
+						<!-- Alternativa: crearla en la pantalla de guías de talles de Mercado Libre. -->
 						<a
 							:href="ML_SIZE_CHARTS_URL"
 							target="_blank"
@@ -951,6 +956,18 @@
 				<Button :label="$t('common.apply')" icon="pi pi-check" @click="saveMl" />
 			</template>
 		</Dialog>
+
+		<!-- Dialog: crear guía de talles en ML sin salir de VentaCore -->
+		<MlSizeChartCreateDialog
+			v-if="mlRow && mlPendingCategoryId"
+			v-model:visible="mlChartCreateVisible"
+			:rubro-id="mlRow.rubroId"
+			:category-id="mlPendingCategoryId"
+			:gender="mlAttrValues.GENDER ?? ''"
+			:brand="mlAttrValues.BRAND ?? ''"
+			:sizes="mlProductSizes"
+			@created="onChartCreated"
+		/>
 
 		<!-- Dialog: gestor de imágenes por fila -->
 		<Dialog v-model:visible="imgVisible" modal :header="$t('admin.carga.images.title')" class="w-full max-w-lg">
@@ -1220,6 +1237,7 @@ import {
 } from '@/modules/admin/utils/importTable';
 import ImageUpload from '@/shared/components/ImageUpload.vue';
 import HandoffButton from '@/shared/components/HandoffButton.vue';
+import MlSizeChartCreateDialog from '@/modules/admin/components/MlSizeChartCreateDialog.vue';
 import { compareVariantes } from '@/modules/app/utils/variantes';
 import VariantesDialog, {
 	type ColorRef,
@@ -1290,7 +1308,7 @@ type ImportField = (typeof IMPORT_FIELDS)[number] | 'ignore';
 
 export default defineComponent({
 	name: 'CargaMasivaView',
-	components: { ImageUpload, HandoffButton, VariantesDialog },
+	components: { ImageUpload, HandoffButton, VariantesDialog, MlSizeChartCreateDialog },
 	data() {
 		return {
 			catalog: useCatalogStore(),
@@ -1350,6 +1368,8 @@ export default defineComponent({
 			/** Código de guía pegado a mano (el que ML muestra al crearla). */
 			mlChartCode: '',
 			mlChartCodeLoading: false,
+			// Diálogo para crear la guía de talles sin salir de VentaCore.
+			mlChartCreateVisible: false,
 			mlAttrs: [] as MlAttribute[],
 			mlAttrValues: {} as Record<string, string>,
 			// Cache de atributos obligatorios por categoría (para el "Faltan N").
@@ -1524,6 +1544,17 @@ export default defineComponent({
 			return this.mlCharts?.charts.find(c => c.id === this.mlAttrValues.SIZE_GRID_ID);
 		},
 		/** Talles del producto que NO están en la guía elegida (ML rechazaría esas opciones). */
+		/** Talles del producto (de sus opciones, o el de la ficha): arrancan como filas al crear una guía. */
+		mlProductSizes(): string[] {
+			const row = this.mlRow;
+			if (!row) return [];
+			if (!row.grupo) return this.mlAttrValues.SIZE?.trim() ? [this.mlAttrValues.SIZE.trim()] : [];
+			const sizes = this.groupRows(row).map(r => {
+				const talle = (r.opciones ?? []).find(o => /talle|size/i.test(o.nombre ?? ''))?.valor;
+				return (talle ?? (r.variante ?? '').split(' / ').pop() ?? '').trim();
+			});
+			return [...new Set(sizes.filter(Boolean))];
+		},
 		mlChartMissing(): string[] {
 			const chart = this.mlCharts?.charts.find(c => c.id === this.mlAttrValues.SIZE_GRID_ID);
 			const row = this.mlRow;
@@ -2895,6 +2926,12 @@ export default defineComponent({
 			} finally {
 				this.mlChartCodeLoading = false;
 			}
+		},
+		/** Guía recién creada en ML: queda en la lista y elegida para el producto. */
+		onChartCreated(chart: MlSizeChart) {
+			if (this.mlCharts && !this.mlCharts.charts.some(c => c.id === chart.id)) this.mlCharts.charts.push(chart);
+			this.mlAttrValues.SIZE_GRID_ID = chart.id;
+			this.$toast.add({ severity: 'success', summary: this.$t('admin.carga.ml.chart.create.created', { name: chart.name }), life: 5000 });
 		},
 		async loadAttrs(rubroId: string, categoryId: string) {
 			this.mlLoadingAttrs = true;
