@@ -385,6 +385,7 @@
 								v-model="mlAttrValues[attr.id]"
 								:rubro-id="rubro.id"
 								:category-id="edit.mlCategoryId"
+								:category-name="edit.mlCategoryName"
 								:gender="mlAttrValues.GENDER ?? ''"
 								:brand="mlAttrValues.BRAND ?? ''"
 								:sizes="mlAttrValues.SIZE?.trim() ? [mlAttrValues.SIZE.trim()] : []"

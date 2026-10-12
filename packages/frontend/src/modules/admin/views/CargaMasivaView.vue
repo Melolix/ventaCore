@@ -882,6 +882,16 @@
 							:placeholder="$t('admin.carga.ml.chart.pick')"
 							class="w-full"
 						/>
+						<!-- Calzado: si ML tiene una guía estándar, conviene usarla antes que crear una. -->
+						<button
+							v-if="mlChartStandard && !mlAttrValues.SIZE_GRID_ID"
+							type="button"
+							class="flex w-full items-start gap-1.5 rounded-lg bg-emerald-500/10 p-2 text-left text-xs text-emerald-700 dark:text-emerald-300"
+							@click="mlAttrValues.SIZE_GRID_ID = mlChartStandard.id"
+						>
+							<i class="pi pi-star mt-px" />
+							<span>{{ $t('admin.carga.ml.chart.recommendedStandard', { name: mlChartStandard.name }) }}</span>
+						</button>
 						<p v-if="mlChartMissing.length" class="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
 							<i class="pi pi-exclamation-triangle mt-px" /> {{ $t('admin.carga.ml.chart.missing', { sizes: mlChartMissing.join(', ') }) }}
 						</p>
@@ -963,6 +973,7 @@
 			v-model:visible="mlChartCreateVisible"
 			:rubro-id="mlRow.rubroId"
 			:category-id="mlPendingCategoryId"
+			:category-name="mlPendingCategoryName"
 			:gender="mlAttrValues.GENDER ?? ''"
 			:brand="mlAttrValues.BRAND ?? ''"
 			:sizes="mlProductSizes"
@@ -1524,7 +1535,18 @@ export default defineComponent({
 		},
 		/** Guías para el selector: nombre + los talles que trae. */
 		mlChartOptions(): { label: string; value: string }[] {
-			return (this.mlCharts?.charts ?? []).map(c => ({ label: `${c.name} — ${c.rows.map(r => r.size).join(', ')}`, value: c.id }));
+			// Primero las de ML y las de la marca (ya vienen completas); después las propias.
+			const order = (type: string) => (type === 'STANDARD' ? 0 : type === 'BRAND' ? 1 : 2);
+			return [...(this.mlCharts?.charts ?? [])]
+				.sort((a, b) => order(a.type) - order(b.type))
+				.map(c => {
+					const tag = c.type === 'STANDARD' || c.type === 'BRAND' ? ` · ${this.$t('admin.carga.ml.chart.typeTag.' + c.type)}` : '';
+					return { label: `${c.name}${tag} — ${c.rows.map(r => r.size).join(', ')}`, value: c.id };
+				});
+		},
+		/** Guía estándar de ML disponible (calzado): se recomienda antes que crear una propia. */
+		mlChartStandard(): MlSizeChart | undefined {
+			return this.mlCharts?.charts.find(c => c.type === 'STANDARD');
 		},
 		/**
 		 * Atributos a pedir en la ficha. En un producto con opciones el talle NO se

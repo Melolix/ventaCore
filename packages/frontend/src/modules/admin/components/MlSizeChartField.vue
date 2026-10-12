@@ -20,6 +20,16 @@
 				<Button icon="pi pi-refresh" size="small" text :title="$t('admin.carga.ml.chart.search')" :loading="loading" @click="load" />
 			</div>
 
+			<button
+				v-if="standard && !modelValue"
+				type="button"
+				class="flex w-full items-start gap-1.5 rounded-lg bg-emerald-500/10 p-2 text-left text-xs text-emerald-700 dark:text-emerald-300"
+				@click="emit('update:modelValue', standard.id)"
+			>
+				<i class="pi pi-star mt-px" />
+				<span>{{ $t('admin.carga.ml.chart.recommendedStandard', { name: standard.name }) }}</span>
+			</button>
+
 			<p v-if="missing.length" class="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
 				<i class="pi pi-exclamation-triangle mt-px" /> {{ $t('admin.carga.ml.chart.missing', { sizes: missing.join(', ') }) }}
 			</p>
@@ -50,6 +60,7 @@
 			v-model:visible="createVisible"
 			:rubro-id="rubroId"
 			:category-id="categoryId"
+			:category-name="categoryName"
 			:gender="gender"
 			:brand="brand"
 			:sizes="sizes"
@@ -75,6 +86,8 @@ const props = defineProps<{
 	modelValue: string;
 	rubroId: string;
 	categoryId: string;
+	/** Nombre de la categoría de ML (para el encabezado de "Crear guía"). */
+	categoryName?: string;
 	gender: string;
 	brand: string;
 	/** Talles del producto (para avisar si faltan en la guía y para crear una). */
@@ -93,7 +106,18 @@ const code = ref('');
 const codeLoading = ref(false);
 const createVisible = ref(false);
 
-const options = computed(() => charts.value.map(c => ({ label: `${c.name} — ${c.rows.map(r => r.size).join(', ')}`, value: c.id })));
+// Primero las de ML y las de la marca (ya vienen completas); después las propias.
+const typeOrder = (type: string) => (type === 'STANDARD' ? 0 : type === 'BRAND' ? 1 : 2);
+const options = computed(() =>
+	[...charts.value]
+		.sort((a, b) => typeOrder(a.type) - typeOrder(b.type))
+		.map(c => {
+			const tag = c.type === 'STANDARD' || c.type === 'BRAND' ? ` · ${t(`admin.carga.ml.chart.typeTag.${c.type}`)}` : '';
+			return { label: `${c.name}${tag} — ${c.rows.map(r => r.size).join(', ')}`, value: c.id };
+		}),
+);
+/** Guía estándar de ML disponible (calzado): se recomienda antes que crear una propia. */
+const standard = computed(() => charts.value.find(c => c.type === 'STANDARD'));
 
 /** Talles del producto que no están en la guía elegida (ML los rechazaría). */
 const missing = computed(() => {

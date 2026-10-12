@@ -11,16 +11,31 @@
 		</div>
 
 		<div v-else-if="template" class="flex flex-col gap-4 pt-1">
-			<!-- Pasos, como en Mercado Libre: tipo de talle → talles → medidas. -->
-			<ol class="flex gap-2 text-xs">
-				<li
-					v-for="(s, i) in stepKeys"
-					:key="s"
-					class="flex flex-1 items-center gap-1.5 rounded-lg border px-2 py-1.5"
-					:class="i === step ? 'border-primary bg-primary/5 font-semibold text-primary' : i < step ? 'border-surface-200 text-surface-600 dark:border-surface-700 dark:text-surface-300' : 'border-surface-200 text-surface-400 dark:border-surface-700'"
-				>
-					<i class="pi text-[10px]" :class="i < step ? 'pi-check-circle text-emerald-500' : 'pi-circle'" />
-					{{ $t(`admin.carga.ml.chart.create.steps.${s}`) }}
+			<!-- Para qué producto es la guía: lo define la categoría de ML (no se elige acá:
+			     ML rechaza guías de otro tipo de producto). -->
+			<div class="flex items-center gap-3 rounded-xl border border-surface-200 p-3 dark:border-surface-700">
+				<MlMeasureIllustration :kind="kind" :label="$t(`admin.carga.ml.chart.create.product.${kind}`)" class="h-12 w-16 shrink-0" />
+				<div class="min-w-0 flex-1">
+					<p class="text-sm font-semibold">{{ $t('admin.carga.ml.chart.create.context.for', { category: categoryName || $t(`admin.carga.ml.chart.create.product.${kind}`) }) }}</p>
+					<p class="truncate text-xs text-surface-500">{{ [gender, brand].filter(Boolean).join(' · ') }}</p>
+					<button type="button" class="mt-0.5 text-left text-[11px] text-primary underline underline-offset-2" @click="emit('update:visible', false)">
+						{{ $t('admin.carga.ml.chart.create.context.change') }}
+					</button>
+				</div>
+			</div>
+
+			<!-- Pasos: número + nombre (en el celular, el nombre solo en el paso actual). -->
+			<ol class="flex items-center gap-2 text-xs">
+				<li v-for="(s, i) in stepKeys" :key="s" class="flex items-center gap-1.5" :class="i === step ? 'font-semibold text-primary' : 'text-surface-500'">
+					<span
+						class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px]"
+						:class="i < step ? 'border-emerald-500 bg-emerald-500 text-white' : i === step ? 'border-primary bg-primary text-white' : 'border-surface-300 dark:border-surface-600'"
+					>
+						<i v-if="i < step" class="pi pi-check text-[10px]" />
+						<template v-else>{{ i + 1 }}</template>
+					</span>
+					<span :class="i === step ? '' : 'hidden sm:inline'">{{ $t(`admin.carga.ml.chart.create.steps.${s}`) }}</span>
+					<span v-if="i < stepKeys.length - 1" class="mx-1 h-px w-4 bg-surface-300 dark:bg-surface-600 sm:w-8" />
 				</li>
 			</ol>
 
@@ -31,7 +46,7 @@
 					<p class="text-xs text-surface-500">{{ $t('admin.carga.ml.chart.create.typeHint') }}</p>
 					<div class="grid gap-2 sm:grid-cols-2">
 						<button
-							v-for="col in mainColumns"
+							v-for="col in shownMainColumns"
 							:key="col.id"
 							type="button"
 							class="rounded-xl border p-3 text-left transition-colors"
@@ -40,11 +55,19 @@
 						>
 							<span class="flex items-center gap-2 text-sm font-semibold">
 								<i class="pi" :class="mainId === col.id ? 'pi-check-circle text-primary' : 'pi-circle text-surface-400'" />
-								{{ col.name }}
+								{{ friendly(col).title }}
 							</span>
-							<span class="mt-1 block text-xs text-surface-500">{{ example(col) }}</span>
+							<span class="mt-1 block text-xs text-surface-500">{{ friendly(col).example }}</span>
 						</button>
 					</div>
+					<button
+						v-if="otherMainColumns.length"
+						type="button"
+						class="text-xs text-primary underline underline-offset-2"
+						@click="showOtherSystems = !showOtherSystems"
+					>
+						{{ $t(showOtherSystems ? 'admin.carga.ml.chart.create.fewerSystems' : 'admin.carga.ml.chart.create.otherSystems', { list: otherMainColumns.map(c => c.name).join(', ') }) }}
+					</button>
 				</div>
 
 				<div v-if="template.clothingMeasures" class="space-y-2">
@@ -54,15 +77,18 @@
 							v-for="m in measureTypes"
 							:key="m.value"
 							type="button"
-							class="rounded-xl border p-3 text-left transition-colors"
+							class="flex items-center gap-3 rounded-xl border p-3 text-left transition-colors"
 							:class="measureType === m.value ? 'border-primary bg-primary/5' : 'border-surface-200 hover:bg-surface-50 dark:border-surface-700 dark:hover:bg-surface-800'"
 							@click="measureType = m.value"
 						>
-							<span class="flex items-center gap-2 text-sm font-semibold">
-								<i class="pi" :class="measureType === m.value ? 'pi-check-circle text-primary' : 'pi-circle text-surface-400'" />
-								{{ $t(m.label) }}
+							<MlMeasureIllustration :kind="m.illustration" :label="$t(m.label)" class="h-12 w-16 shrink-0" />
+							<span>
+								<span class="flex items-center gap-2 text-sm font-semibold">
+									<i class="pi" :class="measureType === m.value ? 'pi-check-circle text-primary' : 'pi-circle text-surface-400'" />
+									{{ $t(m.label) }}
+								</span>
+								<span class="mt-1 block text-xs text-surface-500">{{ $t(m.desc) }}</span>
 							</span>
-							<span class="mt-1 block text-xs text-surface-500">{{ $t(m.desc) }}</span>
 						</button>
 					</div>
 				</div>
@@ -71,15 +97,23 @@
 			<!-- ── 2. Talles: la lista que el comprador ve al elegir ── -->
 			<template v-else-if="step === 1">
 				<div class="space-y-1">
-					<p class="text-sm font-medium">{{ $t('admin.carga.ml.chart.create.sizesTitle', { type: mainColumn?.name ?? '' }) }}</p>
+					<p class="text-sm font-medium">{{ $t('admin.carga.ml.chart.create.sizesTitle', { type: mainColumn ? friendly(mainColumn).title : '' }) }}</p>
 					<p class="text-xs text-surface-500">{{ $t('admin.carga.ml.chart.create.sizesHint') }}</p>
 				</div>
 
-				<div class="flex min-h-[2.75rem] flex-wrap gap-2 rounded-xl border border-surface-200 p-2 dark:border-surface-700">
+				<div
+					class="flex min-h-[3rem] flex-wrap gap-2 rounded-xl border p-2"
+					:class="showErrors && !sizes.length ? 'border-red-400' : 'border-surface-200 dark:border-surface-700'"
+				>
 					<span v-for="(s, i) in sizes" :key="s" class="inline-flex items-center gap-1 rounded-full bg-primary/10 py-1 pl-3 pr-1 text-sm font-medium text-primary">
 						{{ displaySize(s) }}
-						<button type="button" class="flex h-5 w-5 items-center justify-center rounded-full hover:bg-primary/20" :title="$t('admin.carga.ml.chart.create.removeSize')" @click="sizes.splice(i, 1)">
-							<i class="pi pi-times text-[10px]" />
+						<button
+							type="button"
+							class="flex h-8 w-8 items-center justify-center rounded-full hover:bg-primary/20"
+							:aria-label="$t('admin.carga.ml.chart.create.removeSize', { size: displaySize(s) })"
+							@click="sizes.splice(i, 1)"
+						>
+							<i class="pi pi-times text-xs" />
 						</button>
 					</span>
 					<span v-if="!sizes.length" class="self-center px-1 text-xs text-surface-400">{{ $t('admin.carga.ml.chart.create.sizesEmpty') }}</span>
@@ -98,7 +132,7 @@
 					/>
 					<template v-else>
 						<InputText v-model="sizeInput" class="w-full min-w-0" :placeholder="sizePlaceholder" @keyup.enter="addSize()" />
-						<Button :label="$t('admin.carga.ml.chart.create.sizeAdd')" icon="pi pi-plus" size="small" outlined class="shrink-0" @click="addSize()" />
+						<Button :label="$t('admin.carga.ml.chart.create.sizeAdd')" icon="pi pi-plus" outlined class="shrink-0" @click="addSize()" />
 					</template>
 				</div>
 				<p v-if="sizeError" class="text-xs text-red-500">{{ sizeError }}</p>
@@ -106,15 +140,15 @@
 				<!-- Atajo para ropa con letras. -->
 				<div v-if="isTextColumn(mainColumn)" class="flex flex-wrap items-center gap-1.5">
 					<span class="text-xs text-surface-500">{{ $t('admin.carga.ml.chart.create.sizeQuick') }}</span>
-					<Button
+					<button
 						v-for="l in LETTER_SIZES.filter(l => !sizes.includes(l))"
 						:key="l"
-						:label="l"
-						size="small"
-						text
-						class="!px-2 !py-0.5"
+						type="button"
+						class="min-h-[2.5rem] min-w-[2.5rem] rounded-lg border border-surface-200 px-2 text-sm font-medium text-primary hover:bg-primary/5 dark:border-surface-700"
 						@click="addSize(l)"
-					/>
+					>
+						{{ l }}
+					</button>
 				</div>
 			</template>
 
@@ -127,70 +161,62 @@
 					</p>
 				</div>
 
+				<!-- Cómo medir: un dibujo por medida, con la línea a medir resaltada. -->
+				<div v-if="measureColumns.length" class="grid gap-2 sm:grid-cols-2">
+					<div v-for="col in measureColumns" :key="col.id" class="flex items-center gap-3 rounded-xl bg-surface-50 p-2.5 dark:bg-surface-800">
+						<MlMeasureIllustration :kind="measureKind(col.id)" :label="$t('admin.carga.ml.chart.create.howToMeasure', { measure: col.name })" class="h-14 w-20 shrink-0" />
+						<div class="min-w-0">
+							<p class="text-sm font-semibold">{{ col.name }}</p>
+							<p class="text-xs leading-snug text-surface-500">{{ $t(`admin.carga.ml.chart.create.measureHow.${measureKind(col.id)}`) }}</p>
+						</div>
+					</div>
+				</div>
+
 				<!-- Datos generales que pida la guía (además de género y marca). -->
 				<div v-if="template.general.length" class="grid gap-3 sm:grid-cols-2">
 					<div v-for="col in template.general" :key="col.id" class="space-y-1">
 						<label class="text-sm font-medium">{{ col.name }} *</label>
-						<InputText v-if="!col.values.length" v-model="general[col.id].text" class="w-full" />
-						<Select v-else v-model="general[col.id].ids[0]" :options="col.values" option-label="name" option-value="id" filter class="w-full" />
+						<InputText v-if="!col.values.length" v-model="general[col.id].text" class="w-full" :invalid="isMissing(col, general[col.id])" />
+						<Select v-else v-model="general[col.id].ids[0]" :options="col.values" option-label="name" option-value="id" filter class="w-full" :invalid="isMissing(col, general[col.id])" />
 					</div>
 				</div>
 
-				<div v-if="tableColumns.length" class="overflow-x-auto rounded border border-surface-200 dark:border-surface-700">
-					<table class="w-full text-sm">
-						<thead class="bg-surface-50 text-left text-xs text-surface-500 dark:bg-surface-800">
-							<tr>
-								<th class="whitespace-nowrap px-2 py-1.5 font-medium">{{ mainColumn?.name }}</th>
-								<th v-for="col in tableColumns" :key="col.id" class="whitespace-nowrap px-2 py-1.5 font-medium">
-									{{ col.name }}<span v-if="col.required"> *</span>
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr v-for="s in sizes" :key="s" class="border-t border-surface-200 dark:border-surface-700">
-								<td class="whitespace-nowrap px-2 py-1.5 align-middle font-semibold">{{ displaySize(s) }}</td>
-								<td v-for="col in tableColumns" :key="col.id" class="min-w-[8rem] px-2 py-1.5 align-top">
-									<div v-if="isNumberColumn(col)" class="flex gap-1">
-										<!-- Con una sola unidad va dentro del campo: "23,5 cm". -->
-										<InputNumber
-											v-model="rows[s][col.id].number"
-											:min-fraction-digits="0"
-											:max-fraction-digits="2"
-											locale="es-AR"
-											:suffix="col.units.length === 1 ? ` ${col.units[0]}` : undefined"
-											:placeholder="$t('admin.carga.ml.chart.create.measurePlaceholder')"
-											size="small"
-											fluid
-											class="min-w-0 flex-1"
-										/>
-										<Select v-if="col.units.length > 1" v-model="rows[s][col.id].unit" :options="col.units" size="small" class="w-20 shrink-0" />
-									</div>
-									<MultiSelect
-										v-else-if="col.values.length && col.multivalued"
-										v-model="rows[s][col.id].ids"
-										:options="col.values"
-										option-label="name"
-										option-value="id"
-										filter
-										size="small"
-										class="w-full"
-									/>
-									<Select
-										v-else-if="col.values.length"
-										v-model="rows[s][col.id].ids[0]"
-										:options="col.values"
-										option-label="name"
-										option-value="id"
-										filter
-										size="small"
-										class="w-full"
-									/>
-									<InputText v-else v-model="rows[s][col.id].text" size="small" class="w-full" />
-								</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
+				<template v-if="shownColumns.length">
+					<!-- Celular: una tarjeta por talle, con sus medidas una debajo de otra. -->
+					<div class="space-y-2 sm:hidden">
+						<div v-for="s in sizes" :key="s" class="rounded-xl border border-surface-200 p-3 dark:border-surface-700">
+							<p class="mb-2 text-sm font-semibold">{{ $t('admin.carga.ml.chart.create.sizeCard', { size: displaySize(s) }) }}</p>
+							<div class="space-y-2">
+								<div v-for="col in shownColumns" :key="col.id" class="space-y-1">
+									<label class="text-xs text-surface-500">{{ col.name }}<span v-if="col.required"> *</span></label>
+									<CellInput :col="col" :cell="rows[s][col.id]" :invalid="isMissing(col, rows[s][col.id])" />
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Escritorio: tabla, una fila por talle. -->
+					<div class="hidden overflow-x-auto rounded border border-surface-200 dark:border-surface-700 sm:block">
+						<table class="w-full text-sm">
+							<thead class="bg-surface-50 text-left text-xs text-surface-500 dark:bg-surface-800">
+								<tr>
+									<th class="whitespace-nowrap px-2 py-1.5 font-medium">{{ mainColumn ? friendly(mainColumn).title : '' }}</th>
+									<th v-for="col in shownColumns" :key="col.id" class="px-2 py-1.5 font-medium">
+										{{ col.name }}<span v-if="col.required"> *</span>
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr v-for="s in sizes" :key="s" class="border-t border-surface-200 dark:border-surface-700">
+									<td class="whitespace-nowrap px-2 py-1.5 align-middle font-semibold">{{ displaySize(s) }}</td>
+									<td v-for="col in shownColumns" :key="col.id" class="min-w-[8rem] px-2 py-1.5 align-top">
+										<CellInput :col="col" :cell="rows[s][col.id]" :invalid="isMissing(col, rows[s][col.id])" small />
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</template>
 
 				<div class="grid gap-3 sm:grid-cols-2">
 					<MultiSelect
@@ -200,36 +226,41 @@
 						option-label="name"
 						option-value="id"
 						:placeholder="$t('admin.carga.ml.chart.create.extraColumns')"
-						size="small"
 						class="w-full"
 					/>
 					<div class="space-y-1 sm:col-start-2">
 						<label class="text-xs font-medium">{{ $t('admin.carga.ml.chart.create.name') }}</label>
-						<InputText v-model="name" maxlength="60" size="small" class="w-full" />
+						<InputText v-model="name" maxlength="60" class="w-full" :invalid="showErrors && !name.trim()" />
 					</div>
 				</div>
 			</template>
-
-			<p v-if="stepMessage" class="text-xs text-amber-600 dark:text-amber-400">{{ stepMessage }}</p>
 		</div>
 
 		<p v-if="error" class="pt-2 text-xs text-red-500">{{ error }}</p>
 
 		<template #footer>
-			<Button
-				:label="$t(step === 0 ? 'admin.carga.ml.chart.create.cancel' : 'admin.carga.ml.chart.create.back')"
-				text
-				severity="secondary"
-				@click="step === 0 ? emit('update:visible', false) : step--"
-			/>
-			<Button v-if="step < 2" :label="$t('admin.carga.ml.chart.create.next')" icon="pi pi-arrow-right" icon-pos="right" :disabled="!template || !!stepMessage" @click="next" />
-			<Button v-else :label="$t('admin.carga.ml.chart.create.submit')" icon="pi pi-check" :loading="saving" :disabled="!!stepMessage" @click="submit" />
+			<div class="flex w-full flex-col gap-2">
+				<!-- Qué falta, a la vista junto a los botones (no al fondo del contenido). -->
+				<p v-if="showErrors && stepMessage" class="flex items-start gap-1.5 text-xs text-red-500">
+					<i class="pi pi-exclamation-circle mt-px" /> {{ stepMessage }}
+				</p>
+				<div class="flex justify-end gap-2">
+					<Button
+						:label="$t(step === 0 ? 'admin.carga.ml.chart.create.cancel' : 'admin.carga.ml.chart.create.back')"
+						text
+						severity="secondary"
+						@click="step === 0 ? emit('update:visible', false) : back()"
+					/>
+					<Button v-if="step < 2" :label="$t('admin.carga.ml.chart.create.next')" icon="pi pi-arrow-right" icon-pos="right" :disabled="!template" @click="next" />
+					<Button v-else :label="$t('admin.carga.ml.chart.create.submit')" icon="pi pi-check" :loading="saving" @click="submit" />
+				</div>
+			</div>
 		</template>
 	</Dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, defineComponent, h, nextTick, reactive, ref, resolveComponent, watch, type PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type {
 	MlSizeChart,
@@ -241,6 +272,8 @@ import type {
 } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { apiErrorMessage } from '@/shared/utils/apiError';
+import { measureExample, measureKind, productKind, type MeasureKind } from '@/modules/admin/utils/sizeChartMeasures';
+import MlMeasureIllustration from '@/modules/admin/components/MlMeasureIllustration.vue';
 
 /**
  * Crea una guía de talles propia (SPECIFIC) en Mercado Libre, con los mismos pasos
@@ -251,6 +284,8 @@ const props = defineProps<{
 	visible: boolean;
 	rubroId: string;
 	categoryId: string;
+	/** Nombre de la categoría de ML (ej. "Zapatillas"), para el encabezado. */
+	categoryName?: string;
 	gender: string;
 	brand: string;
 	/** Talles del producto (ej. ["36", "37"] o ["S", "M"]): arrancan como la lista de talles. */
@@ -263,10 +298,12 @@ const catalog = useCatalogStore();
 
 const LETTER_SIZES = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const stepKeys = ['type', 'sizes', 'measures'] as const;
-const measureTypes: { value: MlSizeChartMeasureType; label: string; desc: string }[] = [
-	{ value: 'BODY_MEASURE', label: 'admin.carga.ml.chart.create.measureBody', desc: 'admin.carga.ml.chart.create.measureBodyDesc' },
-	{ value: 'CLOTHING_MEASURE', label: 'admin.carga.ml.chart.create.measureClothing', desc: 'admin.carga.ml.chart.create.measureClothingDesc' },
+const measureTypes: { value: MlSizeChartMeasureType; label: string; desc: string; illustration: MeasureKind }[] = [
+	{ value: 'BODY_MEASURE', label: 'admin.carga.ml.chart.create.measureBody', desc: 'admin.carga.ml.chart.create.measureBodyDesc', illustration: 'chest' },
+	{ value: 'CLOTHING_MEASURE', label: 'admin.carga.ml.chart.create.measureClothing', desc: 'admin.carga.ml.chart.create.measureClothingDesc', illustration: 'garmentWidth' },
 ];
+/** Sistemas de talle que se muestran de entrada; el resto (US, EU, UK…) va en "Otros sistemas". */
+const COMMON_SYSTEMS = ['AR_SIZE', 'SIZE', 'MANUFACTURER_SIZE'];
 
 /** Lo cargado en una celda: texto, número (+ unidad) u opciones de lista. */
 interface Cell {
@@ -277,11 +314,61 @@ interface Cell {
 }
 type Row = Record<string, Cell>;
 
+/** Campo de una celda según el tipo de columna (número + unidad, lista, texto). */
+const CellInput = defineComponent({
+	props: {
+		col: { type: Object as PropType<MlSizeChartColumn>, required: true },
+		cell: { type: Object as PropType<Cell>, required: true },
+		invalid: Boolean,
+		small: Boolean,
+	},
+	setup(p) {
+		const InputNumber = resolveComponent('InputNumber');
+		const Select = resolveComponent('Select');
+		const MultiSelect = resolveComponent('MultiSelect');
+		const InputText = resolveComponent('InputText');
+		return () => {
+			const { col, cell, invalid } = p;
+			const size = p.small ? 'small' : undefined;
+			if (col.valueType === 'number' || col.valueType === 'number_unit') {
+				return h('div', { class: 'flex gap-1' }, [
+					h(InputNumber, {
+						modelValue: cell.number,
+						'onUpdate:modelValue': (v: number | null) => (cell.number = v),
+						minFractionDigits: 0,
+						maxFractionDigits: 2,
+						locale: 'es-AR',
+						// Con una sola unidad va dentro del campo: "23,5 cm".
+						suffix: col.units.length === 1 ? ` ${col.units[0]}` : undefined,
+						placeholder: t('admin.carga.ml.chart.create.measurePlaceholder', { example: measureExample(col.id) }),
+						invalid,
+						size,
+						fluid: true,
+						class: 'min-w-0 flex-1',
+					}),
+					col.units.length > 1
+						? h(Select, { modelValue: cell.unit, 'onUpdate:modelValue': (v: string) => (cell.unit = v), options: col.units, size, class: 'w-20 shrink-0' })
+						: null,
+				]);
+			}
+			if (col.values.length && col.multivalued) {
+				return h(MultiSelect, { modelValue: cell.ids, 'onUpdate:modelValue': (v: string[]) => (cell.ids = v), options: col.values, optionLabel: 'name', optionValue: 'id', filter: true, invalid, size, class: 'w-full' });
+			}
+			if (col.values.length) {
+				return h(Select, { modelValue: cell.ids[0], 'onUpdate:modelValue': (v: string) => (cell.ids = v ? [v] : []), options: col.values, optionLabel: 'name', optionValue: 'id', filter: true, invalid, size, class: 'w-full' });
+			}
+			return h(InputText, { modelValue: cell.text, 'onUpdate:modelValue': (v: string) => (cell.text = v), invalid, size, class: 'w-full' });
+		};
+	},
+});
+
 const template = ref<MlSizeChartTemplate | null>(null);
 const loading = ref(false);
 const saving = ref(false);
 const error = ref('');
 const step = ref(0);
+const showErrors = ref(false);
+const showOtherSystems = ref(false);
 const mainId = ref('');
 const measureType = ref<MlSizeChartMeasureType>('BODY_MEASURE');
 const sizes = ref<string[]>([]);
@@ -300,8 +387,30 @@ function isTextColumn(col?: MlSizeChartColumn): boolean {
 	return !!col && !isNumberColumn(col) && !col.values.length;
 }
 
+/** Tipo de producto (calzado, remera, pantalón) para el dibujo del encabezado. */
+const kind = computed(() => productKind(template.value?.domainId ?? '', (template.value?.columns ?? []).map(c => c.id)));
+
 const mainColumns = computed(() => (template.value?.columns ?? []).filter(c => c.mainCandidate));
 const mainColumn = computed(() => template.value?.columns.find(c => c.id === mainId.value));
+/** Talle del país del sitio (AR_SIZE en MLA) también cuenta como común. */
+function isCommon(col: MlSizeChartColumn): boolean {
+	return COMMON_SYSTEMS.includes(col.id) || col.id === template.value?.suggestedMainId;
+}
+const otherMainColumns = computed(() => mainColumns.value.filter(c => !isCommon(c)));
+const shownMainColumns = computed(() =>
+	mainColumns.value.filter(c => isCommon(c) || showOtherSystems.value || c.id === mainId.value),
+);
+
+/** Nombre simple y ejemplo de un sistema de talle (en vez del nombre técnico de ML). */
+function friendly(col: MlSizeChartColumn): { title: string; example: string } {
+	const base = 'admin.carga.ml.chart.create.system';
+	if (col.id === 'AR_SIZE') return { title: t(`${base}.ar`), example: t(`${base}.arExample`) };
+	if (col.id === 'MANUFACTURER_SIZE') return { title: t(`${base}.brand`), example: t(`${base}.brandExample`) };
+	if (col.id === 'SIZE' && isTextColumn(col)) return { title: t(`${base}.letters`), example: t(`${base}.lettersExample`) };
+	if (col.values.length) return { title: col.name, example: t(`${base}.listExample`, { examples: col.values.slice(0, 4).map(v => v.name).join(', ') }) };
+	if (isNumberColumn(col)) return { title: col.name, example: t(`${base}.numberExample`, { unit: col.units[0] ?? col.name }) };
+	return { title: col.name, example: t(`${base}.textExample`) };
+}
 
 /** ¿La columna va con el tipo de medidas elegido? (en calzado ML no distingue: van todas). */
 function matchesMeasure(col: MlSizeChartColumn): boolean {
@@ -309,24 +418,26 @@ function matchesMeasure(col: MlSizeChartColumn): boolean {
 	return col.measure === (measureType.value === 'CLOTHING_MEASURE' ? 'CLOTHING' : 'BODY');
 }
 
-/** Columnas de la tabla de medidas: las obligatorias (sin el talle principal) y las que sumó el vendedor. */
+/** Columnas de cada fila que se mandan: obligatorias (sin el talle principal) y las que sumó el vendedor. */
 const tableColumns = computed(() =>
 	(template.value?.columns ?? []).filter(
 		c => c.id !== mainId.value && matchesMeasure(c) && (c.required || extraIds.value.includes(c.id)),
 	),
 );
 const measureColumns = computed(() => tableColumns.value.filter(c => c.isMeasure));
+/**
+ * Columnas que se muestran: las listas técnicas de ML (ej. "Talle filtrable") se
+ * esconden si ya se completaron solas en todos los talles; se mandan igual.
+ */
+const shownColumns = computed(() =>
+	tableColumns.value.filter(c => !(c.values.length && !c.isMeasure && sizes.value.every(s => filled(c, rows[s]?.[c.id])) && autoFilled.value.has(c.id))),
+);
+/** Columnas que arrancaron completas solas (para esconderlas mientras sigan así). */
+const autoFilled = ref(new Set<string>());
 /** Columnas opcionales que se pueden sumar (otras medidas, otros sistemas de talle). */
 const optionalColumns = computed(() =>
 	(template.value?.columns ?? []).filter(c => c.id !== mainId.value && !c.required && matchesMeasure(c)),
 );
-
-/** Ejemplo de cómo son los talles de una columna, para elegir el tipo. */
-function example(col: MlSizeChartColumn): string {
-	if (col.values.length) return t('admin.carga.ml.chart.create.exampleList', { examples: col.values.slice(0, 4).map(v => v.name).join(', ') });
-	if (isNumberColumn(col)) return t('admin.carga.ml.chart.create.exampleNumber', { unit: col.units[0] ?? '' });
-	return t('admin.carga.ml.chart.create.exampleText');
-}
 
 const sizePlaceholder = computed(() =>
 	isNumberColumn(mainColumn.value) ? t('admin.carga.ml.chart.create.sizePlaceholderNumber') : t('admin.carga.ml.chart.create.sizePlaceholderText'),
@@ -361,7 +472,7 @@ function addSize(value?: string | null) {
 	sizeError.value = '';
 	if (!s) return;
 	if (isNumberColumn(mainColumn.value) && parseNumber(s) == null) {
-		sizeError.value = t('admin.carga.ml.chart.create.sizeNotNumber', { size: s, type: mainColumn.value?.name ?? '' });
+		sizeError.value = t('admin.carga.ml.chart.create.sizeNotNumber', { size: s, type: mainColumn.value ? friendly(mainColumn.value).title : '' });
 		return;
 	}
 	if (!sizes.value.includes(s)) sizes.value = sortSizes([...sizes.value, s]);
@@ -380,6 +491,11 @@ function filled(col: MlSizeChartColumn, cell?: Cell): boolean {
 	return !!cell.text.trim();
 }
 
+/** ¿Hay que marcar esta celda en rojo? (obligatoria, vacía y ya se intentó avanzar). */
+function isMissing(col: MlSizeChartColumn, cell?: Cell): boolean {
+	return showErrors.value && col.required && !filled(col, cell);
+}
+
 /**
  * Asegura una fila (con todas las columnas) por cada talle de la lista. Las listas
  * de ML que traen el mismo talle (ej. "Talle filtrable": S → S) arrancan elegidas.
@@ -395,6 +511,10 @@ function syncRows() {
 			row[col.id] = cell;
 		}
 	}
+	// Las listas que quedaron completas en todos los talles no hace falta mostrarlas.
+	autoFilled.value = new Set(
+		tableColumns.value.filter(c => c.values.length && !c.isMeasure && sizes.value.every(s => filled(c, rows[s]?.[c.id]))).map(c => c.id),
+	);
 }
 
 /** Qué falta para avanzar en el paso actual (vacío = se puede). */
@@ -409,17 +529,31 @@ const stepMessage = computed(() => {
 		if (sizes.value.length > template.value.maxRows) return t('admin.carga.ml.chart.create.maxRows', { max: template.value.maxRows });
 		return '';
 	}
-	if (!name.value.trim()) return t('admin.carga.ml.chart.create.needName');
 	if (template.value.general.some(c => !filled(c, general[c.id]))) return t('admin.carga.ml.chart.create.missing');
 	const required = tableColumns.value.filter(c => c.required);
 	if (sizes.value.some(s => required.some(c => !filled(c, rows[s]?.[c.id])))) return t('admin.carga.ml.chart.create.missing');
+	if (!name.value.trim()) return t('admin.carga.ml.chart.create.needName');
 	return '';
 });
 
+/** Si falta algo: lo marca en rojo y lleva la vista al primer campo marcado. */
+function blockIfIncomplete(): boolean {
+	if (!stepMessage.value) return false;
+	showErrors.value = true;
+	void nextTick(() => document.querySelector('.p-dialog .p-invalid')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+	return true;
+}
+
 function next() {
-	if (stepMessage.value) return;
+	if (blockIfIncomplete()) return;
+	showErrors.value = false;
 	if (step.value === 1) syncRows();
 	step.value++;
+}
+
+function back() {
+	showErrors.value = false;
+	step.value--;
 }
 
 function toValues(col: MlSizeChartColumn, cell: Cell): MlSizeChartValueInput[] {
@@ -461,7 +595,7 @@ function guessMain(tpl: MlSizeChartTemplate): string {
 
 /** Nombre sugerido: solo letras, números y espacios (lo exige ML). */
 function suggestedName(): string {
-	const base = `${t('admin.carga.ml.chart.create.defaultName')} ${props.gender} ${props.brand}`;
+	const base = `${t('admin.carga.ml.chart.create.defaultName')} ${props.categoryName ?? ''} ${props.gender} ${props.brand}`;
 	return base.replace(/[^\p{L}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
 }
 
@@ -473,12 +607,15 @@ async function load() {
 		const tpl = await catalog.fetchMlSizeChartTemplate(props.rubroId, props.categoryId, props.gender, props.brand);
 		template.value = tpl;
 		step.value = 0;
+		showErrors.value = false;
 		mainId.value = guessMain(tpl);
+		showOtherSystems.value = false;
 		measureType.value = 'BODY_MEASURE';
 		extraIds.value = [];
 		sizes.value = sortSizes([...new Set((props.sizes ?? []).map(s => s.trim()).filter(Boolean))]);
 		sizeInput.value = '';
 		sizeError.value = '';
+		autoFilled.value = new Set();
 		for (const key of Object.keys(general)) delete general[key];
 		for (const col of tpl.general) general[col.id] = emptyCell(col);
 		for (const key of Object.keys(rows)) delete rows[key];
@@ -491,11 +628,12 @@ async function load() {
 }
 
 async function submit() {
-	if (!template.value || !mainColumn.value || stepMessage.value) return;
+	if (!template.value || !mainColumn.value) return;
+	syncRows();
+	if (blockIfIncomplete()) return;
 	saving.value = true;
 	error.value = '';
 	try {
-		syncRows();
 		const created = await catalog.createMlSizeChart(props.rubroId, props.categoryId, {
 			name: name.value.trim(),
 			gender: props.gender,

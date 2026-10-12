@@ -867,9 +867,6 @@
 						},
 						"typeTitle": "What are your sizes like?",
 						"typeHint": "This is what buyers see when choosing a size in the listing.",
-						"exampleList": "E.g. {examples}",
-						"exampleNumber": "Numbers in {unit} sizing",
-						"exampleText": "Letters or whatever the label says (e.g. S, M, L)",
 						"measureTypeTitle": "Which measurements will you enter?",
 						"measureBody": "Body",
 						"measureBodyDesc": "How much the person wearing that size measures (chest, waist, hips…).",
@@ -884,11 +881,11 @@
 						"sizePlaceholderText": "E.g. S",
 						"sizePlaceholderNumber": "E.g. 36",
 						"sizeInvalidNumber": "“{size}” is not a number: this size type uses numbers. Change the size type or remove that size.",
-						"removeSize": "Remove size",
+						"removeSize": "Remove size {size}",
 						"measuresTitle": "Measurements for each size",
 						"measuresHint": "Fill in how much each size measures (different on every row). Use your brand’s size table or measure the product.",
 						"measuresNone": "Mercado Libre doesn’t ask for measurements for this kind of product. You can add some if you want.",
-						"measurePlaceholder": "E.g. 23.5",
+						"measurePlaceholder": "E.g. {example}",
 						"extraColumns": "Add other measurements or sizes",
 						"name": "Chart name",
 						"defaultName": "Chart",
@@ -905,8 +902,51 @@
 						"created": "Chart “{name}” created in your Mercado Libre account",
 						"error": "Couldn’t create the size chart",
 						"templateError": "Couldn’t check what Mercado Libre asks for the chart",
-						"sizeNotNumber": "“{size}” is not a number: {type} sizes are numbers."
-					}
+						"sizeNotNumber": "“{size}” is not a number: {type} sizes are numbers.",
+						"context": {
+							"for": "Chart for {category}",
+							"change": "Not this kind of product? Close and change the category."
+						},
+						"product": {
+							"shoe": "Footwear",
+							"shirt": "Clothing",
+							"pants": "Pants"
+						},
+						"system": {
+							"ar": "Argentine numbers",
+							"arExample": "E.g. 35, 36, 37, 38…",
+							"brand": "Your brand’s size",
+							"brandExample": "Exactly as the label says",
+							"letters": "Letters",
+							"lettersExample": "E.g. S, M, L, XL",
+							"listExample": "E.g. {examples}",
+							"numberExample": "Numbers in {unit} sizing",
+							"textExample": "Whatever the label says"
+						},
+						"otherSystems": "See other systems ({list})",
+						"fewerSystems": "See less",
+						"sizeCard": "Size {size}",
+						"howToMeasure": "How to measure: {measure}",
+						"measureHow": {
+							"foot": "Stand on a sheet of paper, mark the heel and the tip of the longest toe, and measure the distance.",
+							"chest": "Wrap the tape around the widest part of the chest, under the armpits.",
+							"waist": "Wrap the tape around the narrowest part of the waist, at navel height.",
+							"hip": "Wrap the tape around the widest part of the hips.",
+							"garmentLength": "With the garment laid flat, measure from the highest point of the shoulder to the hem.",
+							"garmentWidth": "With the garment laid flat, measure from armpit to armpit.",
+							"pantsWidth": "With the garment laid flat, measure the waist from side to side.",
+							"pantsLength": "Measure along the side, from the waist to the hem.",
+							"inseam": "Measure along the inside of the leg, from the crotch to the hem.",
+							"rise": "Measure along the front, from the crotch to the waist.",
+							"thigh": "With the garment laid flat, measure the leg width just below the crotch.",
+							"generic": "Measure each size with a tape and write down the value."
+						}
+					},
+					"typeTag": {
+						"STANDARD": "Mercado Libre standard",
+						"BRAND": "brand"
+					},
+					"recommendedStandard": "Recommended: use “{name}”, Mercado Libre’s standard chart. It already has every measurement. Tap to select it."
 				},
 				"nameHint": "Categories are suggested from this name. Change it and tap Suggest (or Enter) to see others.",
 				"categoryHint": "We suggest categories from the product name. Your photo, description and price don't change.",
