@@ -1512,10 +1512,12 @@ export default defineComponent({
 		 * dejaba un mismo talle cargado para todas.
 		 */
 		mlAttrsShown(): MlAttribute[] {
+			// La guía de talles se elige en su propia sección (más abajo), no como texto.
+			const attrs = this.mlAttrs.filter(a => a.id !== 'SIZE_GRID_ID');
 			const row = this.mlRow;
-			if (!row?.grupo?.startsWith('man:')) return this.mlAttrs;
+			if (!row?.grupo?.startsWith('man:')) return attrs;
 			const ocultos = this.optionAttrIds(row, this.mlPendingCategoryId);
-			return this.mlAttrs.filter(a => !ocultos.has(a.id));
+			return attrs.filter(a => !ocultos.has(a.id));
 		},
 		/** La guía elegida, con sus datos. */
 		mlChartSelected(): MlSizeChart | undefined {

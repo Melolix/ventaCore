@@ -38,6 +38,9 @@ interface RawMlChart {
 /** Tope de guías que detallamos por búsqueda (cada una es un pedido a ML). */
 const MAX_CHARTS = 15;
 
+/** Atributo de la guía de talles (id de la guía). ML lo exige en ropa y calzado. */
+const SIZE_GRID_ATTR = 'SIZE_GRID_ID';
+
 /**
  * Consultas al catálogo de Mercado Libre: predicción de categoría (por título)
  * y atributos de una categoría. Alimentan la carga masiva: sugerir la categoría
@@ -394,9 +397,15 @@ export class MlCatalogService {
 		return { required: true, incomplete: false, charts, ...(charts.length ? {} : { otherGenders: await otherGenders() }) };
 	}
 
+	/** ¿La categoría exige guía de talles para publicar? */
+	async requiresSizeGrid(categoryId: string): Promise<boolean> {
+		const attrs = await this.getCategoryAttributes(categoryId).catch(() => [] as MlAttribute[]);
+		return attrs.some(a => a.id === SIZE_GRID_ATTR);
+	}
+
 	/**
 	 * Atributos OBLIGATORIOS de una categoría (endpoint público de ML). Devuelve
-	 * solo los `required`, con sus opciones permitidas recortadas a un tope.
+	 * los `required` más la guía de talles, con sus opciones recortadas a un tope.
 	 */
 	async getCategoryAttributes(categoryId: string): Promise<MlAttribute[]> {
 		const id = categoryId.trim();
@@ -412,14 +421,17 @@ export class MlCatalogService {
 		}
 
 		return (Array.isArray(body) ? body : [])
-			.filter(a => a.tags?.required)
+			// La guía de talles (SIZE_GRID_ID) no viene con el tag required, pero en ropa
+			// y calzado ML la exige al publicar: la tratamos como obligatoria para que
+			// cuente como dato faltante y no se pierda al cambiar de categoría.
+			.filter(a => a.tags?.required || a.id === SIZE_GRID_ATTR)
 			.map(a => {
 				const values = (a.values ?? [])
 					.filter(v => v.id && v.name)
 					.map(v => ({ id: v.id!, name: v.name! }));
 				return {
 					id: a.id,
-					name: a.name,
+					name: a.id === SIZE_GRID_ATTR ? 'Guía de talles' : a.name,
 					required: true,
 					valueType: a.value_type ?? 'string',
 					values: values.slice(0, MAX_ATTR_VALUES),

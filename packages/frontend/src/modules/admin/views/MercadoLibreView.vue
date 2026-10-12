@@ -379,6 +379,11 @@
 								:placeholder="$t('admin.carga.ml.attrPick')"
 								class="w-full"
 							/>
+							<!-- Guía de talles: acá se carga por código (el selector completo está en Cargar productos). -->
+							<template v-else-if="attr.id === 'SIZE_GRID_ID'">
+								<InputText v-model="mlAttrValues[attr.id]" class="w-full" inputmode="numeric" :placeholder="$t('admin.carga.ml.chart.codePlaceholder')" />
+								<p class="text-[11px] text-surface-400">{{ $t('admin.carga.ml.chart.codeHint') }}</p>
+							</template>
 							<InputText v-else v-model="mlAttrValues[attr.id]" class="w-full" :placeholder="$t('admin.carga.ml.attrValue')" />
 						</div>
 					</div>

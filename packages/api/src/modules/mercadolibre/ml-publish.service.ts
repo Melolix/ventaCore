@@ -172,6 +172,14 @@ export class MlPublishService {
 				...(producto.mlCategoryId ? { category_id: producto.mlCategoryId } : {}),
 			};
 		} else {
+			// Sin guía de talles en una categoría que la exige, ML rechaza cada
+			// publicación con "Attribute [SIZE_GRID_ID] is missing". Cortamos antes y
+			// decimos qué hacer.
+			if (!String(producto.atributos?.SIZE_GRID_ID ?? '').trim() && producto.mlCategoryId && (await this.catalog.requiresSizeGrid(producto.mlCategoryId))) {
+				throw new BadRequestException(
+					'Falta la guía de talles: esta categoría de Mercado Libre la exige. Elegila en la ficha de ML del producto (Cargar productos → Guía de talles) y volvé a publicar.',
+				);
+			}
 			// Con opciones: el atributo de variante (talle, color…) de ESTA opción. Pisa
 			// al que venga igual en la ficha común (p. ej. un Color cargado para todas).
 			const variantes = await this.variantAttributes(producto);
