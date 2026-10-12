@@ -940,7 +940,20 @@
 							"rise": "Medí por adelante, desde la entrepierna hasta la cintura.",
 							"thigh": "Con la prenda apoyada, medí el ancho de la pierna justo debajo de la entrepierna.",
 							"generic": "Medí cada talle con un centímetro y anotá el valor."
-						}
+						},
+						"mlRejected": "Mercado Libre no aceptó la guía. Corregí esto y volvé a tocar «Crear y elegir»:",
+						"mlError": {
+							"required": "Falta «{attr}» en el talle {row}. Ya lo agregamos a la tabla: completalo.",
+							"range": "«{attr}» del talle {row} está fuera de rango: Mercado Libre acepta entre {min} y {max}.",
+							"rangeNoLimits": "«{attr}» del talle {row} está fuera del rango que acepta Mercado Libre.",
+							"invalidValue": "«{attr}» del talle {row} tiene un valor que Mercado Libre no acepta.",
+							"duplicated": "«{attr}» del talle {row} repite el valor de otro talle: cada talle tiene que medir distinto.",
+							"notSize": "El talle {row} solo puede tener el talle (sin colores, género ni otras palabras).",
+							"wrongMeasureType": "«{attr}» no va con el tipo de medidas elegido. Volvé al paso 1 y cambiá «¿Qué medidas vas a cargar?».",
+							"invalidMain": "Mercado Libre no acepta «{attr}» como tipo de talle para este producto. Volvé al paso 1 y elegí otro.",
+							"mixedTypes": "Los talles tienen que ser todos números o todos letras, sin mezclar."
+						},
+						"sizeColumnPlaceholder": "Talle en {unit}"
 					},
 					"typeTag": {
 						"STANDARD": "estándar de Mercado Libre",

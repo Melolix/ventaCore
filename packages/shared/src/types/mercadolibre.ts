@@ -263,6 +263,20 @@ export interface MlSizeChartCellInput {
 	values: MlSizeChartValueInput[];
 }
 
+/**
+ * Un error de ML al crear una guía (POST /catalog/charts → `errors`): qué celda
+ * (columna + talle de la fila) rechazó y por qué. Ej.: code "value_out_of_range".
+ */
+export interface MlSizeChartError {
+	code: string;
+	/** Mensaje original de ML (en inglés). */
+	message: string;
+	/** Columna de la celda (ej. "FOOT_LENGTH"), si el error es de una celda. */
+	attributeId: string | null;
+	/** Talle de la fila tal como lo informa ML (ej. "37 AR"), si el error es de una fila. */
+	row: string | null;
+}
+
 /** Alta de una guía de talles propia (SPECIFIC). */
 export interface MlCreateSizeChartInput {
 	/** Nombre (máx. 60, solo letras, números y espacios). */

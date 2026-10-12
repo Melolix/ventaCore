@@ -940,7 +940,20 @@
 							"rise": "Measure along the front, from the crotch to the waist.",
 							"thigh": "With the garment laid flat, measure the leg width just below the crotch.",
 							"generic": "Measure each size with a tape and write down the value."
-						}
+						},
+						"mlRejected": "Mercado Libre did not accept the chart. Fix this and tap “Create and select” again:",
+						"mlError": {
+							"required": "“{attr}” is missing in size {row}. We added it to the table: fill it in.",
+							"range": "“{attr}” in size {row} is out of range: Mercado Libre accepts {min} to {max}.",
+							"rangeNoLimits": "“{attr}” in size {row} is outside the range Mercado Libre accepts.",
+							"invalidValue": "“{attr}” in size {row} has a value Mercado Libre does not accept.",
+							"duplicated": "“{attr}” in size {row} repeats another size’s value: each size must measure differently.",
+							"notSize": "Size {row} can only contain the size (no colors, gender or other words).",
+							"wrongMeasureType": "“{attr}” does not match the measurement type you chose. Go back to step 1 and change it.",
+							"invalidMain": "Mercado Libre does not accept “{attr}” as the size type for this product. Go back to step 1 and pick another.",
+							"mixedTypes": "Sizes must be all numbers or all letters, not mixed."
+						},
+						"sizeColumnPlaceholder": "Size in {unit}"
 					},
 					"typeTag": {
 						"STANDARD": "Mercado Libre standard",

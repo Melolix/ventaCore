@@ -236,7 +236,12 @@
 			</template>
 		</div>
 
-		<p v-if="error" class="pt-2 text-xs text-red-500">{{ error }}</p>
+		<!-- Lo que ML rechazó, celda por celda (columna + talle), explicado. -->
+		<div v-if="serverErrors.length" class="mt-3 space-y-1 rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+			<p class="font-semibold">{{ $t('admin.carga.ml.chart.create.mlRejected') }}</p>
+			<p v-for="(e, i) in serverErrors" :key="i">· {{ explain(e) }}</p>
+		</div>
+		<p v-else-if="error" class="pt-2 text-xs text-red-500">{{ error }}</p>
 
 		<template #footer>
 			<div class="flex w-full flex-col gap-2">
@@ -262,10 +267,12 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, nextTick, reactive, ref, resolveComponent, watch, type PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
+import type { AxiosError } from 'axios';
 import type {
 	MlSizeChart,
 	MlSizeChartCellInput,
 	MlSizeChartColumn,
+	MlSizeChartError,
 	MlSizeChartMeasureType,
 	MlSizeChartTemplate,
 	MlSizeChartValueInput,
@@ -340,14 +347,17 @@ const CellInput = defineComponent({
 						locale: 'es-AR',
 						// Con una sola unidad va dentro del campo: "23,5 cm".
 						suffix: col.units.length === 1 ? ` ${col.units[0]}` : undefined,
-						placeholder: t('admin.carga.ml.chart.create.measurePlaceholder', { example: measureExample(col.id) }),
+						// Columna de talle (US, EU…): "Talle en US"; medida: un valor realista ("Ej.: 92").
+						placeholder: col.mainCandidate
+							? t('admin.carga.ml.chart.create.sizeColumnPlaceholder', { unit: col.units[0] ?? col.name })
+							: t('admin.carga.ml.chart.create.measurePlaceholder', { example: measureExample(col.id) }),
 						invalid,
 						size,
 						fluid: true,
 						class: 'min-w-0 flex-1',
 					}),
 					col.units.length > 1
-						? h(Select, { modelValue: cell.unit, 'onUpdate:modelValue': (v: string) => (cell.unit = v), options: col.units, size, class: 'w-20 shrink-0' })
+						? h(Select, { modelValue: cell.unit, 'onUpdate:modelValue': (v: string) => (cell.unit = v), options: col.units, size, class: 'w-24 shrink-0' })
 						: null,
 				]);
 			}
@@ -366,6 +376,8 @@ const template = ref<MlSizeChartTemplate | null>(null);
 const loading = ref(false);
 const saving = ref(false);
 const error = ref('');
+/** Celdas que ML rechazó al crear la guía (se explican y se marcan en rojo). */
+const serverErrors = ref<MlSizeChartError[]>([]);
 const step = ref(0);
 const showErrors = ref(false);
 const showOtherSystems = ref(false);
@@ -491,9 +503,52 @@ function filled(col: MlSizeChartColumn, cell?: Cell): boolean {
 	return !!cell.text.trim();
 }
 
-/** ¿Hay que marcar esta celda en rojo? (obligatoria, vacía y ya se intentó avanzar). */
+/** ¿Hay que marcar esta celda en rojo? (obligatoria y vacía, o rechazada por ML). */
 function isMissing(col: MlSizeChartColumn, cell?: Cell): boolean {
-	return showErrors.value && col.required && !filled(col, cell);
+	if (showErrors.value && col.required && !filled(col, cell)) return true;
+	const s = cell ? Object.keys(rows).find(k => rows[k][col.id] === cell) : undefined;
+	return serverErrors.value.some(e => e.attributeId === col.id && (!e.row || (s != null && sameSize(e.row, s))));
+}
+
+/** ¿El talle que informa ML ("37 AR") es este talle de la lista ("37")? */
+function sameSize(mlRow: string, size: string): boolean {
+	const a = mlRow.trim().toLowerCase();
+	return a === size.toLowerCase() || a === displaySize(size).toLowerCase() || parseNumber(a.split(' ')[0]) === parseNumber(size);
+}
+
+/** Nombre de una columna para mostrar (el de la ficha de ML, o el id si no está). */
+function columnName(id: string | null): string {
+	if (!id) return '';
+	const col = template.value?.columns.find(c => c.id === id) ?? template.value?.general.find(c => c.id === id);
+	return col ? (col.mainCandidate ? friendly(col).title : col.name) : id;
+}
+
+/** Error de ML explicado en castellano, con la columna y el talle. */
+function explain(e: MlSizeChartError): string {
+	const base = 'admin.carga.ml.chart.create.mlError';
+	const params = { attr: columnName(e.attributeId), row: e.row ?? '' };
+	const range = /range:\s*([\d.,]+)\s*-\s*([\d.,]+)/i.exec(e.message);
+	switch (e.code) {
+		case 'required_row_attribute_not_found':
+			return t(`${base}.required`, params);
+		case 'value_out_of_range':
+			return range ? t(`${base}.range`, { ...params, min: range[1], max: range[2] }) : t(`${base}.rangeNoLimits`, params);
+		case 'invalid_row_attribute_value':
+		case 'value_is_not_in_the_list':
+			return t(`${base}.invalidValue`, params);
+		case 'duplicated_measure_value':
+			return t(`${base}.duplicated`, params);
+		case 'invalid_attribute_value':
+			return t(`${base}.notSize`, params);
+		case 'invalid_row_attribute':
+			return t(`${base}.wrongMeasureType`, params);
+		case 'invalid_main_attribute_id':
+			return t(`${base}.invalidMain`, params);
+		case 'value_is_not_the_same_type':
+			return t(`${base}.mixedTypes`, params);
+		default:
+			return e.message;
+	}
 }
 
 /**
@@ -608,6 +663,7 @@ async function load() {
 		template.value = tpl;
 		step.value = 0;
 		showErrors.value = false;
+		serverErrors.value = [];
 		mainId.value = guessMain(tpl);
 		showOtherSystems.value = false;
 		measureType.value = 'BODY_MEASURE';
@@ -633,6 +689,7 @@ async function submit() {
 	if (blockIfIncomplete()) return;
 	saving.value = true;
 	error.value = '';
+	serverErrors.value = [];
 	try {
 		const created = await catalog.createMlSizeChart(props.rubroId, props.categoryId, {
 			name: name.value.trim(),
@@ -647,6 +704,16 @@ async function submit() {
 		emit('update:visible', false);
 	} catch (err) {
 		error.value = apiErrorMessage(err, t('admin.carga.ml.chart.create.error'));
+		// ML detalla qué celdas rechazó: se explican y se marcan en rojo.
+		serverErrors.value = (err as AxiosError<{ errors?: MlSizeChartError[] }>)?.response?.data?.errors ?? [];
+		// Si ML pide una columna que no estaba a la vista (la ficha no la marcaba
+		// obligatoria), la sumamos para que se pueda completar.
+		for (const e of serverErrors.value) {
+			const col = template.value?.columns.find(c => c.id === e.attributeId);
+			if (col && col.id !== mainId.value && !tableColumns.value.includes(col) && !extraIds.value.includes(col.id)) extraIds.value.push(col.id);
+		}
+		autoFilled.value = new Set([...autoFilled.value].filter(id => !serverErrors.value.some(e => e.attributeId === id)));
+		if (serverErrors.value.length) void nextTick(() => document.querySelector('.p-dialog .p-invalid')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 	} finally {
 		saving.value = false;
 	}

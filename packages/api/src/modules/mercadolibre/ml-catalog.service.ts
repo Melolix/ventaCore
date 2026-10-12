@@ -7,6 +7,7 @@ import type {
 	MlCreateSizeChartInput,
 	MlSizeChart,
 	MlSizeChartColumn,
+	MlSizeChartError,
 	MlSizeChartsResult,
 	MlSizeChartTemplate,
 	MlSizeChartValueInput,
@@ -471,11 +472,29 @@ export class MlCatalogService {
 				rows,
 			}),
 		});
-		const body = (await res.json().catch(() => ({}))) as RawMlChart & { message?: string; cause?: unknown };
+		const body = (await res.json().catch(() => ({}))) as RawMlChart & {
+			message?: string;
+			cause?: unknown;
+			errors?: Array<{ code?: string; message?: string; cell?: { attribute_id?: string; row?: { main_attribute?: { value?: string } } } }>;
+		};
 		if (!res.ok) {
-			// ML explica en `cause` qué columna o fila no le gustó: lo pasamos tal cual.
-			const cause = body.cause ? ` (${JSON.stringify(body.cause).slice(0, 400)})` : '';
-			throw new BadRequestException(`Mercado Libre: no se pudo crear la guía de talles: ${body.message || res.statusText}${cause}`);
+			// ML detalla en `errors` qué celda no le gustó (columna + talle de la fila).
+			// Lo pasamos estructurado para que la pantalla marque la celda y lo explique.
+			const errors: MlSizeChartError[] = (body.errors ?? []).map(e => ({
+				code: e.code ?? '',
+				message: e.message ?? '',
+				attributeId: e.cell?.attribute_id ?? null,
+				row: e.cell?.row?.main_attribute?.value ?? null,
+			}));
+			const detail = errors.length
+				? errors.map(e => e.message).join(' · ')
+				: body.cause
+					? JSON.stringify(body.cause).slice(0, 400)
+					: '';
+			throw new BadRequestException({
+				message: `Mercado Libre no aceptó la guía de talles: ${detail || body.message || res.statusText}`,
+				errors,
+			});
 		}
 		return this.toSizeChart(body, siteId);
 	}
