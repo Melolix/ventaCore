@@ -93,9 +93,10 @@ export class MlPublishService {
 			);
 		}
 		return [
-			// El SIZE de ML va sin la unidad del sistema ("37", no "37 AR"): si la fila
-			// solo trae el talle principal con unidad, se la sacamos.
-			{ id: 'SIZE', value_name: fila.size.replace(/\s+(AR|US|EU|BR|UK|MX|CL|CO|UY|PE)$/i, '') },
+			// El SIZE del ítem tiene que ser IDÉNTICO al SIZE de la fila (ML lo arma con la
+			// unidad del talle principal, ej. "37 AR"); si no, rechaza con
+			// invalid.fashion_grid.size.values. No hay que sacarle la unidad.
+			{ id: 'SIZE', value_name: fila.size },
 			{ id: 'SIZE_GRID_ROW_ID', value_name: fila.id },
 		];
 	}
