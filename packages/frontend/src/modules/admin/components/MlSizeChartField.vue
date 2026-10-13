@@ -73,7 +73,7 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
-import type { MlSizeChart } from '@base-template/shared';
+import { sameSize, type MlSizeChart } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { apiErrorMessage } from '@/shared/utils/apiError';
 import MlSizeChartCreateDialog from '@/modules/admin/components/MlSizeChartCreateDialog.vue';
@@ -123,8 +123,8 @@ const standard = computed(() => charts.value.find(c => c.type === 'STANDARD'));
 const missing = computed(() => {
 	const chart = charts.value.find(c => c.id === props.modelValue);
 	if (!chart) return [];
-	const enGuia = new Set(chart.rows.map(r => r.size.trim().toLowerCase()));
-	return props.sizes.filter(s => !enGuia.has(s.trim().toLowerCase()));
+	// Sin la unidad del sistema: la guía dice "37 AR" y el producto "37".
+	return props.sizes.filter(s => !chart.rows.some(r => sameSize(r.size, s)));
 });
 
 function add(chart: MlSizeChart) {

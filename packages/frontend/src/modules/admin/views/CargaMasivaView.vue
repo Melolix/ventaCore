@@ -1221,6 +1221,7 @@ import {
 	ProductoEstado,
 	evaluarProducto,
 	channelEnabled,
+	sameSize,
 	type Producto,
 	type ProductoLike,
 	type BatchProductoItem,
@@ -1581,10 +1582,9 @@ export default defineComponent({
 			const chart = this.mlCharts?.charts.find(c => c.id === this.mlAttrValues.SIZE_GRID_ID);
 			const row = this.mlRow;
 			if (!chart || !row?.grupo) return [];
-			const sizes = new Set(chart.rows.map(r => r.size.trim().toLowerCase()));
-			return this.groupRows(row)
-				.map(r => (r.variante ?? '').trim())
-				.filter(v => v && !sizes.has(v.toLowerCase()));
+			// Se compara el TALLE de cada opción (no la etiqueta entera "Negro / 37") y sin
+			// la unidad del sistema: la guía dice "37 AR" y la opción "37".
+			return this.mlProductSizes.filter(s => !chart.rows.some(r => sameSize(r.size, s)));
 		},
 		/**
 		 * Lo que se DIBUJA: las filas de la grilla, con cada producto con opciones

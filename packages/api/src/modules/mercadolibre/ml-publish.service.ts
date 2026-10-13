@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { matchOpcionAttr, type MlBulkResult, type MlPublishResult } from '@base-template/shared';
+import { matchOpcionAttr, sameSize, type MlBulkResult, type MlPublishResult } from '@base-template/shared';
 import { ProductoEntity } from '../catalog/entities/producto.entity';
 import { RubroEntity } from '../catalog/entities/rubro.entity';
 import { MlConnectionService } from './ml-connection.service';
@@ -85,14 +85,17 @@ export class MlPublishService {
 				`La guía de talles "${chart.name}" es de género "${chart.gender}" y el producto dice "${genero}". Tienen que coincidir: cambiá el género del producto o elegí otra guía.`,
 			);
 		}
-		const fila = chart.rows.find(r => norm(r.size) === norm(talle));
+		// La guía guarda el talle con su sistema ("37 AR") y el producto suele tenerlo sin ("37").
+		const fila = chart.rows.find(r => sameSize(r.size, talle));
 		if (!fila) {
 			throw new BadRequestException(
 				`El talle "${talle.trim()}" no está en la guía de talles "${chart.name}" (tiene: ${chart.rows.map(r => r.size).join(', ') || 'ninguno'}). Elegí otra guía o agregale ese talle en Mercado Libre.`,
 			);
 		}
 		return [
-			{ id: 'SIZE', value_name: fila.size },
+			// El SIZE de ML va sin la unidad del sistema ("37", no "37 AR"): si la fila
+			// solo trae el talle principal con unidad, se la sacamos.
+			{ id: 'SIZE', value_name: fila.size.replace(/\s+(AR|US|EU|BR|UK|MX|CL|CO|UY|PE)$/i, '') },
 			{ id: 'SIZE_GRID_ROW_ID', value_name: fila.id },
 		];
 	}

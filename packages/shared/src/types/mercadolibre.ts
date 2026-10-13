@@ -172,6 +172,27 @@ export interface MlSizeChartRow {
 	size: string;
 }
 
+/**
+ * ¿Dos talles son el mismo? Las guías guardan el talle con su sistema ("37 AR",
+ * "8,5 US") y los productos suelen tenerlo sin ("37"). Ignora mayúsculas, la
+ * unidad del final y coma/punto decimal: "37" = "37 AR", "8.5" = "8,5 US", "m" = "M".
+ */
+export function sameSize(a: string, b: string): boolean {
+	const norm = (s: string) =>
+		s
+			.trim()
+			.toLowerCase()
+			.replace(/\s+(ar|us|eu|br|uk|mx|cl|co|uy|pe)$/, '')
+			.replace(',', '.');
+	const x = norm(a);
+	const y = norm(b);
+	if (!x || !y) return false;
+	if (x === y) return true;
+	const nx = Number(x);
+	const ny = Number(y);
+	return Number.isFinite(nx) && Number.isFinite(ny) && nx === ny;
+}
+
 /** Guía de talles del vendedor en Mercado Libre. */
 export interface MlSizeChart {
 	id: string;
