@@ -1160,7 +1160,8 @@
 				"ventas": "Sales",
 				"preguntas": "Questions",
 				"metricas": "Metrics",
-				"estudio": "Research"
+				"estudio": "Research",
+				"talles": "Sizes"
 			},
 			"metricas": {
 				"eyebrow": "Mercado Libre",
@@ -1502,6 +1503,40 @@
 				"vacationOn": "Vacation mode: 1 listing is paused until you are back. | Vacation mode: {n} listings are paused until you are back.",
 				"vacationEnd": "I am back: activate them",
 				"vacationNone": "You have no active listings to pause."
+			},
+			"talles": {
+				"eyebrow": "Mercado Libre",
+				"pageTitle": "Size charts",
+				"pageSubtitle": "Your own Mercado Libre size charts for this business’s products. Rename them, fix measurements, add sizes or delete them.",
+				"loading": "Looking for your charts in Mercado Libre…",
+				"emptyTitle": "You don’t have your own charts yet",
+				"emptyHint": "They are created from the Mercado Libre sheet of a clothing or footwear product: Load products → Size chart → Create chart.",
+				"goToProducts": "Go to Load products",
+				"count": "{n} chart | {n} charts",
+				"refresh": "Refresh",
+				"code": "code {id}",
+				"deleting": "Deleting: Mercado Libre confirms within 24 h",
+				"usedBy": "Used by {list} | Used by {list}",
+				"unused": "No product uses it",
+				"andMore": "{list} and {n} more",
+				"editBtn": "Edit",
+				"deleteBtn": "Delete",
+				"saved": "Chart updated in Mercado Libre",
+				"inUse": "Can’t delete it: {list} uses it. Pick another chart for that product first. | Can’t delete it: {list} use it. Pick another chart for those products first.",
+				"deleteTitle": "Delete size chart",
+				"deleteConfirm": "Delete “{name}”? Mercado Libre removes it within 24 hours if no listing uses it. This can’t be undone.",
+				"deleteRequested": "Deletion requested. Mercado Libre removes it within 24 hours if no listing uses it.",
+				"deleteError": "Couldn’t delete the chart",
+				"loadError": "Couldn’t fetch the size charts",
+				"edit": {
+					"title": "Edit size chart",
+					"name": "Chart name",
+					"limits": "You can rename it, fix measurements and add sizes. Mercado Libre doesn’t allow changing or removing existing sizes, nor the gender, brand or size type: create a new chart for that.",
+					"addSize": "Add size",
+					"removeNew": "Remove new size",
+					"save": "Save changes",
+					"error": "Couldn’t save the changes"
+				}
 			}
 		},
 		"publish": {

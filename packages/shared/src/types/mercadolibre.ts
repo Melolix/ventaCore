@@ -263,6 +263,63 @@ export interface MlSizeChartCellInput {
 	values: MlSizeChartValueInput[];
 }
 
+/** Valor de una celda de una guía ya creada: texto, o número + unidad ("23,5 cm"). */
+export interface MlSizeChartCellValue {
+	name: string;
+	number?: number;
+	unit?: string;
+}
+
+/** Una columna (medida u otro talle) de una guía ya creada, además del talle principal. */
+export interface MlManagedSizeChartColumn {
+	id: string;
+	name: string;
+	/** Unidad (cm, US…) si es numérica; null si es texto o lista. */
+	unit: string | null;
+	/** Se puede corregir (las numéricas); las listas de ML (ej. talle filtrable) se muestran sin editar. */
+	editable: boolean;
+}
+
+/** Una fila (talle) de una guía ya creada. */
+export interface MlManagedSizeChartRow {
+	/** Id de la fila en ML (ej. "569686:1"). */
+	id: string;
+	/** Talle de la fila (no se puede cambiar: ML no lo permite). */
+	size: string;
+	/** Valores por columna (id → valor). */
+	values: Record<string, MlSizeChartCellValue>;
+}
+
+/**
+ * Guía de talles propia del vendedor, para gestionarla desde VentaCore. ML solo
+ * deja cambiarle el nombre, sumar talles y corregir medidas; no cambiar talles,
+ * quitar filas ni cambiar género / marca / tipo de talle.
+ */
+export interface MlManagedSizeChart {
+	id: string;
+	name: string;
+	/** Tipo de producto (dominio de ML, ej. "MLA-SNEAKERS"). */
+	domainId: string | null;
+	gender: string | null;
+	brand: string | null;
+	/** Columna del talle principal (ej. "AR_SIZE") y su nombre. */
+	mainAttributeId: string;
+	mainName: string;
+	/** Unidad del talle principal si es numérico ("AR"), para cargar talles nuevos. */
+	mainUnit: string | null;
+	columns: MlManagedSizeChartColumn[];
+	rows: MlManagedSizeChartRow[];
+	/** INACTIVE = se pidió borrarla y ML está verificando (la borra en 24 h si nadie la usa). */
+	status: 'ACTIVE' | 'INACTIVE' | null;
+	/** Productos de este rubro que la usan (nombres). */
+	usedBy: string[];
+}
+
+/** Celdas para sumar un talle o corregir las medidas de uno. */
+export interface MlSizeChartRowInput {
+	attributes: MlSizeChartCellInput[];
+}
+
 /**
  * Un error de ML al crear una guía (POST /catalog/charts → `errors`): qué celda
  * (columna + talle de la fila) rechazó y por qué. Ej.: code "value_out_of_range".

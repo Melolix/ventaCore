@@ -1,9 +1,9 @@
 <template>
 	<div class="mx-auto max-w-6xl">
-		<!-- Sub-pestañas de Mercado Libre. En mobile: 5 columnas iguales con el ícono
-		     arriba (entran todas en una fila, sin partirse ni esconderse en un scroll);
+		<!-- Sub-pestañas de Mercado Libre. En mobile: 6 columnas con el ícono arriba
+		     (entran todas en una fila, sin partirse ni esconderse en un scroll);
 		     desde sm: fila horizontal clásica. -->
-		<div class="mb-6 grid grid-cols-[1.3fr_1fr_1fr_1fr_1fr] border-b border-surface-200 sm:flex sm:gap-1 dark:border-surface-700">
+		<div class="mb-6 grid grid-cols-[1.3fr_1fr_1fr_1fr_1fr_1fr] border-b border-surface-200 sm:flex sm:gap-1 dark:border-surface-700">
 			<router-link
 				v-for="tab in tabs"
 				:key="tab.name"
@@ -31,6 +31,7 @@ export default defineComponent({
 		return {
 			tabs: [
 				{ name: 'admin-ml-publicaciones', label: 'admin.ml.tabs.publicaciones', icon: 'pi pi-shopping-cart' },
+				{ name: 'admin-ml-talles', label: 'admin.ml.tabs.talles', icon: 'pi pi-table' },
 				{ name: 'admin-ml-ventas', label: 'admin.ml.tabs.ventas', icon: 'pi pi-receipt' },
 				{ name: 'admin-ml-preguntas', label: 'admin.ml.tabs.preguntas', icon: 'pi pi-comments' },
 				{ name: 'admin-ml-metricas', label: 'admin.ml.tabs.metricas', icon: 'pi pi-chart-bar' },

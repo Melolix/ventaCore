@@ -20,6 +20,8 @@ import { MlCatalogController } from './ml-catalog.controller';
 import { MlPublishController } from './ml-publish.controller';
 import { MlImportController } from './ml-import.controller';
 import { MlBulkController } from './ml-bulk.controller';
+import { MlSizeChartsService } from './ml-size-charts.service';
+import { MlSizeChartsController } from './ml-size-charts.controller';
 
 /**
  * Integración con Mercado Libre.
@@ -41,6 +43,7 @@ import { MlBulkController } from './ml-bulk.controller';
 		MlPublishController,
 		MlImportController,
 		MlBulkController,
+		MlSizeChartsController,
 	],
 	providers: [
 		MlConnectionService,
@@ -50,6 +53,7 @@ import { MlBulkController } from './ml-bulk.controller';
 		MlPublishService,
 		MlImportService,
 		MlCompetitionService,
+		MlSizeChartsService,
 		TokenCryptoService,
 		FirebaseAuthGuard,
 		RolesGuard,

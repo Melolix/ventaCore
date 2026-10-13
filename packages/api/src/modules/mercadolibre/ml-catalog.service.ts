@@ -65,8 +65,15 @@ interface RawSpecComponent {
 	attributes?: RawGridAttribute[];
 }
 
+/** Respuesta de error de ML al crear o editar una guía (detalle por celda en `errors`). */
+export interface RawChartError {
+	message?: string;
+	cause?: unknown;
+	errors?: Array<{ code?: string; message?: string; cell?: { attribute_id?: string; row?: { main_attribute?: { value?: string } } } }>;
+}
+
 /** Atributo de una guía en el formato del alta de ML. */
-type MlChartCell = {
+export type MlChartCell = {
 	id: string;
 	values: Array<{ id?: string; name?: string; struct?: { number: number; unit: string } }>;
 };
@@ -296,7 +303,7 @@ export class MlCatalogService {
 	}
 
 	/** Dominio de catálogo de una categoría, con y sin prefijo de sitio ("MLA-T_SHIRTS" / "T_SHIRTS"). */
-	private async categoryDomain(categoryId: string): Promise<{ full: string; short: string }> {
+	async categoryDomain(categoryId: string): Promise<{ full: string; short: string }> {
 		const res = await fetch(`${this.apiHost}/categories/${encodeURIComponent(categoryId.trim())}`, { headers: { accept: 'application/json' } });
 		const cat = (await res.json().catch(() => ({}))) as { settings?: { catalog_domain?: string } };
 		const full = cat.settings?.catalog_domain ?? '';
@@ -472,31 +479,25 @@ export class MlCatalogService {
 				rows,
 			}),
 		});
-		const body = (await res.json().catch(() => ({}))) as RawMlChart & {
-			message?: string;
-			cause?: unknown;
-			errors?: Array<{ code?: string; message?: string; cell?: { attribute_id?: string; row?: { main_attribute?: { value?: string } } } }>;
-		};
-		if (!res.ok) {
-			// ML detalla en `errors` qué celda no le gustó (columna + talle de la fila).
-			// Lo pasamos estructurado para que la pantalla marque la celda y lo explique.
-			const errors: MlSizeChartError[] = (body.errors ?? []).map(e => ({
-				code: e.code ?? '',
-				message: e.message ?? '',
-				attributeId: e.cell?.attribute_id ?? null,
-				row: e.cell?.row?.main_attribute?.value ?? null,
-			}));
-			const detail = errors.length
-				? errors.map(e => e.message).join(' · ')
-				: body.cause
-					? JSON.stringify(body.cause).slice(0, 400)
-					: '';
-			throw new BadRequestException({
-				message: `Mercado Libre no aceptó la guía de talles: ${detail || body.message || res.statusText}`,
-				errors,
-			});
-		}
+		const body = (await res.json().catch(() => ({}))) as RawMlChart & RawChartError;
+		if (!res.ok) throw this.chartError(body, res.statusText);
 		return this.toSizeChart(body, siteId);
+	}
+
+	/**
+	 * Error de ML al crear o editar una guía. ML detalla en `errors` qué celda no le
+	 * gustó (columna + talle de la fila): lo pasamos estructurado para que la
+	 * pantalla marque la celda y lo explique.
+	 */
+	chartError(body: RawChartError, statusText: string, action = 'aceptó la guía de talles'): BadRequestException {
+		const errors: MlSizeChartError[] = (body.errors ?? []).map(e => ({
+			code: e.code ?? '',
+			message: e.message ?? '',
+			attributeId: e.cell?.attribute_id ?? null,
+			row: e.cell?.row?.main_attribute?.value ?? null,
+		}));
+		const detail = errors.length ? errors.map(e => e.message).join(' · ') : body.cause ? JSON.stringify(body.cause).slice(0, 400) : '';
+		return new BadRequestException({ message: `Mercado Libre no ${action}: ${detail || body.message || statusText}`, errors });
 	}
 
 	/** Valor de GENDER con su id de ML (la guía lo espera como opción de la lista). */
@@ -512,7 +513,7 @@ export class MlCatalogService {
 	}
 
 	/** Celda de la guía en el formato de ML (number_unit siempre con struct). */
-	private toMlCell(id: string, values: MlSizeChartValueInput[]): MlChartCell {
+	toMlCell(id: string, values: MlSizeChartValueInput[]): MlChartCell {
 		return {
 			id,
 			values: values.map(v => {

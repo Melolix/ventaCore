@@ -47,6 +47,11 @@ const adminRoutes: RouteRecordRaw[] = [
 						component: () => import('./views/MercadoLibreView.vue'),
 					},
 					{
+						path: 'guias-de-talles',
+						name: 'admin-ml-talles',
+						component: () => import('./views/GuiasTallesView.vue'),
+					},
+					{
 						path: 'ventas',
 						name: 'admin-ml-ventas',
 						component: () => import('./views/VentasView.vue'),

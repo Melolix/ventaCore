@@ -1160,7 +1160,8 @@
 				"ventas": "Ventas",
 				"preguntas": "Preguntas",
 				"metricas": "Métricas",
-				"estudio": "Estudio"
+				"estudio": "Estudio",
+				"talles": "Talles"
 			},
 			"metricas": {
 				"eyebrow": "Mercado Libre",
@@ -1502,6 +1503,40 @@
 				"vacationOn": "Modo vacaciones: hay 1 publicación pausada hasta que vuelvas. | Modo vacaciones: hay {n} publicaciones pausadas hasta que vuelvas.",
 				"vacationEnd": "Volví: activarlas",
 				"vacationNone": "No tenés publicaciones activas para pausar."
+			},
+			"talles": {
+				"eyebrow": "Mercado Libre",
+				"pageTitle": "Guías de talles",
+				"pageSubtitle": "Las guías propias de tu cuenta de Mercado Libre para los productos de este negocio. Cambiales el nombre, corregí medidas, sumá talles o borralas.",
+				"loading": "Buscando tus guías en Mercado Libre…",
+				"emptyTitle": "Todavía no tenés guías propias",
+				"emptyHint": "Se crean desde la ficha de Mercado Libre de un producto de ropa o calzado: Cargar productos → Guía de talles → Crear guía.",
+				"goToProducts": "Ir a Cargar productos",
+				"count": "{n} guía | {n} guías",
+				"refresh": "Actualizar",
+				"code": "código {id}",
+				"deleting": "Borrándose: Mercado Libre confirma en 24 h",
+				"usedBy": "La usa {list} | La usan {list}",
+				"unused": "Ningún producto la usa",
+				"andMore": "{list} y {n} más",
+				"editBtn": "Editar",
+				"deleteBtn": "Borrar",
+				"saved": "Guía actualizada en Mercado Libre",
+				"inUse": "No se puede borrar: la usa {list}. Elegile otra guía a ese producto primero. | No se puede borrar: la usan {list}. Elegiles otra guía a esos productos primero.",
+				"deleteTitle": "Borrar guía de talles",
+				"deleteConfirm": "¿Borrar «{name}»? Mercado Libre la elimina en 24 horas si ninguna publicación la usa. No se puede deshacer.",
+				"deleteRequested": "Pedimos borrar la guía. Mercado Libre la elimina en 24 horas si ninguna publicación la usa.",
+				"deleteError": "No se pudo borrar la guía",
+				"loadError": "No se pudieron traer las guías de talles",
+				"edit": {
+					"title": "Editar guía de talles",
+					"name": "Nombre de la guía",
+					"limits": "Podés cambiar el nombre, corregir medidas y sumar talles. Mercado Libre no deja cambiar ni quitar los talles que ya están, ni el género, la marca o el tipo de talle: para eso creá una guía nueva.",
+					"addSize": "Agregar talle",
+					"removeNew": "Quitar talle nuevo",
+					"save": "Guardar cambios",
+					"error": "No se pudieron guardar los cambios"
+				}
 			}
 		},
 		"publish": {

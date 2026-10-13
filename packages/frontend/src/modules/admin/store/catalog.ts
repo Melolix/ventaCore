@@ -25,6 +25,8 @@ import type {
 	MlSizeChartsResult,
 	MlSizeChartTemplate,
 	MlCreateSizeChartInput,
+	MlManagedSizeChart,
+	MlSizeChartRowInput,
 	MlVariationAttr,
 	MlPublishResult,
 	MlCatalogSearchResult,
@@ -373,6 +375,39 @@ export const useCatalogStore = defineStore('catalog', {
 		/** Crea una guía de talles propia en la cuenta de ML del vendedor. */
 		async createMlSizeChart(rubroId: string, categoryId: string, input: MlCreateSizeChartInput): Promise<MlSizeChart> {
 			const { data } = await api.post<MlSizeChart>(`/rubros/${rubroId}/ml/size-charts`, input, { params: { categoryId } });
+			return data;
+		},
+
+		/** Guías de talles propias del vendedor relacionadas con los productos del rubro. */
+		async fetchMyMlSizeCharts(rubroId: string): Promise<MlManagedSizeChart[]> {
+			const { data } = await api.get<MlManagedSizeChart[]>(`/rubros/${rubroId}/ml/size-charts/mine`);
+			return data;
+		},
+
+		/** Cambia el nombre de una guía de talles. */
+		async renameMlSizeChart(rubroId: string, chartId: string, name: string): Promise<MlManagedSizeChart> {
+			const { data } = await api.put<MlManagedSizeChart>(`/rubros/${rubroId}/ml/size-charts/${chartId}/name`, { name });
+			return data;
+		},
+
+		/** Suma un talle a una guía de talles. */
+		async addMlSizeChartRow(rubroId: string, chartId: string, input: MlSizeChartRowInput): Promise<MlManagedSizeChart> {
+			const { data } = await api.post<MlManagedSizeChart>(`/rubros/${rubroId}/ml/size-charts/${chartId}/rows`, input);
+			return data;
+		},
+
+		/** Corrige las medidas de un talle de una guía. */
+		async updateMlSizeChartRow(rubroId: string, chartId: string, rowId: string, input: MlSizeChartRowInput): Promise<MlManagedSizeChart> {
+			const { data } = await api.put<MlManagedSizeChart>(
+				`/rubros/${rubroId}/ml/size-charts/${chartId}/rows/${encodeURIComponent(rowId)}`,
+				input,
+			);
+			return data;
+		},
+
+		/** Pide borrar una guía (ML la elimina en 24 h si nadie la usa). */
+		async deleteMlSizeChart(rubroId: string, chartId: string): Promise<{ message: string }> {
+			const { data } = await api.delete<{ message: string }>(`/rubros/${rubroId}/ml/size-charts/${chartId}`);
 			return data;
 		},
 
