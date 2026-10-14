@@ -5,7 +5,11 @@ import { DataSource, In, Repository } from 'typeorm';
 import {
 	PAQUETE_FALLBACK,
 	PEDIDO_TRANSITIONS,
+	cantidadValida,
+	formatCantidad,
 	formatDireccion,
+	pasoVenta,
+	redondearCantidad,
 	type EnvioOpcion,
 	type Paquete,
 	type PedidoItem,
@@ -50,7 +54,7 @@ export class PedidosService {
 	): Promise<{ items: PedidoItem[]; subtotal: number; paquete: Paquete }> {
 		// Unificamos líneas repetidas del mismo producto.
 		const cantidades = new Map<string, number>();
-		for (const it of lineas) cantidades.set(it.productoId, (cantidades.get(it.productoId) ?? 0) + it.cantidad);
+		for (const it of lineas) cantidades.set(it.productoId, redondearCantidad((cantidades.get(it.productoId) ?? 0) + it.cantidad));
 
 		const encontrados = await this.productos.find({ where: { id: In([...cantidades.keys()]), rubroId: rubro.id } });
 		const porId = new Map(encontrados.map(p => [p.id, p]));
@@ -63,18 +67,28 @@ export class PedidosService {
 			const p = porId.get(productoId);
 			if (!p || p.isDraft) throw new BadRequestException('Uno de los productos ya no está disponible');
 			if (p.precio == null) throw new BadRequestException(`"${p.nombre}" no tiene precio: consultalo con el vendedor`);
-			if (p.stock != null && cantidad > p.stock) {
+			const porKilo = p.unidadVenta === 'kg';
+			if (!cantidadValida(p, cantidad)) {
+				throw new BadRequestException(
+					porKilo
+						? `"${p.nombre}" se pide de a ${formatCantidad(pasoVenta(p), 'kg')}`
+						: `"${p.nombre}" se pide por unidad`,
+				);
+			}
+			if (!porKilo && p.stock != null && cantidad > p.stock) {
 				throw new BadRequestException(p.stock === 0 ? `"${p.nombre}" se quedó sin stock` : `De "${p.nombre}" quedan ${p.stock}`);
 			}
 			// Con variantes (talle, color…) el pedido tiene que decir cuál es.
 			const nombre = p.grupo && p.variante ? `${p.nombre} — ${p.variante}` : p.nombre;
-			items.push({ productoId, nombre, precio: p.precio, cantidad, imageUrl: p.imageUrl });
+			items.push({ productoId, nombre, precio: p.precio, cantidad, unidad: p.unidadVenta, imageUrl: p.imageUrl });
 			paquete.largo = Math.max(paquete.largo, p.largo ?? base.largo);
 			paquete.ancho = Math.max(paquete.ancho, p.ancho ?? base.ancho);
-			paquete.alto += (p.alto ?? base.alto) * cantidad;
-			paquete.peso += (p.peso ?? base.peso) * cantidad;
+			// Por kilo: un bulto por kilo empezado, y el peso es el que se pidió.
+			paquete.alto += (p.alto ?? base.alto) * Math.ceil(cantidad);
+			paquete.peso += porKilo ? Math.round(cantidad * 1000) : (p.peso ?? base.peso) * cantidad;
 		}
-		const subtotal = items.reduce((sum, it) => sum + it.precio * it.cantidad, 0);
+		// Por kilo el subtotal puede tener centavos de más (1,25 kg × $999).
+		const subtotal = Math.round(items.reduce((sum, it) => sum + it.precio * it.cantidad, 0) * 100) / 100;
 		return { items, subtotal, paquete };
 	}
 
@@ -267,8 +281,8 @@ export class PedidosService {
 			if (descontar || devolver) {
 				for (const it of pedido.items) {
 					const p = await productos.findOne({ where: { id: it.productoId, rubroId } });
-					// Producto borrado o sin control de stock: no hay nada que ajustar.
-					if (!p || p.stock == null) continue;
+					// Producto borrado, sin control de stock o vendido por kilo: no hay nada que ajustar.
+					if (!p || p.stock == null || it.unidad === 'kg') continue;
 					p.stock = descontar ? Math.max(0, p.stock - it.cantidad) : p.stock + it.cantidad;
 					await productos.save(p);
 				}

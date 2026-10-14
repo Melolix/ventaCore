@@ -51,24 +51,24 @@
 							<p class="line-clamp-2 text-sm font-semibold leading-tight text-surface-900 dark:text-surface-0">
 								{{ line.producto.nombre }}<template v-if="line.producto.grupo && line.producto.variante"> — {{ line.producto.variante }}</template>
 							</p>
-							<p class="text-xs text-surface-500">{{ $t('public.cart.each', { price: money(line.precio) }) }}</p>
+							<p class="text-xs text-surface-500">{{ $t(line.porKilo ? 'public.cart.eachKg' : 'public.cart.each', { price: money(line.precio) }) }}</p>
 							<div class="mt-1.5 flex items-center gap-2">
 								<div class="flex items-center rounded-lg border border-surface-200 dark:border-surface-700">
 									<button
 										type="button"
 										class="flex h-8 w-8 items-center justify-center text-surface-600 hover:text-primary dark:text-surface-300"
 										:aria-label="$t('public.cart.less')"
-										@click="setQty(line, line.qty - 1)"
+										@click="setQty(line, line.qty - line.paso)"
 									>
-										<i class="pi text-xs" :class="line.qty === 1 ? 'pi-trash' : 'pi-minus'" />
+										<i class="pi text-xs" :class="line.qty <= line.paso ? 'pi-trash' : 'pi-minus'" />
 									</button>
-									<span class="w-7 text-center text-sm font-bold tabular-nums">{{ line.qty }}</span>
+									<span class="min-w-7 whitespace-nowrap px-1 text-center text-sm font-bold tabular-nums">{{ formatCantidad(line.qty, line.producto.unidadVenta) }}</span>
 									<button
 										type="button"
 										class="flex h-8 w-8 items-center justify-center text-surface-600 hover:text-primary disabled:opacity-30 dark:text-surface-300"
 										:aria-label="$t('public.cart.more')"
 										:disabled="line.qty >= line.max"
-										@click="setQty(line, line.qty + 1)"
+										@click="setQty(line, line.qty + line.paso)"
 									>
 										<i class="pi pi-plus text-xs" />
 									</button>
@@ -97,6 +97,8 @@
 						<span class="font-bold text-surface-900 dark:text-surface-0">{{ $t('public.cart.total') }}</span>
 						<span class="text-xl font-extrabold tabular-nums text-surface-900 dark:text-surface-0">{{ money(totalConEnvio) }}</span>
 					</div>
+					<!-- Lo que va por kilo se pesa al armar el pedido: el total puede variar un poco. -->
+					<p v-if="hayPorKilo" class="text-xs text-surface-500">{{ $t('public.cart.approx') }}</p>
 				</div>
 
 				<!-- Datos del cliente: lo mínimo para que el vendedor pueda responder. -->
@@ -262,7 +264,15 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
-import { PROVINCIAS_AR, type EnvioOpcion, type PedidoPublic, type Producto } from '@base-template/shared';
+import {
+	PROVINCIAS_AR,
+	formatCantidad,
+	pasoVenta,
+	redondearCantidad,
+	type EnvioOpcion,
+	type PedidoPublic,
+	type Producto,
+} from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { apiErrorMessage } from '@/shared/utils/apiError';
 import { useCartStore, type Entrega } from '@/modules/app/store/cart';
@@ -271,9 +281,13 @@ import { formatPrice } from '@/modules/app/utils/price';
 /** Una línea del pedido: el producto, la cantidad (ya acotada al stock) y su subtotal. */
 export interface CartLine {
 	producto: Producto;
+	/** Unidades, o kilos en lo que va por kilo. */
 	qty: number;
 	/** Tope de unidades (el stock, o MAX_QTY si el negocio no lleva stock). */
 	max: number;
+	/** De a cuánto sube o baja (1, o el incremento de lo que va por kilo). */
+	paso: number;
+	porKilo: boolean;
 	precio: number;
 	subtotal: number;
 }
@@ -340,9 +354,12 @@ export default defineComponent({
 				if (!want || !canBuy(p) || p.precio == null) continue;
 				const max = p.stock ?? MAX_QTY;
 				const qty = Math.min(want, max);
-				out.push({ producto: p, qty, max, precio: p.precio, subtotal: p.precio * qty });
+				out.push({ producto: p, qty, max, paso: pasoVenta(p), porKilo: p.unidadVenta === 'kg', precio: p.precio, subtotal: p.precio * qty });
 			}
 			return out;
+		},
+		hayPorKilo(): boolean {
+			return this.lines.some(l => l.porKilo);
 		},
 		total(): number {
 			return this.lines.reduce((sum, l) => sum + l.subtotal, 0);
@@ -409,8 +426,9 @@ export default defineComponent({
 			return formatPrice(n);
 		},
 		setQty(line: CartLine, qty: number) {
-			this.cart.setQty(this.rubroId, line.producto.id, Math.min(qty, line.max));
+			this.cart.setQty(this.rubroId, line.producto.id, redondearCantidad(Math.min(qty, line.max)));
 		},
+		formatCantidad,
 		closeDone() {
 			this.done = null;
 			this.$emit('update:visible', false);
@@ -441,7 +459,7 @@ export default defineComponent({
 		 */
 		buildMessage(pedido: PedidoPublic): string {
 			const c = this.cart.cliente;
-			const rows = pedido.items.map(it => `• ${it.cantidad} × ${it.nombre} — ${this.money(it.precio * it.cantidad)}`);
+			const rows = pedido.items.map(it => `• ${formatCantidad(it.cantidad, it.unidad)} × ${it.nombre} — ${this.money(it.precio * it.cantidad)}`);
 			const parts = [
 				`*${this.$t('public.cart.msg.title', { n: pedido.numero, tienda: this.tienda })}*`,
 				`${this.$t('public.cart.msg.client')}: ${c.nombre}`,

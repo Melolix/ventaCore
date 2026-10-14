@@ -312,6 +312,10 @@ export class MlPublishService {
 		if (!rubro) throw new NotFoundException('Rubro no encontrado');
 		const producto = await this.productos.findOne({ where: { id: productoId, rubroId } });
 		if (!producto) throw new NotFoundException('Producto no encontrado en el rubro');
+		// ML vende unidades enteras: lo que va por kilo queda solo en la tienda.
+		if (producto.unidadVenta === 'kg') {
+			throw new BadRequestException('Los productos que se venden por kilo no se pueden publicar en Mercado Libre');
+		}
 
 		// Precio a publicar en ML: el de ML si está calculado; si no, el de tienda.
 		const precioPublicacion = producto.precioMl ?? producto.precio;

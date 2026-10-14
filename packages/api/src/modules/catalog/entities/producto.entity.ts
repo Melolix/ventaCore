@@ -7,7 +7,7 @@ import {
 	PrimaryGeneratedColumn,
 	UpdateDateColumn,
 } from 'typeorm';
-import { ProductoSource, type ProductoAtributos, type ProductoOpcion } from '@base-template/shared';
+import { ProductoSource, type ProductoAtributos, type ProductoOpcion, type UnidadVenta } from '@base-template/shared';
 import { RubroEntity } from './rubro.entity';
 
 /** TypeORM devuelve `numeric` como string; lo convertimos a number. */
@@ -94,9 +94,17 @@ export class ProductoEntity {
 	@Column({ type: 'varchar', nullable: true })
 	gtin!: string | null;
 
-	/** Stock disponible. null = sin definir. */
+	/** Stock disponible. null = sin definir. Lo que se vende por kilo no lleva stock. */
 	@Column({ type: 'integer', nullable: true })
 	stock!: number | null;
+
+	/** Cómo se vende: 'unidad' (cantidades enteras) | 'kg' (`precio` es el del kilo). */
+	@Column({ type: 'varchar', default: 'unidad' })
+	unidadVenta!: UnidadVenta;
+
+	/** Por kilo: de a cuántos kg se pide (también es el mínimo). null = el default. */
+	@Column({ type: 'numeric', precision: 6, scale: 3, nullable: true, transformer: numericTransformer })
+	incremento!: number | null;
 
 	// ── Dimensiones del paquete para cotizar envío en ML (alto/ancho/largo en cm, peso en g) ──
 	@Column({ type: 'integer', nullable: true })

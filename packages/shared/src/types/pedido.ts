@@ -5,6 +5,7 @@
  * entrega.
  */
 
+import type { UnidadVenta } from './catalog';
 import type { Direccion, EnvioOpcion, Paquete } from './envio';
 
 /**
@@ -50,8 +51,12 @@ export const PEDIDO_ENTREGAS: PedidoEntrega[] = ['retiro', 'envio'];
 export interface PedidoItem {
 	productoId: string;
 	nombre: string;
+	/** Por kilo: el precio del kilo. */
 	precio: number;
+	/** Unidades, o kilos si `unidad` es 'kg' (con decimales). */
 	cantidad: number;
+	/** Cómo se vendió. Ausente = por unidad (los pedidos de antes). */
+	unidad?: UnidadVenta;
 	imageUrl: string | null;
 }
 

@@ -138,6 +138,7 @@
 		"noInstagram": "Set this category's Instagram (Categories → edit)",
 		"consultWhatsapp": "Ask on WhatsApp",
 		"consultPrice": "Ask for price",
+		"perKg": "/kg",
 		"consult": "Ask",
 		"photoN": "Photo {n}",
 		"stock": {
@@ -182,6 +183,8 @@
 			"less": "Remove one",
 			"more": "Add one",
 			"each": "{price} each",
+			"eachKg": "{price} per kg",
+			"approx": "Approximate total: items sold by weight are weighed when your order is packed and the seller confirms the total.",
 			"maxStock": "That's all the stock",
 			"total": "Total",
 			"yourData": "Your details",
@@ -697,6 +700,14 @@
 				"publish": "Publish to ML"
 			},
 			"searchNoResults": "No products match “{q}”.",
+			"venta": {
+				"label": "Sold",
+				"unidad": "per unit",
+				"kg": "per kg, in steps of {paso}",
+				"kgShort": "kg · by {paso}",
+				"precioKg": "Price per kg",
+				"sinStock": "No stock (sold by weight)"
+			},
 			"cols": {
 				"producto": "Product",
 				"categoria": "Storefront category",

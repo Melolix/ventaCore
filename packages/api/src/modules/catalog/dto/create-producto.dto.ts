@@ -11,12 +11,21 @@ import {
 	IsObject,
 	IsOptional,
 	IsString,
+	Max,
 	MaxLength,
 	Min,
 	MinLength,
 	ValidateNested,
 } from 'class-validator';
-import { MAX_OPCIONES, ML_LISTING_TYPES, ProductoSource, type MlListingType, type ProductoAtributos } from '@base-template/shared';
+import {
+	MAX_OPCIONES,
+	ML_LISTING_TYPES,
+	ProductoSource,
+	UNIDADES_VENTA,
+	type MlListingType,
+	type ProductoAtributos,
+	type UnidadVenta,
+} from '@base-template/shared';
 
 /** Una característica de una opción: qué es ("Peso") y cuánto vale ("1 kg"). */
 export class ProductoOpcionDto {
@@ -112,6 +121,18 @@ export class CreateProductoDto {
 	@IsInt()
 	@Min(0)
 	stock?: number;
+
+	@ApiProperty({ required: false, enum: UNIDADES_VENTA, description: 'Cómo se vende: por unidad o por kilo (el precio es el del kilo).' })
+	@IsOptional()
+	@IsIn(UNIDADES_VENTA)
+	unidadVenta?: UnidadVenta;
+
+	@ApiProperty({ required: false, nullable: true, example: 0.25, description: 'Por kilo: de a cuántos kg se pide (también es el mínimo).' })
+	@IsOptional()
+	@IsNumber({ maxDecimalPlaces: 3 })
+	@Min(0.05)
+	@Max(10)
+	incremento?: number | null;
 
 	@ApiProperty({ required: false, example: 20, description: 'Alto del paquete (cm), para envío ML.' })
 	@IsOptional()

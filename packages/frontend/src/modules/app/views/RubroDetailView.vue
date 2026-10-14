@@ -266,7 +266,7 @@
 								{{ producto.nombre }}
 							</h3>
 							<p v-if="producto.precio != null" class="text-base font-extrabold tabular-nums text-surface-900 sm:text-lg dark:text-surface-0">
-								{{ formatPrice(producto.precio) }}
+								{{ formatPrice(producto.precio) }}<span v-if="producto.unidadVenta === 'kg'" class="text-xs font-semibold text-surface-500"> {{ $t('public.perKg') }}</span>
 							</p>
 							<p v-else class="py-0.5 text-xs font-semibold text-surface-400 sm:py-1">{{ $t('public.consultPrice') }}</p>
 							<!-- Variantes (talle, color…): una sola card con selector, en vez de una
@@ -306,7 +306,7 @@
 								<button type="button" class="flex h-9 w-10 items-center justify-center" :aria-label="$t('public.cart.less')" @click="addQty(producto, -1)">
 									<i class="pi pi-minus text-xs" />
 								</button>
-								<span class="text-sm font-extrabold tabular-nums">{{ qty(producto) }}</span>
+								<span class="text-sm font-extrabold tabular-nums">{{ qtyLabel(producto) }}</span>
 								<button
 									type="button"
 									class="flex h-9 w-10 items-center justify-center disabled:opacity-40"
@@ -403,7 +403,9 @@
 					>{{ detail.seccion }}</span>
 					<h2 class="text-xl font-extrabold leading-tight text-surface-900 md:pr-10 md:text-2xl dark:text-surface-0">{{ detail.nombre }}</h2>
 					<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-						<span v-if="detail.precio != null" class="text-2xl font-extrabold tabular-nums text-surface-900 dark:text-surface-0">{{ formatPrice(detail.precio) }}</span>
+						<span v-if="detail.precio != null" class="text-2xl font-extrabold tabular-nums text-surface-900 dark:text-surface-0">
+							{{ formatPrice(detail.precio) }}<span v-if="detail.unidadVenta === 'kg'" class="text-sm font-semibold text-surface-500"> {{ $t('public.perKg') }}</span>
+						</span>
 						<span v-else class="text-sm font-semibold text-surface-400">{{ $t('public.consultPrice') }}</span>
 						<span v-if="stockStatus(detail)" class="text-xs font-bold" :class="stockStatus(detail)?.cls">{{ stockStatus(detail)?.label }}</span>
 					</div>
@@ -442,7 +444,7 @@
 								<button type="button" class="flex h-11 w-11 items-center justify-center" :aria-label="$t('public.cart.less')" @click="addQty(detail, -1)">
 									<i class="pi pi-minus text-xs" />
 								</button>
-								<span class="w-7 text-center font-extrabold tabular-nums">{{ qty(detail) }}</span>
+								<span class="min-w-7 whitespace-nowrap px-1 text-center font-extrabold tabular-nums">{{ qtyLabel(detail) }}</span>
 								<button
 									type="button"
 									class="flex h-11 w-11 items-center justify-center disabled:opacity-30"
@@ -548,7 +550,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { AppPlatform, EspacioType, Role, type Producto } from '@base-template/shared';
+import { AppPlatform, EspacioType, Role, formatCantidad, pasoVenta, redondearCantidad, type Producto } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useUserStore } from '@/modules/auth/store/user';
 import { PLATFORM_ICON, effectivePlatforms } from '@/shared/utils/apps';
@@ -698,18 +700,19 @@ export default defineComponent({
 		},
 		/** Unidades y total del pedido, contando solo lo que hoy se puede comprar. */
 		cartCount(): number {
-			return this.cartLines.reduce((sum, l) => sum + l.qty, 0);
+			// Lo que va por kilo cuenta como un ítem (1,5 kg de papa no son "1,5 productos").
+			return this.cartLines.reduce((sum, l) => sum + (l.porKilo ? 1 : l.qty), 0);
 		},
 		cartTotal(): number {
 			return this.cartLines.reduce((sum, l) => sum + l.qty * l.precio, 0);
 		},
-		cartLines(): { qty: number; precio: number }[] {
+		cartLines(): { qty: number; precio: number; porKilo: boolean }[] {
 			const cart = this.cart.carts[this.rubroId] ?? {};
-			const out: { qty: number; precio: number }[] = [];
+			const out: { qty: number; precio: number; porKilo: boolean }[] = [];
 			for (const p of this.catalog.publicProductos) {
 				const want = cart[p.id];
 				if (!want || !canBuy(p) || p.precio == null) continue;
-				out.push({ qty: Math.min(want, p.stock ?? MAX_QTY), precio: p.precio });
+				out.push({ qty: Math.min(want, p.stock ?? MAX_QTY), precio: p.precio, porKilo: p.unidadVenta === 'kg' });
 			}
 			return out;
 		},
@@ -826,8 +829,13 @@ export default defineComponent({
 		qty(p: Producto): number {
 			return Math.min(this.cart.qty(this.rubroId, p.id), this.maxQty(p));
 		},
-		addQty(p: Producto, delta: number) {
-			const next = Math.max(0, Math.min(this.qty(p) + delta, this.maxQty(p)));
+		/** La cantidad como se lee: "3", "500 g", "1,5 kg". */
+		qtyLabel(p: Producto): string {
+			return formatCantidad(this.qty(p), p.unidadVenta);
+		},
+		/** Suma o resta un paso: una unidad, o el incremento de lo que va por kilo. */
+		addQty(p: Producto, dir: number) {
+			const next = redondearCantidad(Math.max(0, Math.min(this.qty(p) + dir * pasoVenta(p), this.maxQty(p))));
 			this.cart.setQty(this.rubroId, p.id, next);
 		},
 		/** Desde la pantalla del producto: la cierra y abre el pedido. */

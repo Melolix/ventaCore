@@ -66,7 +66,7 @@
 					<ul class="mt-3 space-y-1 border-t border-surface-200 pt-3 text-sm dark:border-surface-700">
 						<li v-for="it in p.items" :key="it.productoId" class="flex justify-between gap-3">
 							<span class="min-w-0 text-surface-700 dark:text-surface-200">
-								<span class="font-bold tabular-nums">{{ it.cantidad }} ×</span> {{ it.nombre }}
+								<span class="font-bold tabular-nums">{{ formatCantidad(it.cantidad, it.unidad) }} ×</span> {{ it.nombre }}
 							</span>
 							<span class="shrink-0 tabular-nums text-surface-500">{{ money(it.precio * it.cantidad) }}</span>
 						</li>
@@ -205,7 +205,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { Pedido, PedidoStatus, Rubro } from '@base-template/shared';
+import { formatCantidad, type Pedido, type PedidoStatus, type Rubro } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
@@ -305,6 +305,7 @@ export default defineComponent({
 		window.clearInterval(this.timer);
 	},
 	methods: {
+		formatCantidad,
 		/** `silent`: refresco automático (sin spinner ni aviso si falla). */
 		async load(silent = false) {
 			if (!this.rubroId) return;

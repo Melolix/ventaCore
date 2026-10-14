@@ -5,7 +5,7 @@ import {
 	ArrayMinSize,
 	IsArray,
 	IsIn,
-	IsInt,
+	IsNumber,
 	IsOptional,
 	IsString,
 	IsUUID,
@@ -59,9 +59,10 @@ export class CreatePedidoItemDto {
 	@IsUUID()
 	productoId!: string;
 
-	@ApiProperty({ example: 2 })
-	@IsInt()
-	@Min(1)
+	/** Unidades, o kilos en lo que se vende por kilo. Que respete el paso del producto lo valida el servicio. */
+	@ApiProperty({ example: 2, description: 'Unidades, o kilos (con decimales) si el producto se vende por kilo.' })
+	@IsNumber({ maxDecimalPlaces: 3 })
+	@Min(0.001)
 	@Max(999)
 	cantidad!: number;
 }

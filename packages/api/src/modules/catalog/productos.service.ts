@@ -8,6 +8,12 @@ import { UpdateProductoDto } from './dto/update-producto.dto';
 import { BatchProductoItemDto } from './dto/batch-productos.dto';
 import { RubrosService } from './rubros.service';
 
+/** Lo que se vende por kilo no lleva stock (los kilos con decimales no entran en la columna entera). */
+function normalizarVenta(p: ProductoEntity): ProductoEntity {
+	if (p.unidadVenta === 'kg') p.stock = null;
+	return p;
+}
+
 @Injectable()
 export class ProductosService {
 	constructor(
@@ -42,7 +48,7 @@ export class ProductosService {
 	async create(rubroId: string, espacioId: string, dto: CreateProductoDto): Promise<ProductoEntity> {
 		await this.rubros.findOne(rubroId, espacioId);
 		const entity = this.repo.create({ ...dto, rubroId });
-		const saved = await this.repo.save(entity);
+		const saved = await this.repo.save(normalizarVenta(entity));
 		if (saved.seccion) await this.rubros.addCategorias(rubroId, [saved.seccion]);
 		return saved;
 	}
@@ -50,7 +56,7 @@ export class ProductosService {
 	async update(id: string, rubroId: string, espacioId: string, dto: UpdateProductoDto): Promise<ProductoEntity> {
 		const producto = await this.findOwned(id, rubroId, espacioId);
 		Object.assign(producto, dto);
-		const saved = await this.repo.save(producto);
+		const saved = await this.repo.save(normalizarVenta(producto));
 		if (saved.seccion) await this.rubros.addCategorias(rubroId, [saved.seccion]);
 		return saved;
 	}
@@ -85,9 +91,9 @@ export class ProductosService {
 					const producto = await this.repo.findOne({ where: { id, rubroId } });
 					if (!producto) throw new NotFoundException('Producto no encontrado en el rubro');
 					Object.assign(producto, fields);
-					saved = await this.repo.save(producto);
+					saved = await this.repo.save(normalizarVenta(producto));
 				} else {
-					saved = await this.repo.save(this.repo.create({ ...fields, rubroId }));
+					saved = await this.repo.save(normalizarVenta(this.repo.create({ ...fields, rubroId })));
 				}
 				if (saved.seccion) {
 					if (!categorias.has(rubroId)) categorias.set(rubroId, new Set());

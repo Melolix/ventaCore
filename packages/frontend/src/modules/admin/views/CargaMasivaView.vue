@@ -442,9 +442,33 @@
 									:input-class="quietCls + ' !px-1 text-right font-medium tabular-nums'"
 									@update:model-value="onRowPrecio(row)"
 								/>
+								<!-- Por unidad o por kilo (verdulería): con kilo el precio es el del kilo. -->
+								<Select
+									:model-value="ventaDe(row)"
+									:options="ventaOptions"
+									option-label="label"
+									option-value="value"
+									size="small"
+									fluid
+									class="mt-0.5"
+									:class="quietCls"
+									label-class="!px-1 !text-[11px] text-right text-surface-500"
+									:pt="{ dropdown: { class: '!w-5' } }"
+									:aria-label="$t('admin.carga.venta.label')"
+									@update:model-value="setVenta(row, $event)"
+								>
+									<!-- En la celda entra poco: "kg · de a 250 g"; la lista muestra el texto entero. -->
+									<template #value="{ value }">{{ ventaOptions.find(o => o.value === value)?.short }}</template>
+								</Select>
 							</td>
 							<td class="px-2 py-2 align-middle">
+								<span
+									v-if="row.unidadVenta === 'kg'"
+									class="block text-center text-xs text-surface-400"
+									:title="$t('admin.carga.venta.sinStock')"
+								>—</span>
 								<InputNumber
+									v-else
 									v-model="row.stock"
 									fluid
 									:min="0"
@@ -1092,7 +1116,9 @@
 						/>
 					</div>
 					<div class="col-span-2 min-w-0 space-y-1">
-						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.precio') }}</label>
+						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">
+							{{ $t(sheetRow.unidadVenta === 'kg' ? 'admin.carga.venta.precioKg' : 'admin.carga.cols.precio') }}
+						</label>
 						<InputNumber
 							v-model="sheetRow.precio"
 							fluid
@@ -1107,11 +1133,25 @@
 					</div>
 				</div>
 
+				<!-- Por unidad o por kilo -->
+				<div class="space-y-1">
+					<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.venta.label') }}</label>
+					<Select
+						:model-value="ventaDe(sheetRow)"
+						:options="ventaOptions"
+						option-label="label"
+						option-value="value"
+						fluid
+						@update:model-value="setVenta(sheetRow, $event)"
+					/>
+				</div>
+
 				<!-- Stock + EAN -->
 				<div class="grid grid-cols-2 gap-2">
 					<div class="min-w-0 space-y-1">
 						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.cols.stock') }}</label>
-						<InputNumber v-model="sheetRow.stock" fluid :min="0" :placeholder="'—'" @update:model-value="markDirty(sheetRow)" />
+						<InputText v-if="sheetRow.unidadVenta === 'kg'" :model-value="$t('admin.carga.venta.sinStock')" class="w-full" disabled />
+						<InputNumber v-else v-model="sheetRow.stock" fluid :min="0" :placeholder="'—'" @update:model-value="markDirty(sheetRow)" />
 					</div>
 					<div class="min-w-0 space-y-1">
 						<label class="block text-[11px] font-semibold uppercase tracking-wide text-surface-500">{{ $t('admin.carga.placeholders.ean') }}</label>
@@ -1219,7 +1259,11 @@ import type { MenuItem } from 'primevue/menuitem';
 import {
 	ProductoSource,
 	ProductoEstado,
+	INCREMENTOS_KG,
 	evaluarProducto,
+	formatCantidad,
+	pasoVenta,
+	type UnidadVenta,
 	channelEnabled,
 	sameSize,
 	type Producto,
@@ -1276,6 +1320,10 @@ interface Row {
 	/** Tipo de publicación de ML (para calcular la comisión). */
 	mlListingType: MlListingType;
 	stock: number | null;
+	/** Por unidad o por kilo (con kilo, `precio` es el del kilo y no lleva stock). */
+	unidadVenta: UnidadVenta;
+	/** Por kilo: de a cuántos kg se pide. */
+	incremento: number | null;
 	gtin: string;
 	sku: string;
 	imageUrl: string;
@@ -1433,6 +1481,17 @@ export default defineComponent({
 		};
 	},
 	computed: {
+		/** "por unidad" o "por kg, de a 250 g": la unidad y el paso en un solo selector. */
+		ventaOptions(): { label: string; short: string; value: string }[] {
+			const unidad = this.$t('admin.carga.venta.unidad');
+			return [
+				{ label: unidad, short: unidad, value: 'unidad' },
+				...INCREMENTOS_KG.map(paso => {
+					const p = { paso: formatCantidad(paso, 'kg') };
+					return { label: this.$t('admin.carga.venta.kg', p), short: this.$t('admin.carga.venta.kgShort', p), value: `kg:${paso}` };
+				}),
+			];
+		},
 		sources() {
 			return [
 				{
@@ -1754,6 +1813,22 @@ export default defineComponent({
 			this.seq += 1;
 			return `row-${this.seq}`;
 		},
+		/** El valor del selector de venta de la fila ('unidad' | 'kg:<paso>'). */
+		ventaDe(row: Row): string {
+			return row.unidadVenta === 'kg' ? `kg:${pasoVenta(row)}` : 'unidad';
+		},
+		setVenta(row: Row, value: string) {
+			if (value === 'unidad') {
+				row.unidadVenta = 'unidad';
+				row.incremento = null;
+			} else {
+				row.unidadVenta = 'kg';
+				row.incremento = Number(value.slice(3));
+				// Lo que va por kilo no lleva stock.
+				row.stock = null;
+			}
+			this.markDirty(row);
+		},
 		markDirty(row?: Row) {
 			if (row) {
 				row.dirty = true;
@@ -1813,6 +1888,8 @@ export default defineComponent({
 				precioMlSaved: p.precioMl,
 				mlListingType: p.mlListingType ?? 'gold_special',
 				stock: p.stock,
+				unidadVenta: p.unidadVenta ?? 'unidad',
+				incremento: p.incremento ?? null,
 				gtin: p.gtin ?? '',
 				sku: p.sku ?? '',
 				imageUrl: p.imageUrl ?? '',
@@ -1844,6 +1921,8 @@ export default defineComponent({
 				precioMl: null,
 				mlListingType: 'gold_special',
 				stock: null,
+				unidadVenta: 'unidad',
+				incremento: null,
 				gtin: '',
 				sku: '',
 				imageUrl: '',
@@ -2323,6 +2402,7 @@ export default defineComponent({
 				nombre: row.nombre,
 				precio: row.precio,
 				stock: row.stock,
+				unidadVenta: row.unidadVenta,
 				imageUrl: row.imageUrl || null,
 				descripcion: row.descripcion || null,
 				mlCategoryId: row.mlCategoryId || null,
@@ -2514,6 +2594,8 @@ export default defineComponent({
 				margen: r.margen ?? undefined,
 				precioMl: r.precioMl ?? undefined,
 				stock: r.stock ?? undefined,
+				unidadVenta: r.unidadVenta,
+				incremento: r.unidadVenta === 'kg' ? r.incremento : null,
 				gtin: r.gtin.trim() || undefined,
 				sku: r.sku.trim() || undefined,
 				imageUrl: r.imageUrl.trim() || undefined,

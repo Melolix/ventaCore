@@ -138,6 +138,7 @@
 		"noInstagram": "Configurá el Instagram de este rubro (Rubros → editar)",
 		"consultWhatsapp": "Consultar por WhatsApp",
 		"consultPrice": "Consultar precio",
+		"perKg": "/kg",
 		"consult": "Consultar",
 		"photoN": "Foto {n}",
 		"stock": {
@@ -182,6 +183,8 @@
 			"less": "Quitar uno",
 			"more": "Agregar uno",
 			"each": "{price} c/u",
+			"eachKg": "{price} el kg",
+			"approx": "Total aproximado: lo que va por kilo se pesa al armar tu pedido y el vendedor te confirma el total.",
 			"maxStock": "Es todo el stock",
 			"total": "Total",
 			"yourData": "Tus datos",
@@ -697,6 +700,14 @@
 				"publish": "Publicar en ML"
 			},
 			"searchNoResults": "No hay productos que coincidan con «{q}».",
+			"venta": {
+				"label": "Se vende",
+				"unidad": "por unidad",
+				"kg": "por kg, de a {paso}",
+				"kgShort": "kg · de a {paso}",
+				"precioKg": "Precio por kg",
+				"sinStock": "Sin stock (se vende por kilo)"
+			},
 			"cols": {
 				"producto": "Producto",
 				"categoria": "Categoría en la vitrina",

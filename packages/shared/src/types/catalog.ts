@@ -169,6 +169,46 @@ export type MlListingType = 'gold_special' | 'gold_pro';
 
 export const ML_LISTING_TYPES: MlListingType[] = ['gold_special', 'gold_pro'];
 
+/**
+ * Cómo se vende un producto: por unidad (1, 2, 3…) o por kilo (con decimales,
+ * ej. una verdulería). Por kilo el precio es el del kilo y la cantidad avanza de
+ * a `incremento`.
+ */
+export type UnidadVenta = 'unidad' | 'kg';
+
+export const UNIDADES_VENTA: UnidadVenta[] = ['unidad', 'kg'];
+
+/** De a cuánto se puede pedir un producto por kilo (el paso del − / +), en kg. */
+export const INCREMENTOS_KG = [0.1, 0.25, 0.5, 1];
+
+export const INCREMENTO_KG_DEFAULT = 0.5;
+
+type VentaLike = Partial<Pick<Producto, 'unidadVenta' | 'incremento'>>;
+
+/** De a cuánto sube o baja la cantidad (y la mínima): 1 por unidad, el incremento por kilo. */
+export function pasoVenta(p: VentaLike): number {
+	return p.unidadVenta === 'kg' ? p.incremento || INCREMENTO_KG_DEFAULT : 1;
+}
+
+/** Redondea a gramos (sumar pasos de 0,1 deja 0.30000000000000004). */
+export function redondearCantidad(qty: number): number {
+	return Math.round(qty * 1000) / 1000;
+}
+
+/** ¿Se puede pedir esa cantidad? Positiva y múltiplo del paso (por unidad: entera). */
+export function cantidadValida(p: VentaLike, qty: number): boolean {
+	if (!(qty > 0)) return false;
+	const pasos = qty / pasoVenta(p);
+	return Math.abs(pasos - Math.round(pasos)) < 1e-6;
+}
+
+/** La cantidad para mostrar: "3", "250 g", "1,5 kg". */
+export function formatCantidad(qty: number, unidad: UnidadVenta = 'unidad'): string {
+	if (unidad !== 'kg') return String(qty);
+	if (qty < 1) return `${Math.round(qty * 1000)} g`;
+	return `${qty.toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg`;
+}
+
 export interface Producto {
 	id: string;
 	rubroId: string;
@@ -215,8 +255,12 @@ export interface Producto {
 	sku: string | null;
 	/** Código de barras / EAN. Mercado Libre lo llama GTIN. */
 	gtin: string | null;
-	/** Stock disponible. null = sin definir. */
+	/** Stock disponible. null = sin definir. Lo que se vende por kilo no lleva stock. */
 	stock: number | null;
+	/** Cómo se vende: por unidad (cantidades enteras) o por kilo (`precio` es el del kilo). */
+	unidadVenta: UnidadVenta;
+	/** Por kilo: de a cuántos kg se pide (también es el mínimo). null = INCREMENTO_KG_DEFAULT. */
+	incremento: number | null;
 	// ── Dimensiones para cotizar el envío en Mercado Libre ──
 	/** Alto del paquete en cm. */
 	alto: number | null;
@@ -267,6 +311,8 @@ export type ProductoWrite = Partial<
 		| 'sku'
 		| 'gtin'
 		| 'stock'
+		| 'unidadVenta'
+		| 'incremento'
 		| 'alto'
 		| 'ancho'
 		| 'largo'
@@ -322,7 +368,7 @@ export interface ProductoReadiness {
 export type ProductoLike = Partial<
 	Pick<
 		Producto,
-		'nombre' | 'precio' | 'stock' | 'imageUrl' | 'descripcion' | 'mlCategoryId' | 'atributos' | 'isDraft'
+		'nombre' | 'precio' | 'stock' | 'unidadVenta' | 'imageUrl' | 'descripcion' | 'mlCategoryId' | 'atributos' | 'isDraft'
 	>
 >;
 
@@ -355,7 +401,8 @@ export function evaluarProducto(
 	const faltantes: string[] = [];
 	if (!p.nombre || !p.nombre.trim()) faltantes.push('nombre');
 	if (p.precio == null) faltantes.push('precio');
-	if (p.stock == null) faltantes.push('stock');
+	// Lo que se vende por kilo no lleva stock.
+	if (p.stock == null && p.unidadVenta !== 'kg') faltantes.push('stock');
 	if (requireMl) {
 		if (!p.mlCategoryId) faltantes.push('categoría');
 		for (const attr of requiredAttrs) {

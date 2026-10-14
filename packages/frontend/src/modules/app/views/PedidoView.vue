@@ -119,7 +119,9 @@
 						</div>
 						<div class="min-w-0 flex-1">
 							<p class="line-clamp-2 text-sm font-semibold leading-tight text-surface-900 dark:text-surface-0">{{ it.nombre }}</p>
-							<p class="text-xs text-surface-500">{{ it.cantidad }} × {{ money(it.precio) }}</p>
+							<p class="text-xs text-surface-500">
+								{{ formatCantidad(it.cantidad, it.unidad) }} × {{ money(it.precio) }}<template v-if="it.unidad === 'kg'"> {{ $t('public.perKg') }}</template>
+							</p>
 						</div>
 						<p class="shrink-0 text-sm font-extrabold tabular-nums">{{ money(it.precio * it.cantidad) }}</p>
 					</li>
@@ -166,7 +168,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { PedidoPublic, PedidoStatus } from '@base-template/shared';
+import { formatCantidad, type PedidoPublic, type PedidoStatus } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useCartStore } from '@/modules/app/store/cart';
 import { formatPrice } from '@/modules/app/utils/price';
@@ -246,6 +248,7 @@ export default defineComponent({
 		window.clearInterval(this.timer);
 	},
 	methods: {
+		formatCantidad,
 		async load() {
 			try {
 				const pedido = await this.catalog.fetchPedidoPublic(String(this.$route.params.token));
