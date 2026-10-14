@@ -22,7 +22,7 @@ import { PedidoEntity } from './entities/pedido.entity';
 import { ProductoEntity } from './entities/producto.entity';
 import { RubroEntity } from './entities/rubro.entity';
 import { RubrosService } from './rubros.service';
-import { CotizarEnvioDto, CreatePedidoDto, CreatePedidoItemDto } from './dto/pedido.dto';
+import { AjustarPesoItemDto, CotizarEnvioDto, CreatePedidoDto, CreatePedidoItemDto } from './dto/pedido.dto';
 
 /** Estados en los que el cliente ya puede ver los datos para transferir. */
 const PAGO_VISIBLE: PedidoStatus[] = ['confirmado', 'pagado', 'enviado', 'entregado'];
@@ -243,6 +243,36 @@ export class PedidosService {
 			service: pedido.envio.service,
 		});
 		pedido.status = 'enviado';
+		return this.repo.save(pedido);
+	}
+
+	/**
+	 * El vendedor carga el peso real de lo que va por kilo (lo que dio la balanza)
+	 * y se recalcula el total. Solo antes de aceptar: después el cliente ya recibió
+	 * el total para transferir. El envío queda como se cotizó; el bulto se corrige
+	 * para la etiqueta.
+	 */
+	async ajustarPesos(id: string, rubroId: string, espacioId: string, pesos: AjustarPesoItemDto[]): Promise<PedidoEntity> {
+		const { pedido } = await this.findOwned(id, rubroId, espacioId);
+		if (pedido.status !== 'pendiente') throw new BadRequestException('Los pesos se ajustan antes de aceptar el pedido');
+
+		const items = pedido.items.map(it => ({ ...it }));
+		let gramos = 0;
+		for (const { productoId, cantidad } of pesos) {
+			const it = items.find(i => i.productoId === productoId);
+			if (!it) throw new BadRequestException('Ese producto no está en el pedido');
+			if (it.unidad !== 'kg') throw new BadRequestException(`"${it.nombre}" no se vende por kilo`);
+			const real = redondearCantidad(cantidad);
+			it.cantidadPedida ??= it.cantidad;
+			gramos += Math.round((real - it.cantidad) * 1000);
+			it.cantidad = real;
+		}
+
+		// Reasignamos el array: TypeORM no detecta cambios adentro de un jsonb.
+		pedido.items = items;
+		const subtotal = Math.round(items.reduce((sum, it) => sum + it.precio * it.cantidad, 0) * 100) / 100;
+		pedido.total = subtotal + pedido.envioCosto;
+		if (pedido.paquete) pedido.paquete = { ...pedido.paquete, peso: Math.max(1, pedido.paquete.peso + gramos) };
 		return this.repo.save(pedido);
 	}
 

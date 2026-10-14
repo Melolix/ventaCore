@@ -6,7 +6,7 @@ import { RolesGuard } from '../../common/auth/roles.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { PedidosService } from './pedidos.service';
-import { UpdatePedidoStatusDto } from './dto/pedido.dto';
+import { AjustarPesosDto, UpdatePedidoStatusDto } from './dto/pedido.dto';
 
 function espacioDe(user: AuthenticatedUser): string {
 	if (!user.espacioId) throw new ForbiddenException('El usuario no tiene un espacio asignado');
@@ -37,6 +37,17 @@ export class PedidosController {
 	@Delete(':id/envio')
 	anularEnvio(@CurrentUser() user: AuthenticatedUser, @Param('rubroId') rubroId: string, @Param('id') id: string) {
 		return this.pedidos.anularEnvio(id, rubroId, espacioDe(user));
+	}
+
+	/** Carga el peso real de lo que va por kilo (antes de aceptar) y recalcula el total. */
+	@Patch(':id/pesos')
+	ajustarPesos(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('rubroId') rubroId: string,
+		@Param('id') id: string,
+		@Body() dto: AjustarPesosDto,
+	) {
+		return this.pedidos.ajustarPesos(id, rubroId, espacioDe(user), dto.items);
 	}
 
 	/** Aceptar, rechazar, registrar pago/entrega o cancelar. */

@@ -242,6 +242,7 @@
 		},
 		"pedido": {
 			"title": "Pedido #{n}",
+			"pesado": "Pediste {pedida} · se pesaron {real}",
 			"madeOn": "Hecho el {date}",
 			"notFoundTitle": "No encontramos ese pedido",
 			"notFoundBody": "Revisá que el link esté completo, o escribile a la tienda.",
@@ -1566,6 +1567,12 @@
 		},
 		"pedidos": {
 			"eyebrow": "Tienda",
+			"pesos": {
+				"title": "Pesar el pedido #{n}",
+				"hint": "Cargá lo que pesó cada producto por kilo. El total se recalcula y es el que le pasás al cliente para transferir.",
+				"pidio": "pidió {cantidad}",
+				"total": "Total a cobrar"
+			},
 			"title": "Pedidos",
 			"refresh": "Actualizar",
 			"noPago": "Todavía no cargaste los datos para transferir. Sin eso, el cliente no sabe a dónde pagar cuando confirmás.",
@@ -1614,6 +1621,8 @@
 			"msg": {
 				"confirmed": "Hola {nombre}! Confirmamos tu pedido #{n} de {tienda}. Hay stock de todo.",
 				"payIntro": "Para transferir:",
+				"pesosIntro": "Ya pesamos lo que va por kilo:",
+				"pediste": "pediste {cantidad}",
 				"track": "Seguí tu pedido",
 				"shipped": "Hola {nombre}! Tu pedido #{n} ya salió."
 			},

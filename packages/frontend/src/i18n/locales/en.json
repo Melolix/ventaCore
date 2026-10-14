@@ -242,6 +242,7 @@
 		},
 		"pedido": {
 			"title": "Order #{n}",
+			"pesado": "You ordered {pedida} · weighed {real}",
 			"madeOn": "Placed on {date}",
 			"notFoundTitle": "We couldn't find that order",
 			"notFoundBody": "Check that the link is complete, or message the store.",
@@ -1566,6 +1567,12 @@
 		},
 		"pedidos": {
 			"eyebrow": "Store",
+			"pesos": {
+				"title": "Weigh order #{n}",
+				"hint": "Enter what each item sold by weight actually weighed. The total is recalculated and is what the customer will transfer.",
+				"pidio": "ordered {cantidad}",
+				"total": "Total to charge"
+			},
 			"title": "Orders",
 			"refresh": "Refresh",
 			"noPago": "You haven't added the payment details yet. Without them, the customer doesn't know where to pay when you confirm.",
@@ -1614,6 +1621,8 @@
 			"msg": {
 				"confirmed": "Hi {nombre}! We confirmed your order #{n} from {tienda}. Everything is in stock.",
 				"payIntro": "To transfer:",
+				"pesosIntro": "We weighed the items sold by weight:",
+				"pediste": "you ordered {cantidad}",
 				"track": "Track your order",
 				"shipped": "Hi {nombre}! Your order #{n} is on its way."
 			},

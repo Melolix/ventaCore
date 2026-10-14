@@ -134,6 +134,30 @@ export class CreatePedidoDto {
 	envioId?: string;
 }
 
+/** El peso real de un ítem por kilo (lo que dio la balanza). */
+export class AjustarPesoItemDto {
+	@ApiProperty()
+	@IsUUID()
+	productoId!: string;
+
+	@ApiProperty({ example: 1.12, description: 'Kilos reales.' })
+	@IsNumber({ maxDecimalPlaces: 3 })
+	@Min(0.001)
+	@Max(999)
+	cantidad!: number;
+}
+
+/** El vendedor carga lo que pesó de verdad antes de aceptar el pedido. */
+export class AjustarPesosDto {
+	@ApiProperty({ type: [AjustarPesoItemDto] })
+	@IsArray()
+	@ArrayMinSize(1)
+	@ArrayMaxSize(100)
+	@ValidateNested({ each: true })
+	@Type(() => AjustarPesoItemDto)
+	items!: AjustarPesoItemDto[];
+}
+
 /** Cambio de estado que hace el vendedor desde el panel. */
 export class UpdatePedidoStatusDto {
 	@ApiProperty({ enum: PEDIDO_STATUSES })

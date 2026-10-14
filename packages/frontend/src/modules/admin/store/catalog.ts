@@ -173,6 +173,11 @@ export const useCatalogStore = defineStore('catalog', {
 			const { data } = await api.get<Pedido[]>(`/rubros/${rubroId}/pedidos`);
 			return data;
 		},
+		/** Panel: carga el peso real de lo que va por kilo (antes de aceptar) y recalcula el total. */
+		async ajustarPesos(rubroId: string, id: string, items: { productoId: string; cantidad: number }[]): Promise<Pedido> {
+			const { data } = await api.patch<Pedido>(`/rubros/${rubroId}/pedidos/${id}/pesos`, { items });
+			return data;
+		},
 		/** Panel: aceptar, rechazar, registrar pago/entrega o cancelar. */
 		async updatePedidoStatus(rubroId: string, id: string, status: PedidoStatus, motivo?: string): Promise<Pedido> {
 			const { data } = await api.patch<Pedido>(`/rubros/${rubroId}/pedidos/${id}/status`, { status, motivo });

@@ -122,6 +122,10 @@
 							<p class="text-xs text-surface-500">
 								{{ formatCantidad(it.cantidad, it.unidad) }} × {{ money(it.precio) }}<template v-if="it.unidad === 'kg'"> {{ $t('public.perKg') }}</template>
 							</p>
+							<!-- El vendedor cargó lo que pesó de verdad. -->
+							<p v-if="it.cantidadPedida != null && it.cantidadPedida !== it.cantidad" class="text-xs text-surface-400">
+								{{ $t('public.pedido.pesado', { pedida: formatCantidad(it.cantidadPedida, 'kg'), real: formatCantidad(it.cantidad, 'kg') }) }}
+							</p>
 						</div>
 						<p class="shrink-0 text-sm font-extrabold tabular-nums">{{ money(it.precio * it.cantidad) }}</p>
 					</li>

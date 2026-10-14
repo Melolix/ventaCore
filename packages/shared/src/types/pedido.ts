@@ -57,6 +57,11 @@ export interface PedidoItem {
 	cantidad: number;
 	/** Cómo se vendió. Ausente = por unidad (los pedidos de antes). */
 	unidad?: UnidadVenta;
+	/**
+	 * Por kilo: lo que pidió el cliente, si el vendedor después cargó el peso real
+	 * (que queda en `cantidad`). Ausente = no se ajustó.
+	 */
+	cantidadPedida?: number;
 	imageUrl: string | null;
 }
 

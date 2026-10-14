@@ -67,6 +67,9 @@
 						<li v-for="it in p.items" :key="it.productoId" class="flex justify-between gap-3">
 							<span class="min-w-0 text-surface-700 dark:text-surface-200">
 								<span class="font-bold tabular-nums">{{ formatCantidad(it.cantidad, it.unidad) }} ×</span> {{ it.nombre }}
+								<span v-if="ajustado(it)" class="text-xs text-surface-400">
+									({{ $t('admin.pedidos.pesos.pidio', { cantidad: formatCantidad(it.cantidadPedida ?? 0, 'kg') }) }})
+								</span>
 							</span>
 							<span class="shrink-0 tabular-nums text-surface-500">{{ money(it.precio * it.cantidad) }}</span>
 						</li>
@@ -93,7 +96,7 @@
 					<!-- Qué puede hacer el vendedor ahora -->
 					<div class="mt-3 flex flex-wrap gap-2 border-t border-surface-200 pt-3 dark:border-surface-700">
 						<template v-if="p.status === 'pendiente'">
-							<Button :label="$t('admin.pedidos.accept')" icon="pi pi-check" size="small" :loading="busyId === p.id" @click="setStatus(p, 'confirmado')" />
+							<Button :label="$t('admin.pedidos.accept')" icon="pi pi-check" size="small" :loading="busyId === p.id" @click="accept(p)" />
 							<Button :label="$t('admin.pedidos.reject')" icon="pi pi-times" size="small" severity="danger" outlined :disabled="busyId === p.id" @click="askMotivo(p, 'rechazado')" />
 						</template>
 						<template v-else-if="p.status === 'confirmado'">
@@ -189,6 +192,49 @@
 			</template>
 		</Dialog>
 
+		<!-- Aceptar con productos por kilo: primero el peso real de cada uno (lo que dio
+		     la balanza), así el total que se le pasa al cliente es el que paga. -->
+		<Dialog v-model:visible="pesosVisible" modal :header="$t('admin.pedidos.pesos.title', { n: pesosTarget?.numero })" class="w-full max-w-md">
+			<div v-if="pesosTarget" class="space-y-3 pt-1 text-sm">
+				<p class="text-surface-500">{{ $t('admin.pedidos.pesos.hint') }}</p>
+				<ul class="space-y-2">
+					<li
+						v-for="it in itemsPorKilo(pesosTarget)"
+						:key="it.productoId"
+						class="flex items-center gap-3 rounded-xl border border-surface-200 p-3 dark:border-surface-700"
+					>
+						<div class="min-w-0 flex-1">
+							<p class="truncate font-semibold text-surface-900 dark:text-surface-0">{{ it.nombre }}</p>
+							<p class="text-xs text-surface-500">
+								{{ $t('admin.pedidos.pesos.pidio', { cantidad: formatCantidad(it.cantidadPedida ?? it.cantidad, 'kg') }) }}
+								· {{ money(it.precio) }} {{ $t('public.perKg') }}
+							</p>
+						</div>
+						<InputNumber
+							v-model="pesos[it.productoId]"
+							:input-id="'peso-' + it.productoId"
+							suffix=" kg"
+							locale="es-AR"
+							:min="0"
+							:max="999"
+							:min-fraction-digits="0"
+							:max-fraction-digits="3"
+							input-class="w-24 text-right tabular-nums"
+							:aria-label="it.nombre"
+						/>
+					</li>
+				</ul>
+				<p class="flex justify-between border-t border-surface-200 pt-3 dark:border-surface-700">
+					<span class="font-bold text-surface-900 dark:text-surface-0">{{ $t('admin.pedidos.pesos.total') }}</span>
+					<span class="text-lg font-extrabold tabular-nums text-surface-900 dark:text-surface-0">{{ money(totalPesado) }}</span>
+				</p>
+			</div>
+			<template #footer>
+				<Button :label="$t('common.cancel')" text @click="pesosVisible = false" />
+				<Button :label="$t('admin.pedidos.accept')" icon="pi pi-check" :disabled="!pesosValidos" :loading="!!busyId" @click="confirmPesos" />
+			</template>
+		</Dialog>
+
 		<!-- Motivo al rechazar / cancelar (lo ve el cliente en su seguimiento) -->
 		<Dialog v-model:visible="motivoVisible" modal :header="motivoTitle" class="w-full max-w-sm">
 			<div class="space-y-2 pt-1">
@@ -205,7 +251,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { formatCantidad, type Pedido, type PedidoStatus, type Rubro } from '@base-template/shared';
+import { formatCantidad, type Pedido, type PedidoItem, type PedidoStatus, type Rubro } from '@base-template/shared';
 import { useCatalogStore } from '@/modules/admin/store/catalog';
 import { useAdminContext } from '@/modules/admin/store/context';
 import { apiErrorMessage } from '@/shared/utils/apiError';
@@ -251,6 +297,10 @@ export default defineComponent({
 			motivoTarget: null as { pedido: Pedido; status: PedidoStatus } | null,
 			envioVisible: false,
 			envioTarget: null as Pedido | null,
+			pesosVisible: false,
+			pesosTarget: null as Pedido | null,
+			/** Kilos reales por producto, mientras se cargan en el diálogo. */
+			pesos: {} as Record<string, number | null>,
 			timer: 0,
 		};
 	},
@@ -284,6 +334,16 @@ export default defineComponent({
 			if (this.filter === 'todos') return this.pedidos;
 			if (this.filter === 'cerrados') return this.pedidos.filter(p => p.status === 'rechazado' || p.status === 'cancelado');
 			return this.pedidos.filter(p => p.status === this.filter);
+		},
+		/** El total con los pesos que se están cargando (el envío queda como se cotizó). */
+		totalPesado(): number {
+			const p = this.pesosTarget;
+			if (!p) return 0;
+			const subtotal = p.items.reduce((sum, it) => sum + it.precio * (it.unidad === 'kg' ? (this.pesos[it.productoId] ?? 0) : it.cantidad), 0);
+			return Math.round(subtotal * 100) / 100 + p.envioCosto;
+		},
+		pesosValidos(): boolean {
+			return !!this.pesosTarget && this.itemsPorKilo(this.pesosTarget).every(it => (this.pesos[it.productoId] ?? 0) > 0);
 		},
 		motivoTitle(): string {
 			return this.$t(this.motivoTarget?.status === 'rechazado' ? 'admin.pedidos.reject' : 'admin.pedidos.cancelTitle');
@@ -332,6 +392,43 @@ export default defineComponent({
 			} finally {
 				this.busyId = '';
 			}
+		},
+		itemsPorKilo(p: Pedido): PedidoItem[] {
+			return p.items.filter(it => it.unidad === 'kg');
+		},
+		/** Se cargó un peso real distinto de lo pedido. */
+		ajustado(it: PedidoItem): boolean {
+			return it.cantidadPedida != null && it.cantidadPedida !== it.cantidad;
+		},
+		/** Aceptar: con productos por kilo, antes se carga lo que pesó cada uno. */
+		accept(pedido: Pedido) {
+			const porKilo = this.itemsPorKilo(pedido);
+			if (!porKilo.length) return void this.setStatus(pedido, 'confirmado');
+			this.pesos = Object.fromEntries(porKilo.map(it => [it.productoId, it.cantidad]));
+			this.pesosTarget = pedido;
+			this.pesosVisible = true;
+		},
+		/** Guarda los pesos (si cambió alguno) y acepta el pedido con el total nuevo. */
+		async confirmPesos() {
+			let pedido = this.pesosTarget;
+			if (!pedido || !this.pesosValidos) return;
+			const items = this.itemsPorKilo(pedido)
+				.map(it => ({ productoId: it.productoId, cantidad: this.pesos[it.productoId] ?? it.cantidad, antes: it.cantidad }))
+				.filter(it => it.cantidad !== it.antes)
+				.map(({ productoId, cantidad }) => ({ productoId, cantidad }));
+			if (items.length) {
+				this.busyId = pedido.id;
+				try {
+					pedido = await this.catalog.ajustarPesos(this.rubroId, pedido.id, items);
+					this.replace(pedido);
+				} catch (e: unknown) {
+					this.$toast.add({ severity: 'error', summary: apiErrorMessage(e, this.$t('admin.errors.save')), life: 5000 });
+					this.busyId = '';
+					return;
+				}
+			}
+			await this.setStatus(pedido, 'confirmado');
+			this.pesosVisible = false;
 		},
 		askMotivo(pedido: Pedido, status: PedidoStatus) {
 			this.motivo = '';
@@ -411,8 +508,17 @@ export default defineComponent({
 			const r = this.rubro;
 			const lines = [
 				this.$t('admin.pedidos.msg.confirmed', { nombre: p.clienteNombre, n: p.numero, tienda: r?.nombre ?? '' }),
-				`*${this.$t('public.cart.total')}: ${this.money(p.total)}*`,
 			];
+			// Lo que va por kilo se pesó: que el cliente vea por qué cambió el total.
+			const pesados = p.items.filter(it => this.ajustado(it));
+			if (pesados.length) {
+				lines.push(this.$t('admin.pedidos.msg.pesosIntro'));
+				for (const it of pesados) {
+					const real = formatCantidad(it.cantidad, 'kg');
+					lines.push(`• ${it.nombre}: ${real} (${this.$t('admin.pedidos.msg.pediste', { cantidad: formatCantidad(it.cantidadPedida ?? 0, 'kg') })})`);
+				}
+			}
+			lines.push(`*${this.$t('public.cart.total')}: ${this.money(p.total)}*`);
 			if (this.hasPago) {
 				lines.push('', this.$t('admin.pedidos.msg.payIntro'));
 				if (r?.pagoAlias) lines.push(`${this.$t('public.pedido.pay.alias')}: ${r.pagoAlias}`);
